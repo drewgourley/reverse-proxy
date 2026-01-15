@@ -1011,15 +1011,26 @@ manrouter.get('/git/status', (request, response) => {
         exec('git log -1 --format=%s', (messageError, messageOut) => {
           const message = messageError ? '' : messageOut.trim();
           
-          exec('git log -1 --format=%ar', (dateError, dateOut) => {
-            const date = dateError ? '' : dateOut.trim();
+          // Get commit timestamp for version number
+          exec('git log -1 --format=%ct', (timestampError, timestampOut) => {
+            let version = 'Unknown';
+            if (!timestampError && timestampOut.trim()) {
+              const timestamp = parseInt(timestampOut.trim()) * 1000;
+              const d = new Date(timestamp);
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              const hours = String(d.getHours()).padStart(2, '0');
+              const minutes = String(d.getMinutes()).padStart(2, '0');
+              version = `${year}.${month}.${day}.${hours}${minutes}`;
+            }
             
             response.status(200).send({
               success: true,
               branch,
               commit,
               message,
-              date
+              version
             });
           });
         });

@@ -1025,26 +1025,14 @@ function renderGitStatus(status) {
         return;
     }
     
+    const versionNumber = status.version || 'Unknown';
+    
     versionInfo.innerHTML = `
-        <div class="version-column">
-            <div class="version-row">
-                <span class="version-label">Branch:</span>
-                <span class="version-value">${status.branch}</span>
-            </div>
-            <div class="version-row">
-                <span class="version-label">Commit:</span>
-                <span class="version-value">${status.commit}</span>
-            </div>
-        </div>
-        <div class="version-column">
-            <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Loading...'}" ${isFirstTimeSetup ? 'disabled style="opacity: 0.5; cursor: default; pointer-events: none;"' : 'disabled'}>
-                <span class="update-icon">↻</span>
-                <span class="update-text">Loading...</span>
-            </button>
-            ${status.date ? `
-                <span class="version-date">${status.date}</span>
-            ` : ''}
-        </div>
+        <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Loading...'}" ${isFirstTimeSetup ? 'disabled style="opacity: 0.5; cursor: default; pointer-events: none;"' : 'disabled'}>
+            <span class="update-icon">↻</span>
+            <span class="update-text">Loading...</span>
+        </button>
+        <span class="version-number">${versionNumber}</span>
     `;
 }
 
