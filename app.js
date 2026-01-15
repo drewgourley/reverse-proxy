@@ -8,6 +8,8 @@ const path = require('path');
 const { exec } = require('child_process');
 
 // retrieve extra dependencies
+const Ajv = require('ajv');
+const ajv = new Ajv();
 const bcrypt = require('bcrypt');
 const cheerio = require('cheerio');
 const dotenv = require('dotenv');
@@ -620,6 +622,38 @@ manrouter.put('/config', (request, response) => {
   try {
     const updatedConfig = request.body;
     
+    // Validate config schema
+    const configSchema = {
+      type: 'object',
+      required: ['domain'],
+      properties: {
+        domain: { type: 'string', minLength: 1 },
+        services: {
+          type: 'object',
+          patternProperties: {
+            '^[a-zA-Z0-9_-]+$': {
+              type: 'object',
+              properties: {
+                nicename: { type: 'string' },
+                subdomain: { type: 'object' },
+                healthcheck: { type: 'object' }
+              }
+            }
+          }
+        }
+      },
+      additionalProperties: false
+    };
+    
+    const validate = ajv.compile(configSchema);
+    if (!validate(updatedConfig)) {
+      return response.status(400).send({ 
+        success: false, 
+        error: 'Invalid config format', 
+        details: validate.errors 
+      });
+    }
+    
     const configPath = path.join(__dirname, 'config.json');
     fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2));
     
@@ -648,6 +682,27 @@ manrouter.put('/checks', (request, response) => {
 manrouter.put('/secrets', async (request, response) => {
   try {
     const updatedSecrets = request.body;
+    
+    // Validate secrets schema
+    const secretsSchema = {
+      type: 'object',
+      properties: {
+        admin_email_address: { type: 'string', format: 'email' },
+        shock_password_hash: { type: 'string' },
+        shock_password: { type: 'string' },
+        shock_mac: { type: 'string', pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$' }
+      },
+      additionalProperties: true // Allow custom secrets
+    };
+    
+    const validate = ajv.compile(secretsSchema);
+    if (!validate(updatedSecrets)) {
+      return response.status(400).send({ 
+        success: false, 
+        error: 'Invalid secrets format', 
+        details: validate.errors 
+      });
+    }
     
     // Read existing secrets to preserve password hash if not changed
     let existingSecrets = {};
@@ -747,6 +802,24 @@ manrouter.post('/favicon', faviconUpload.single('favicon'), async (request, resp
       return response.status(400).send({ success: false, error: 'No file uploaded' });
     }
 
+    // Validate MIME type - only accept image types
+    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (!allowedMimeTypes.includes(request.file.mimetype)) {
+      return response.status(400).send({ 
+        success: false, 
+        error: `Invalid file type. Only image files are allowed (${allowedMimeTypes.join(', ')})` 
+      });
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (request.file.size > maxSize) {
+      return response.status(400).send({ 
+        success: false, 
+        error: 'File too large. Maximum size is 5MB' 
+      });
+    }
+
     const faviconDir = path.join(__dirname, 'web', 'global', 'favicon');
     
     if (!fs.existsSync(faviconDir)) {
@@ -799,6 +872,29 @@ manrouter.put('/ddns', (request, response) => {
   try {
     const updatedDdns = request.body;
     
+    // Validate DDNS schema
+    const ddnsSchema = {
+      type: 'object',
+      required: ['active'],
+      properties: {
+        active: { type: 'boolean' },
+        aws_access_key_id: { type: 'string' },
+        aws_secret_access_key: { type: 'string' },
+        aws_region: { type: 'string' },
+        route53_hosted_zone_id: { type: 'string' }
+      },
+      additionalProperties: false
+    };
+    
+    const validate = ajv.compile(ddnsSchema);
+    if (!validate(updatedDdns)) {
+      return response.status(400).send({ 
+        success: false, 
+        error: 'Invalid DDNS configuration format', 
+        details: validate.errors 
+      });
+    }
+    
     const ddnsPath = path.join(__dirname, 'ddns.json');
     fs.writeFileSync(ddnsPath, JSON.stringify(updatedDdns, null, 2));
     
@@ -814,6 +910,39 @@ manrouter.put('/ddns', (request, response) => {
 manrouter.put('/ecosystem', (request, response) => {
   try {
     const updatedEcosystem = request.body;
+    
+    // Validate ecosystem schema
+    const ecosystemSchema = {
+      type: 'object',
+      properties: {
+        apps: {
+          type: 'array',
+          minItems: 1,
+          items: {
+            type: 'object',
+            required: ['name', 'script'],
+            properties: {
+              name: { type: 'string', minLength: 1 },
+              script: { type: 'string', minLength: 1 },
+              watch: { type: 'boolean' },
+              ignore_watch: { type: 'array', items: { type: 'string' } },
+              env: { type: 'object' }
+            }
+          }
+        }
+      },
+      additionalProperties: true
+    };
+    
+    const validate = ajv.compile(ecosystemSchema);
+    if (!validate(updatedEcosystem)) {
+      return response.status(400).send({ 
+        success: false, 
+        error: 'Invalid ecosystem configuration format', 
+        details: validate.errors 
+      });
+    }
+    
     let firstrun = true;
     const ecosystemPath = path.join(__dirname, 'ecosystem.config.js');
 
@@ -834,7 +963,8 @@ manrouter.put('/ecosystem', (request, response) => {
             process.exit(0);
           });
         } else {
-          exec(`pm2 restart 0 ecosystem.config.js --name '${updatedEcosystem.apps[0].name}' --update-env`, () => {
+          const safeName = (updatedEcosystem.apps[0].name || 'app').replace(/[^a-zA-Z0-9 _-]/g, '');
+          exec(`pm2 restart 0 ecosystem.config.js --name '${safeName}' --update-env`, () => {
             process.exit(0);
           });
         }
