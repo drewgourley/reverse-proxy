@@ -64,6 +64,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             closePromptModal();
         }
     });
+    
+    // Mark page as fully loaded
+    document.documentElement.classList.add('loaded');
+    setTimeout(() => {
+        document.documentElement.classList.add('rendered');
+    }, 500);
 });
 
 function updateSidebarButtons() {
