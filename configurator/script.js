@@ -11,7 +11,6 @@ let configSavedThisSession = false;
 let servicesWithSubdomainsAtLastSave = new Set();
 let gitStatus = {};
 
-// Load config on page load
 document.addEventListener('DOMContentLoaded', async () => {
     await loadColors();
     await loadConfig();
@@ -22,12 +21,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderServicesList();
     updateSidebarButtons();
     
-    // Check if we just completed an update
     const urlParams = new URLSearchParams(window.location.search);
     const justUpdated = urlParams.get('updated') === 'true';
     
     if (justUpdated) {
-        // Clear the updated flag from URL
         urlParams.delete('updated');
         const url = new URL(window.location);
         url.search = urlParams.toString();
@@ -35,17 +32,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         showStatus('Update completed successfully!', 'success');
     }
     
-    // Check if this is first-time setup (ecosystem has default: true)
     const isFirstTimeSetup = ecosystem.default === true;
     
     if (isFirstTimeSetup) {
-        // First-time setup: automatically select application settings
         selectItem('management-application');
     } else {
-        // Check for section in query string and auto-select
         const section = urlParams.get('section');
         if (section) {
-            // Verify the section exists
             const validManagementSections = ['management-application', 'management-certificates', 'management-secrets', 'management-ddns', 'management-theme'];
             const validConfigSections = ['config-domain'];
             const isValidManagement = validManagementSections.includes(section);
@@ -55,7 +48,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isValidManagement || isValidConfig || isService) {
                 selectItem(section);
             } else {
-                // Section doesn't exist, clear the query string
                 const url = new URL(window.location);
                 url.searchParams.delete('section');
                 window.history.replaceState({}, '', url);
@@ -63,7 +55,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // Setup keyboard shortcuts
     document.getElementById('promptInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') submitPrompt();
     });
@@ -82,7 +73,6 @@ function updateSidebarButtons() {
     const addServiceBtn = document.querySelector('.sidebar .btn-add-field');
     
     if (isFirstTimeSetup) {
-        // Disable buttons during first-time setup
         if (saveBtn) {
             saveBtn.disabled = true;
             saveBtn.style.opacity = '0.5';
@@ -102,7 +92,6 @@ function updateSidebarButtons() {
             addServiceBtn.style.pointerEvents = 'none';
         }
     } else {
-        // Enable buttons in normal mode
         if (saveBtn) {
             saveBtn.disabled = false;
             saveBtn.style.opacity = '';
@@ -172,7 +161,6 @@ async function loadConfig() {
         
         config = JSON.parse(text);
         
-        // Ensure default services exist
         if (!config.services) {
             config.services = {};
         }
@@ -189,7 +177,6 @@ async function loadConfig() {
         showStatus('Config loaded successfully', 'success');
     } catch (error) {
         console.error('Config load error:', error);
-        // Use default config if loading fails
         config = getDefaultConfig();
         originalConfig = JSON.parse(JSON.stringify(config));
         showStatus('Using default config (could not load existing): ' + error.message, 'error');
@@ -229,7 +216,6 @@ async function loadSecrets() {
         
         secrets = JSON.parse(text);
         
-        // Ensure all default secrets exist
         const defaults = getDefaultSecrets();
         Object.keys(defaults).forEach(key => {
             if (!(key in secrets)) {
@@ -240,7 +226,6 @@ async function loadSecrets() {
         originalSecrets = JSON.parse(JSON.stringify(secrets));
     } catch (error) {
         console.error('Secrets load error:', error);
-        // Use default secrets if loading fails
         secrets = getDefaultSecrets();
         originalSecrets = JSON.parse(JSON.stringify(secrets));
         showStatus('Using default secrets (could not load existing): ' + error.message, 'error');
@@ -264,7 +249,6 @@ async function loadDdns() {
         
         ddns = JSON.parse(text);
         
-        // Ensure all default fields exist
         const defaults = getDefaultDdns();
         Object.keys(defaults).forEach(key => {
             if (ddns[key] === undefined) ddns[key] = defaults[key];
@@ -273,7 +257,6 @@ async function loadDdns() {
         originalDdns = JSON.parse(JSON.stringify(ddns));
     } catch (error) {
         console.error('DDNS load error:', error);
-        // Use default ddns if loading fails
         ddns = getDefaultDdns();
         originalDdns = JSON.parse(JSON.stringify(ddns));
         showStatus('Using default DDNS config (could not load existing): ' + error.message, 'error');
@@ -288,23 +271,19 @@ function renderSecretsEditor() {
             <div class="hint hint-section">Manage sensitive configuration values.</div>
     `;
 
-    // Render secrets with admin_email_address first
     const secretKeys = Object.keys(secrets);
     const orderedKeys = [];
     
-    // Add admin_email_address first if it exists
     if (secretKeys.includes('admin_email_address')) {
         orderedKeys.push('admin_email_address');
     }
     
-    // Add all other secrets
     secretKeys.forEach(key => {
         if (key !== 'admin_email_address') {
             orderedKeys.push(key);
         }
     });
     
-    // Render secrets in order
     const defaultSecretKeys = Object.keys(getDefaultSecrets());
     orderedKeys.forEach(key => {
         const value = secrets[key];
@@ -313,7 +292,6 @@ function renderSecretsEditor() {
         const isPasswordHash = key === 'shock_password_hash';
         const isExistingHash = isPasswordHash && value && value.startsWith('$2b$');
         
-        // Create friendly labels for default secrets
         const labelMap = {
             'admin_email_address': 'Admin Email Address',
             'shock_password_hash': 'Wake-on-LAN Password',
@@ -327,13 +305,11 @@ function renderSecretsEditor() {
                     <label for="secret_${key}">${displayLabel}</label>`;
         
         if (isEmail) {
-            // Render email field without password toggle
             html += `
                     <input type="email" id="secret_${key}" value="${value}" 
                             onchange="updateSecret('${key}', this.value)"
                             autocomplete="off">`;
         } else if (isPasswordHash) {
-            // Render as password field but show empty if already hashed
             const displayValue = isExistingHash ? '' : value;
             const placeholderText = isExistingHash ? 'Password already set - enter new password to change' : 'Enter new password to hash it automatically';
             html += `
@@ -347,7 +323,6 @@ function renderSecretsEditor() {
                     </div>
                     <div class="hint">${isExistingHash ? 'Leave empty to keep current password, or enter new password to update' : 'Enter a plaintext password here - it will be automatically hashed when saved'}</div>`;
         } else {
-            // Render password field with toggle
             html += `
                     <div class="password-input-group">
                         <input type="text" id="secret_${key}" value="${value}"
@@ -396,11 +371,9 @@ function updateSecret(key, value) {
 }
 
 function updatePasswordHash(key, value, wasExistingHash) {
-    // Only update if user entered something, otherwise keep existing hash
     if (value.trim() !== '') {
-        secrets[key] = value; // Will be hashed on server side
+        secrets[key] = value;
     }
-    // If empty and was existing hash, we keep the existing hash (don't delete it)
 }
 
 function removeSecret(key) {
@@ -424,14 +397,12 @@ function addNewSecret() {
         (secretName) => {
             if (!secretName) return;
             
-            // Check for duplicates first (case-insensitive)
             const existingKeys = Object.keys(secrets).map(k => k.toLowerCase());
             if (existingKeys.includes(secretName.toLowerCase())) {
                 showPromptError('A secret with this name already exists!');
                 return;
             }
             
-            // Validate secret name format
             const secretNameRegex = /^[a-z][a-z_]*[a-z]$|^[a-z]$/;
             
             if (!secretNameRegex.test(secretName)) {
@@ -470,11 +441,9 @@ async function saveSecrets() {
         originalSecrets = JSON.parse(JSON.stringify(secrets));
         showStatus('✓ Secrets saved successfully!', 'success');
         
-        // Start polling for server restart
         showLoadingOverlay('Server Restarting...', 'Secrets saved. Waiting for the server to restart...');
         await waitForServerRestart();
         
-        // Re-render service list to update certificates state
         renderServicesList();
         
     } catch (error) {
@@ -517,7 +486,6 @@ function renderDdnsEditor() {
             </div>
     `;
 
-    // Render DDNS fields
     const ddnsFields = [
         { key: 'aws_access_key_id', label: 'AWS Access Key ID', hint: 'Your AWS IAM access key ID' },
         { key: 'aws_secret_access_key', label: 'AWS Secret Access Key', hint: 'Your AWS IAM secret access key' },
@@ -593,7 +561,6 @@ async function saveDdns() {
         originalDdns = JSON.parse(JSON.stringify(ddns));
         showStatus('✓ DDNS config saved successfully!', 'success');
         
-        // Start polling for server restart
         showLoadingOverlay('Server Restarting...', 'DDNS config saved. Waiting for the server to restart...');
         await waitForServerRestart();
         
@@ -619,7 +586,6 @@ function revertDdns() {
     );
 }
 
-// Theme Management Functions
 let pendingFaviconFile = null;
 
 async function loadColors() {
@@ -630,11 +596,9 @@ async function loadColors() {
         colors = await response.json();
         originalColors = JSON.parse(JSON.stringify(colors));
         
-        // Apply theme immediately
         updateTheme();
         document.documentElement.classList.add('ready');
         
-        // Update color pickers if they exist
         const color1 = document.getElementById('color1');
         const color2 = document.getElementById('color2');
         const color3 = document.getElementById('color3');
@@ -646,7 +610,6 @@ async function loadColors() {
         if (color4) color4.value = colors.background || '#ffffff';
     } catch (error) {
         console.error('Failed to load colors:', error);
-        // Use defaults on error
         colors = {
             primary: '#667eea',
             secondary: '#764ba2',
@@ -661,7 +624,6 @@ async function loadColors() {
 }
 
 function hexToHSL(hex) {
-    // Convert hex to RGB
     let r = parseInt(hex.slice(1, 3), 16) / 255;
     let g = parseInt(hex.slice(3, 5), 16) / 255;
     let b = parseInt(hex.slice(5, 7), 16) / 255;
@@ -722,9 +684,8 @@ function darkenFromBackground(hex, percent) {
 }
 
 function clampBackgroundColor(hex) {
-    // Prevent background from going darker than #181818
     const hsl = hexToHSL(hex);
-    const minLightness = 9.4; // ~#181818
+    const minLightness = 9.4;
     if (hsl.l < minLightness) {
         return hslToHex(hsl.h, hsl.s, minLightness);
     }
@@ -737,11 +698,8 @@ function updateTheme() {
     const accent = colors.accent || '#48bb78';
     const background = colors.background || '#ffffff';
     const inverse = getInverseColor(accent);
-    
-    // Clamp background color for display (doesn't affect saved value)
     const displayBackground = clampBackgroundColor(background);
     
-    // Update CSS variables
     const root = document.documentElement;
     root.style.setProperty('--color-primary', primary);
     root.style.setProperty('--color-secondary', secondary);
@@ -749,18 +707,14 @@ function updateTheme() {
     root.style.setProperty('--color-background', displayBackground);
     root.style.setProperty('--color-inverse', inverse);
     
-    // Calculate hover colors (darken by 10%)
     root.style.setProperty('--color-accent-hover', darkenColor(accent, 10));
     root.style.setProperty('--color-primary-hover', darkenColor(primary, 10));
     root.style.setProperty('--color-inverse-hover', darkenColor(inverse, 10));
     
-    // Calculate grayscale based on display background
     const bgHSL = hexToHSL(displayBackground);
     const isDark = bgHSL.l < 50;
     
-    // Generate gray colors based on background lightness
     if (isDark) {
-        // Dark background: lighten for grays
         root.style.setProperty('--color-gray-50', lightenFromBackground(displayBackground, 5));
         root.style.setProperty('--color-gray-100', lightenFromBackground(displayBackground, 10));
         root.style.setProperty('--color-gray-200', lightenFromBackground(displayBackground, 15));
@@ -774,7 +728,6 @@ function updateTheme() {
         root.style.setProperty('--color-text-primary', '#ffffff');
         root.style.setProperty('--color-text-secondary', lightenFromBackground(displayBackground, 70));
     } else {
-        // Light background: darken for grays
         root.style.setProperty('--color-gray-50', darkenFromBackground(displayBackground, 2));
         root.style.setProperty('--color-gray-100', darkenFromBackground(displayBackground, 5));
         root.style.setProperty('--color-gray-200', darkenFromBackground(displayBackground, 10));
@@ -789,7 +742,6 @@ function updateTheme() {
         root.style.setProperty('--color-text-secondary', '#4b5563');
     }
     
-    // Update background gradient - darken based on background color
     const darkenAmount = Math.max(0, (50 - bgHSL.l) * 0.9);
     const gradientPrimary = darkenColor(primary, darkenAmount);
     const gradientSecondary = darkenColor(secondary, darkenAmount);
@@ -800,7 +752,6 @@ function revertColors() {
     colors = JSON.parse(JSON.stringify(originalColors));
     updateTheme();
     
-    // Update color pickers if they exist
     const color1 = document.getElementById('color1');
     const color2 = document.getElementById('color2');
     const color3 = document.getElementById('color3');
@@ -811,7 +762,6 @@ function revertColors() {
     if (color3) color3.value = originalColors.accent || '#48bb78';
     if (color4) color4.value = originalColors.background || '#ffffff';
     
-    // Clear favicon preview and pending file
     pendingFaviconFile = null;
     const faviconUpload = document.getElementById('faviconUpload');
     const faviconPreview = document.getElementById('faviconPreview');
@@ -826,14 +776,12 @@ async function handleFaviconPreview(event) {
         return;
     }
     
-    // Validate file type
     if (!file.type.match('image/png')) {
         showStatus('Please upload a PNG file', 'error');
         pendingFaviconFile = null;
         return;
     }
     
-    // Validate file size (check dimensions)
     const img = new Image();
     const reader = new FileReader();
     
@@ -845,10 +793,8 @@ async function handleFaviconPreview(event) {
                 return;
             }
             
-            // Store file for later upload
             pendingFaviconFile = file;
             
-            // Show preview
             document.getElementById('faviconFileName').textContent = file.name;
             document.getElementById('faviconPreviewImg').src = e.target.result;
             document.getElementById('faviconPreview').style.display = 'block';
@@ -876,7 +822,6 @@ async function uploadFavicon() {
             throw new Error(error.error || 'Favicon upload failed');
         }
         
-        // Update current favicon display
         const currentFavicon = document.getElementById('currentFavicon');
         const noFaviconWarning = document.getElementById('noFaviconWarning');
         if (currentFavicon) {
@@ -887,7 +832,6 @@ async function uploadFavicon() {
             noFaviconWarning.style.display = 'none';
         }
         
-        // Clear pending file and preview
         pendingFaviconFile = null;
         document.getElementById('faviconFileName').textContent = '';
         document.getElementById('faviconPreview').style.display = 'none';
@@ -902,7 +846,6 @@ async function uploadFavicon() {
 
 async function saveTheme() {
     try {
-        // Save colors first
         const colorData = {
             primary: colors.primary,
             secondary: colors.secondary,
@@ -922,7 +865,6 @@ async function saveTheme() {
         colors = colorData;
         originalColors = JSON.parse(JSON.stringify(colorData));
         
-        // Upload favicon if one is selected
         if (pendingFaviconFile) {
             await uploadFavicon();
             showStatus('✓ Theme and favicon saved successfully!', 'success');
@@ -1008,7 +950,6 @@ function renderThemeEditor() {
         </div>
     `;
     
-    // Attach event listeners for live updates
     document.getElementById('color1').addEventListener('input', (e) => {
         colors.primary = e.target.value;
         updateTheme();
@@ -1026,7 +967,6 @@ function renderThemeEditor() {
         updateTheme();
     });
     
-    // Setup favicon uploader
     document.getElementById('faviconUpload').addEventListener('change', handleFaviconPreview);
 }
 
@@ -1062,7 +1002,6 @@ async function loadGitStatus() {
         if (data.success) {
             gitStatus = data;
             renderGitStatus(data);
-            // Auto-check for updates
             checkForUpdates();
         } else {
             renderGitStatus({ error: data.error });
@@ -1237,7 +1176,6 @@ async function saveEcosystem() {
     saveBtn.textContent = 'Saving...';
 
     try {
-        // Create a copy and strip out the default flag
         const ecosystemToSave = JSON.parse(JSON.stringify(ecosystem));
         delete ecosystemToSave.default;
         
@@ -1254,25 +1192,20 @@ async function saveEcosystem() {
             throw new Error(error);
         }
 
-        // Update local copy to remove default flag after successful save
         delete ecosystem.default;
         originalEcosystem = JSON.parse(JSON.stringify(ecosystem));
         showStatus('✓ Application settings saved successfully!', 'success');
 
-        // Start polling for server restart
         showLoadingOverlay('Server Restarting...', 'Application settings saved. Waiting for the server to restart...');
         await waitForServerRestart();
 
-        // Re-enable sidebar items and buttons now that first-time setup is complete
         renderServicesList();
         updateSidebarButtons();
         
-        // Re-render git status to enable update button
         if (gitStatus && !gitStatus.error) {
             renderGitStatus(gitStatus);
         }
 
-        // Refresh application editor if it's currently selected to update the save button
         if (currentSelection === 'management-application') {
             renderApplicationEditor();
         }
@@ -1301,28 +1234,23 @@ function renderServicesList() {
     const list = document.getElementById('servicesList');
     list.innerHTML = '';
     
-    // Check if this is first-time setup
     const isFirstTimeSetup = ecosystem.default === true;
     
-    // Check if certificates should be enabled (requires admin email and domain to be set)
     const hasAdminEmail = secrets.admin_email_address && secrets.admin_email_address.trim() !== '';
     const hasDomain = config.domain && config.domain.trim() !== '';
     const certificatesEnabled = !isFirstTimeSetup && hasAdminEmail && hasDomain;
     const ddnsEnabled = !isFirstTimeSetup && hasDomain;
 
-    // Add management section
     const managementHeader = document.createElement('h2');
     managementHeader.textContent = 'Management';
     list.appendChild(managementHeader);
 
-    // Add application settings
     const appItem = document.createElement('div');
     appItem.className = 'service-item' + (currentSelection === 'management-application' ? ' active' : '');
     appItem.textContent = '⚙️ Application';
     appItem.onclick = () => selectItem('management-application');
     list.appendChild(appItem);
 
-    // Add secrets
     const secretsItem = document.createElement('div');
     secretsItem.className = 'service-item' + (currentSelection === 'management-secrets' ? ' active' : '');
     secretsItem.textContent = '🔑 Secrets';
@@ -1336,7 +1264,6 @@ function renderServicesList() {
     }
     list.appendChild(secretsItem);
 
-    // Add certificates
     const certsItem = document.createElement('div');
     certsItem.className = 'service-item' + (currentSelection === 'management-certificates' ? ' active' : '');
     certsItem.textContent = '🔒 Certificates';
@@ -1350,7 +1277,6 @@ function renderServicesList() {
     }
     list.appendChild(certsItem);
 
-    // Add DDNS
     const ddnsItem = document.createElement('div');
     ddnsItem.className = 'service-item' + (currentSelection === 'management-ddns' ? ' active' : '');
     ddnsItem.textContent = '🌐 Dynamic DNS';
@@ -1364,7 +1290,6 @@ function renderServicesList() {
     }
     list.appendChild(ddnsItem);
 
-    // Add theme
     const themeItem = document.createElement('div');
     themeItem.className = 'service-item' + (currentSelection === 'management-theme' ? ' active' : '');
     themeItem.textContent = '🎨 Theme';
@@ -1378,13 +1303,11 @@ function renderServicesList() {
     }
     list.appendChild(themeItem);
 
-    // Add configuration section
     const configHeader = document.createElement('h2');
     configHeader.style.marginTop = '20px';
     configHeader.textContent = 'Configuration';
     list.appendChild(configHeader);
 
-    // Add domain
     const domainItem = document.createElement('div');
     domainItem.className = 'service-item' + (currentSelection === 'config-domain' ? ' active' : '');
     domainItem.textContent = '🌐 Domain';
@@ -1398,16 +1321,13 @@ function renderServicesList() {
     }
     list.appendChild(domainItem);
 
-    // Add services - always show default services (www, api) first, then others
     const defaultServices = ['www', 'api'];
     const allServiceNames = new Set(defaultServices);
     
-    // Add all existing services to the set
     if (config.services) {
         Object.keys(config.services).forEach(name => allServiceNames.add(name));
     }
     
-    // Ensure default services exist in config
     if (!config.services) {
         config.services = {};
     }
@@ -1418,7 +1338,6 @@ function renderServicesList() {
         }
     });
     
-    // Sort services: defaults first (in order), then alphabetically
     const sortedServices = Array.from(allServiceNames).sort((a, b) => {
         const aIsDefault = defaultServices.includes(a);
         const bIsDefault = defaultServices.includes(b);
@@ -1431,7 +1350,6 @@ function renderServicesList() {
         return a.localeCompare(b);
     });
     
-    // Render services
     sortedServices.forEach(serviceName => {
         const item = document.createElement('div');
         item.className = 'service-item' + (currentSelection === 'config-' + serviceName ? ' active' : '');
@@ -1451,14 +1369,12 @@ function renderServicesList() {
 function selectItem(prefixedName) {
     currentSelection = prefixedName;
     
-    // Update URL query string
     const url = new URL(window.location);
     url.searchParams.set('section', prefixedName);
     window.history.pushState({}, '', url);
     
     renderServicesList();
     
-    // Strip prefix to get actual item name
     const itemName = prefixedName.replace(/^(management-|config-)/, '');
     
     if (prefixedName === 'config-domain') {
@@ -1565,18 +1481,14 @@ async function provisionCertificates() {
         `;
         showStatus('Certificates provisioned successfully!', 'success');
         
-        // Reset flag - user must save config again before next provisioning
         configSavedThisSession = false;
 
-        // Refresh certificates editor if it's currently selected to enable the provision button
         if (currentSelection === 'management-certificates') {
             renderCertificatesEditor();
         }
 
-        // Start polling for server restart
         showLoadingOverlay('Server Restarting...', 'Certificates provisioned. Waiting for the server to restart...');
         await waitForServerRestart();
-        
     } catch (error) {
         outputEl.innerHTML = `
             <div class="result-error">
@@ -1609,9 +1521,7 @@ function renderServiceEditor(serviceName) {
         </div>
     `;
 
-    // Render subdomain section
     if (service.subdomain) {
-        // www and api get simplified subdomain (Type and Protocol only)
         if (serviceName === 'www' || serviceName === 'api') {
             html += renderDefaultSubdomainSection(serviceName, service.subdomain);
         } else {
@@ -1629,10 +1539,8 @@ function renderServiceEditor(serviceName) {
         `;
     }
 
-    // Render healthcheck section (not available for www service)
     if (serviceName !== 'www') {
         if (service.healthcheck) {
-            // API service gets simplified healthcheck (ID only)
             if (serviceName === 'api') {
                 html += renderApiHealthcheckSection(serviceName, service.healthcheck);
             } else {
@@ -1661,7 +1569,7 @@ function renderServiceProperties(serviceName, service, prefix = '', depth = 0) {
     if (depth > maxDepth) return html;
 
     Object.keys(service).sort().forEach(key => {
-        if (key === 'router' || key === 'middleware') return; // Skip non-editable fields
+        if (key === 'router' || key === 'middleware') return;
 
         const value = service[key];
         const fullPath = prefix ? `${prefix}.${key}` : key;
@@ -2104,7 +2012,6 @@ function updateServiceProperty(serviceName, path, value) {
     const parts = path.split('.');
     let obj = config.services[serviceName];
 
-    // Ensure all nested objects exist
     for (let i = 0; i < parts.length - 1; i++) {
         const part = parts[i];
         if (!obj[part] || typeof obj[part] !== 'object') {
@@ -2125,7 +2032,6 @@ function removeService(serviceName) {
                 delete config.services[serviceName];
                 currentSelection = null;
                 
-                // Clear query string from URL
                 const url = new URL(window.location);
                 url.searchParams.delete('section');
                 window.history.pushState({}, '', url);
@@ -2150,14 +2056,12 @@ function addNewService() {
         (serviceName) => {
             if (!serviceName) return;
             
-            // Check for duplicates first (case-insensitive)
             const existingServices = Object.keys(config.services).map(s => s.toLowerCase());
             if (existingServices.includes(serviceName.toLowerCase())) {
                 showPromptError('A service with this name already exists!');
                 return;
             }
             
-            // Validate service name for subdomain compatibility
             const subdomainRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
             
             if (!subdomainRegex.test(serviceName)) {
@@ -2216,10 +2120,8 @@ async function saveConfig() {
     saveBtn.textContent = 'Saving...';
 
     try {
-        // Deep copy config
         const configToSave = JSON.parse(JSON.stringify(config));
         
-        // Sort services alphabetically
         if (configToSave.services) {
             const sortedServices = {};
             Object.keys(configToSave.services).sort().forEach(key => {
@@ -2228,7 +2130,6 @@ async function saveConfig() {
             configToSave.services = sortedServices;
         }
         
-        // Ensure subdomain always has router: null and proxy settings
         Object.entries(configToSave.services).forEach(([name, service]) => {
             if (service.subdomain) {
                 service.subdomain.router = null;
@@ -2240,7 +2141,6 @@ async function saveConfig() {
             }
         });
         
-        // Clean config before sending (remove blank fields)
         const cleanedConfig = cleanConfig(configToSave);
         
         let response = await fetch('config', {
@@ -2256,7 +2156,6 @@ async function saveConfig() {
             throw new Error(error);
         }
 
-        // Also save checklist
         const checklist = mapChecklist(configToSave);
         
         response = await fetch('checks', {
@@ -2274,7 +2173,6 @@ async function saveConfig() {
 
         originalConfig = JSON.parse(JSON.stringify(config));
         
-        // Check if there are changes to services with secure subdomains compared to previous save
         const currentServicesWithSubdomains = new Set();
         Object.keys(config.services).forEach(serviceName => {
             if (config.services[serviceName].subdomain && config.services[serviceName].subdomain.protocol === 'secure') {
@@ -2282,7 +2180,6 @@ async function saveConfig() {
             }
         });
         
-        // Enable cert provisioning if there are additions OR removals of services with secure subdomains
         const hasNewServices = Array.from(currentServicesWithSubdomains).some(
             service => !servicesWithSubdomainsAtLastSave.has(service)
         );
@@ -2291,22 +2188,19 @@ async function saveConfig() {
         );
         
         if (hasNewServices || hasRemovedServices) {
-            configSavedThisSession = true; // Enable certificate provisioning
+            configSavedThisSession = true;
             servicesWithSubdomainsAtLastSave = currentServicesWithSubdomains;
         }
         
         showStatus('✓ Config saved successfully!', 'success');
         
-        // Refresh certificates editor if it's currently selected to enable the provision button
         if (currentSelection === 'management-certificates') {
             renderCertificatesEditor();
         }
         
-        // Start polling for server restart
         showLoadingOverlay('Server Restarting...', 'Configuration saved. Waiting for the server to restart...');
         await waitForServerRestart();
         
-        // Re-render service list to update certificates state
         renderServicesList();
         
     } catch (error) {
@@ -2326,27 +2220,21 @@ function cleanConfig(obj) {
             if (obj.hasOwnProperty(key)) {
                 const value = obj[key];
                 
-                // Always keep router, websocket, and middleware set to null
                 if ((key === 'router' || key === 'websocket' || key === 'middleware') && value === null) {
                     cleaned[key] = null;
                 }
-                // Always keep nicename even if empty
                 else if (key === 'nicename') {
                     cleaned[key] = value || '';
                 }
-                // Skip empty strings
                 else if (value === '') {
                     continue;
                 }
-                // Recursively clean objects
                 else if (value !== null && typeof value === 'object') {
                     const cleanedValue = cleanConfig(value);
-                    // Only include non-empty objects
                     if (Object.keys(cleanedValue).length > 0) {
                         cleaned[key] = cleanedValue;
                     }
                 }
-                // Keep all other values (numbers, booleans, non-null primitives)
                 else {
                     cleaned[key] = value;
                 }
@@ -2387,7 +2275,6 @@ function showStatus(message, type) {
     }, 5000);
 }
 
-// Modal functions
 let confirmCallback = null;
 let promptCallback = null;
 
@@ -2423,7 +2310,6 @@ function showPromptModal(title, message, callback, hint = '') {
         hintEl.style.display = 'none';
     }
     
-    // Clear any previous error
     document.getElementById('promptError').style.display = 'none';
     
     promptCallback = callback;
@@ -2451,14 +2337,12 @@ function submitPrompt() {
     }
 }
 
-// Clear error when user starts typing
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('promptInput').addEventListener('input', () => {
         document.getElementById('promptError').style.display = 'none';
     });
 });
 
-// Loading overlay functions
 function showLoadingOverlay(title, message) {
     const overlay = document.getElementById('loadingOverlay');
     document.getElementById('loadingTitle').textContent = title;
@@ -2472,24 +2356,20 @@ function hideLoadingOverlay() {
     overlay.classList.add('hiding');
     overlay.classList.remove('active');
     
-    // Remove from DOM after animation completes
     setTimeout(() => {
         overlay.classList.remove('hiding');
     }, 300);
 }
 
-// Poll for server restart
 async function waitForServerRestart() {
-    const maxAttempts = 60; // Try for up to 60 seconds
-    const pollInterval = 5000; // Check every 5 seconds
+    const maxAttempts = 12;
+    const pollInterval = 5000;
     let attempts = 0;
     
-    // Wait a bit for the server to start shutting down
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     while (attempts < maxAttempts) {
         try {
-            // Try to fetch the config endpoint with a timeout
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
             
@@ -2501,13 +2381,11 @@ async function waitForServerRestart() {
             clearTimeout(timeoutId);
             
             if (response.ok) {
-                // Server is back up!
                 hideLoadingOverlay();
                 showStatus('✓ Server restarted successfully!', 'success');
                 return;
             }
         } catch (error) {
-            // Expected during restart - server is not responding
             console.warn('Server not responding yet, continuing to poll...');
         }
         
@@ -2515,10 +2393,8 @@ async function waitForServerRestart() {
         await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
     
-    // If we get here, server didn't come back up
     hideLoadingOverlay();
     showStatus('⚠ Server did not restart within expected time. Please check manually.', 'error');
 }
 
-// Initialize colors on page load
 loadColors();
