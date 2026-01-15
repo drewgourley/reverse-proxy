@@ -1028,9 +1028,9 @@ function renderGitStatus(status) {
     const versionNumber = status.version || 'Unknown';
     
     versionInfo.innerHTML = `
-        <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Loading...'}" ${isFirstTimeSetup ? 'disabled style="opacity: 0.5; cursor: default; pointer-events: none;"' : 'disabled'}>
+        <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Check for updates'}" ${isFirstTimeSetup ? 'disabled style="opacity: 0.5; cursor: default; pointer-events: none;"' : 'disabled'}>
             <span class="update-icon">↻</span>
-            <span class="update-text">Loading...</span>
+            <span class="update-text">Checking...</span>
         </button>
         <span class="version-number">${versionNumber}</span>
     `;
