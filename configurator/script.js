@@ -318,10 +318,18 @@ function renderSecretsEditor() {
         const isPasswordHash = key === 'shock_password_hash';
         const isExistingHash = isPasswordHash && value && value.startsWith('$2b$');
         
+        // Create friendly labels for default secrets
+        const labelMap = {
+            'admin_email_address': 'Admin Email Address',
+            'shock_password_hash': 'Wake-on-LAN Password',
+            'shock_mac': 'Wake-on-LAN MAC Address'
+        };
+        const displayLabel = labelMap[key] || key;
+        
         html += `
             <div class="secret-entry">
                 <div class="form-group form-group-no-margin">
-                    <label for="secret_${key}">${key}</label>`;
+                    <label for="secret_${key}">${displayLabel}</label>`;
         
         if (isEmail) {
             // Render email field without password toggle
@@ -367,7 +375,7 @@ function renderSecretsEditor() {
     });
 
     html += `
-            <button class="btn-add-field" onclick="addNewSecret()">+ Add New Secret</button>
+            <button class="btn-add-field" onclick="addNewSecret()" style="display: none;">+ Add New Secret</button>
             <div class="actions-row">
                 <button class="btn-reset" onclick="revertSecrets()">Revert</button>
                 <button class="btn-save" id="saveSecretsBtn" onclick="saveSecrets()">Save Secrets</button>
