@@ -1,0 +1,1 @@
+The "Favicon" folder is where generated favicon files live for the webserver

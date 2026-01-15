@@ -1,0 +1,110 @@
+button:focus, button:hover, button:active {
+  background:#fff;
+}
+audio {
+  margin:0 25px 20px 0;
+}
+audio::-webkit-media-controls-panel {
+  background:#fff;
+  transition:background 300ms linear;
+}
+.stripes {
+  background:#fff;
+  transition:right 2s ease-in-out, background 300ms linear;
+}
+.stripes:before {
+  background:#666;
+  transition:background 300ms linear;
+}
+.stripes:after {
+  background:#aaa;
+  transition:background 300ms linear;
+}
+.background {
+  position:absolute;
+  bottom:0;
+  left:0;
+  width:100%;
+  height:100%;
+  z-index:1;
+}
+.notification p,.tooltip p {
+  background:#fff;
+}
+.heading, .content {
+  position:relative;
+  transition:left 2s ease-in-out;
+  left:0;
+}
+.heading h1 .color-review {
+  transition:color 300ms linear;
+}
+.heading h3 {
+  text-indent:0.5em;
+  margin:0 0 -0.4em;
+}
+.heading h1:hover .color-review.color-1 {
+  color:#fff;
+}
+.heading h1:hover .color-review.color-2 {
+  color:#fff;
+}
+.heading h1:hover .color-review.color-3 {
+  color:#fff;
+}
+.heading h1:hover .color-review.color-4 {
+  color:#fff;
+}
+.heading h1:hover .color-review.color-5 {
+  color:#fff;
+}
+.content article {
+  display:flex;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+}
+.color-controls button:last-child {
+  margin-right:0!important;
+}
+#fullscreen {
+  position:fixed;
+  top:24px;
+  right:24px;
+  z-index:3;
+  transition:right 2s ease-in-out, background 300ms linear, color 300ms linear;
+}
+#palette, #lock, #trash, #transition {
+  margin:0 25px 20px 0;
+  color:#111827;
+}
+#palette .icon, #lock .icon, #trash .icon, #transition .icon {
+  color:inherit;
+}
+#visualizer {
+  width:100%;
+  height:100%;
+  transition:opacity 2s ease-in-out;
+  opacity:0;
+}
+.fullscreen.mouseout .stripes, .fullscreen.mouseout #fullscreen {
+  right:-1034px;
+}
+.fullscreen.mouseout .heading, .fullscreen.mouseout .content {
+  left:-100%;
+}
+.ready #visualizer {
+  opacity:1;
+}
+.rotate #visualizer {
+  animation:spin 30s linear infinite;
+}
+.zoom #visualizer {
+  transform:scale(1.02);
+}
+
+@keyframes spin { 
+  100% { 
+      -webkit-transform: rotate(360deg); 
+      transform:rotate(360deg); 
+  } 
+}

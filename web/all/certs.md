@@ -1,0 +1,1 @@
+The "All" folder is used for certificate renewal automation.

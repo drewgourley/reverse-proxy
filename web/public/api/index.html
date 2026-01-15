@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>API Service Monitor</title>
+    <!-- Critical CSS to prevent FOUC -->
+    <style>
+        html { background-color: #ffffff; }
+        body { visibility: hidden; }
+        html.ready body { visibility: visible; }
+    </style>
+    <link rel="stylesheet" href="/global/style.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <noscript><style>body { visibility: visible; }</style></noscript>
+    <link rel="apple-touch-icon" sizes="180x180" href="/global/favicon/apple-touch-icon.png">
+    <link rel="icon" href="/global/favicon/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="/global/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/global/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/global/favicon/site.webmanifest">
+    <link rel="mask-icon" href="/global/favicon/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#000000">  </head>
+  </head>
+  <body>
+    <main>
+      <div class="stripes">
+        <div class="overlay"></div>
+      </div>
+      <div id="notifications">
+      </div>
+      <div id="tooltips">
+      </div>
+      <section>
+        <div class="wrapper">
+          <div class="heading">
+            <header>
+              <h1><em>Api</em></h1>
+              <h3 id="domain"></h3>
+            </header>
+          </div>
+          <div class="content">
+            <article>
+              <ul class="pips">
+                <li class="pip loading"><span class="name"></span> <span class="meta"></span></li>
+              </ul>
+              <form id="shocker" class="hidden hide">
+                <input id="shockpass" type="password" />
+                <button id="shock" title="Shock System">
+                  <span class="icon material-symbols-outlined">bolt</span>
+                </button>
+              </form>
+            </article>
+          </div>
+            <div class="footing">
+            <footer>
+            </footer>
+          </div>
+        </div>
+      </section>
+    </main>
+	  <script src="/global/script.js"></script>
+	  <script src="/static/script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+.env
+ecosystem.config.js
+node_modules
+_graveyard
+secrets.json
+ddns.json
+config.json
+web/global/services.json
+web/global/colors.json
+web/global/favicon/*
+!web/global/favicon/favicon.md
+web/public/doom
+web/public/doom/*
+web/public/www/tpg2
+web/public/www/tpg2/*
+web/public/radio
+web/public/radio/*
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

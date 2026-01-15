@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Radio</title>
+    <!-- Critical CSS to prevent FOUC -->
+    <style>
+        html { background-color: #ffffff; }
+        body { visibility: hidden; }
+        html.ready body { visibility: visible; }
+    </style>
+    <link rel="stylesheet" href="/global/style.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <noscript><style>body { visibility: visible; }</style></noscript>
+    <link rel="apple-touch-icon" sizes="180x180" href="/global/favicon/apple-touch-icon.png">
+    <link rel="icon" href="/global/favicon/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="/global/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/global/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/global/favicon/site.webmanifest">
+    <link rel="mask-icon" href="/global/favicon/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#000000">  </head>
+	  <script src="/static/wave.js"></script>
+  </head>
+  <body>
+    <main>
+      <button disabled id="fullscreen" title="Toggle Fullscreen (F)">
+        <span class="icon material-symbols-outlined">fullscreen</span>
+      </button>
+      <div class="background">
+        <canvas id="visualizer"></canvas>
+      </div>
+      <div class="stripes">
+        <div class="overlay"></div>
+      </div>
+      <div id="notifications">
+      </div>
+      <div id="tooltips">
+      </div>
+      <section>
+        <div class="wrapper">
+          <div class="heading">
+            <header>
+              <h3 id="domain"></h3>
+              <h1 class="smaller"><em><span class="color-review color-1">R</span><span class="color-review color-2">a</span><span class="color-review color-3">d</span><span class="color-review color-4">i</span><span class="color-review color-5">o</span></em></h1>
+            </header>
+          </div>
+          <div class="content">
+            <article>
+              <audio id="player" controls autoplay name="Gourley Estate Radio">
+                <source src="/stream" type="audio/mpeg" />
+              </audio>
+              <div class="color-controls">
+                <button disabled id="palette" title="Change color palette (C)">
+                  <span class="icon material-symbols-outlined">palette</span>
+                </button>
+                <button disabled id="trash" title="Remove color palette (D)">
+                  <span class="icon material-symbols-outlined">delete</span>
+                </button>
+                <button disabled id="lock" title="Lock color palette (L)">
+                  <span class="icon material-symbols-outlined">lock_open</span>
+                </button>
+                <button disabled id="transition" title="Change visualizer (V)">
+                  <span class="icon material-symbols-outlined">earthquake</span>
+                </button>
+              </div>
+            </article>
+          </div>
+          <div class="footing">
+            <footer>
+            </footer>
+          </div>
+        </div>
+      </section>
+    </main>
+	  <script src="/global/script.js"></script>
+	  <script src="/static/script.js"></script>
+  </body>
+</html>
