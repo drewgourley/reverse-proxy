@@ -387,6 +387,24 @@ const handleWebSocketUpgrade = (req, socket, head) => {
   }
 };
 
+// helper function to write JSON config and restart server
+const saveConfigAndRestart = (filePath, data, message, response, delay = 2000) => {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  response.status(200).send({ success: true, message });
+  setTimeout(() => {
+    process.exit(0);
+  }, delay);
+};
+
+// helper function for error responses
+const sendError = (response, statusCode, error) => {
+  response.status(statusCode).send({ 
+    success: false, 
+    error: typeof error === 'string' ? error : error.message,
+    ...(error.details && { details: error.details })
+  });
+};
+
 // initialize application
 let app = initApplication();
 
@@ -634,22 +652,13 @@ manrouter.put('/config', (request, response) => {
     
     const validate = ajv.compile(configSchema);
     if (!validate(updatedConfig)) {
-      return response.status(400).send({ 
-        success: false, 
-        error: 'Invalid config format', 
-        details: validate.errors 
-      });
+      return sendError(response, 400, { message: 'Invalid config format', details: validate.errors });
     }
     
     const configPath = path.join(__dirname, 'config.json');
-    fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2));
-    
-    response.status(200).send({ success: true, message: 'Config updated successfully' });
-    setTimeout(() => {
-      process.exit(0);
-    }, 2000);
+    saveConfigAndRestart(configPath, updatedConfig, 'Config updated successfully', response);
   } catch (error) {
-    response.status(500).send({ success: false, error: error.message });
+    sendError(response, 500, error);
   }
 });
 
@@ -662,7 +671,7 @@ manrouter.put('/checks', (request, response) => {
     
     response.status(200).send({ success: true, message: 'Healthcheck list updated successfully' });
   } catch (error) {
-    response.status(500).send({ success: false, error: error.message });
+    sendError(response, 500, error);
   }
 });
 
@@ -684,11 +693,7 @@ manrouter.put('/secrets', async (request, response) => {
     
     const validate = ajv.compile(secretsSchema);
     if (!validate(updatedSecrets)) {
-      return response.status(400).send({ 
-        success: false, 
-        error: 'Invalid secrets format', 
-        details: validate.errors 
-      });
+      return sendError(response, 400, { message: 'Invalid secrets format', details: validate.errors });
     }
     
     // Read existing secrets to preserve password hash if not changed
@@ -718,14 +723,9 @@ manrouter.put('/secrets', async (request, response) => {
     }
     
     const secretsPath = path.join(__dirname, 'secrets.json');
-    fs.writeFileSync(secretsPath, JSON.stringify(updatedSecrets, null, 2));
-    
-    response.status(200).send({ success: true, message: 'Secrets updated successfully' });
-    setTimeout(() => {
-      process.exit(0);
-    }, 2000);
+    saveConfigAndRestart(secretsPath, updatedSecrets, 'Secrets updated successfully', response);
   } catch (error) {
-    response.status(500).send({ success: false, error: error.message });
+    sendError(response, 500, error);
   }
 });
 
@@ -889,22 +889,13 @@ manrouter.put('/ddns', (request, response) => {
     
     const validate = ajv.compile(ddnsSchema);
     if (!validate(updatedDdns)) {
-      return response.status(400).send({ 
-        success: false, 
-        error: 'Invalid DDNS configuration format', 
-        details: validate.errors 
-      });
+      return sendError(response, 400, { message: 'Invalid DDNS configuration format', details: validate.errors });
     }
     
     const ddnsPath = path.join(__dirname, 'ddns.json');
-    fs.writeFileSync(ddnsPath, JSON.stringify(updatedDdns, null, 2));
-    
-    response.status(200).send({ success: true, message: 'DDNS configuration updated successfully' });
-    setTimeout(() => {
-      process.exit(0);
-    }, 2000);
+    saveConfigAndRestart(ddnsPath, updatedDdns, 'DDNS configuration updated successfully', response);
   } catch (error) {
-    response.status(500).send({ success: false, error: error.message });
+    sendError(response, 500, error);
   }
 });
 
