@@ -67,9 +67,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Mark page as fully loaded
     document.documentElement.classList.add('loaded');
-    setTimeout(() => {
-        document.documentElement.classList.add('rendered');
-    }, 500);
 });
 
 function updateSidebarButtons() {
@@ -715,6 +712,7 @@ function updateTheme() {
     
     root.style.setProperty('--color-accent-hover', darkenColor(accent, 10));
     root.style.setProperty('--color-primary-hover', darkenColor(primary, 10));
+    root.style.setProperty('--color-secondary-hover', darkenColor(secondary, 10));
     root.style.setProperty('--color-inverse-hover', darkenColor(inverse, 10));
     
     const bgHSL = hexToHSL(displayBackground);

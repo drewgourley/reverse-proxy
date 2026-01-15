@@ -21,20 +21,18 @@
             align-items: center;
             justify-content: center;
             z-index: 10000;
-            transition: opacity 0.5s ease;
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
         }
         
         html.ready #initialLoadingOverlay {
-            opacity: 1;
             pointer-events: none;
         }
         
         html.loaded #initialLoadingOverlay {
-            opacity:0;
-        }
-
-        html.rendered #initialLoadingOverlay {
-            display: none;
+            opacity: 0;
+            visibility: hidden;
         }
 
         .initial-spinner {
