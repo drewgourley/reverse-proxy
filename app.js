@@ -1014,7 +1014,11 @@ manrouter.get('/git/status', (request, response) => {
           // Get commit timestamp for version number
           exec('git log -1 --format=%ct', (timestampError, timestampOut) => {
             let version = 'Unknown';
-            if (!timestampError && timestampOut.trim()) {
+            
+            // In development mode, always show "Developer Mode"
+            if (env === 'development') {
+              version = 'Developer Mode';
+            } else if (!timestampError && timestampOut.trim()) {
               const timestamp = parseInt(timestampOut.trim()) * 1000;
               const d = new Date(timestamp);
               const year = d.getFullYear();
@@ -1030,7 +1034,8 @@ manrouter.get('/git/status', (request, response) => {
               branch,
               commit,
               message,
-              version
+              version,
+              isDevelopment: env === 'development'
             });
           });
         });
@@ -1043,6 +1048,17 @@ manrouter.get('/git/status', (request, response) => {
 
 manrouter.get('/git/check', (request, response) => {
   try {
+    // In development mode, simulate an update check without actually fetching
+    if (env === 'development') {
+      return response.status(200).send({
+        success: true,
+        updatesAvailable: true,
+        commitsAhead: 1,
+        message: '1 Update Available',
+        isDevelopment: true
+      });
+    }
+    
     exec('git fetch origin', (fetchError) => {
       if (fetchError) {
         return response.status(500).send({ success: false, error: 'Could not fetch from origin' });
@@ -1070,7 +1086,7 @@ manrouter.get('/git/check', (request, response) => {
                 success: true,
                 updatesAvailable: true,
                 commitsAhead,
-                message: `${commitsAhead} commit${commitsAhead !== 1 ? 's' : ''} available`
+                message: `${commitsAhead} Update${commitsAhead !== 1 ? 's' : ''} Available`
               });
             });
           } else {
@@ -1090,6 +1106,16 @@ manrouter.get('/git/check', (request, response) => {
 
 manrouter.post('/git/pull', (request, response) => {
   try {
+    // In development mode, simulate pull success without actually pulling or restarting
+    if (env === 'development') {
+      return response.status(200).send({
+        success: true,
+        message: 'Update endpoint tested successfully',
+        output: 'Development mode: No actual git pull performed',
+        isDevelopment: true
+      });
+    }
+    
     exec('git pull origin', (error, stdout, stderr) => {
       if (error) {
         return response.status(500).send({ success: false, error: stderr || error.message });

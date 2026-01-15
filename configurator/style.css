@@ -123,7 +123,7 @@ h1 {
     color: var(--color-text-primary);
     background: var(--color-gray-100);
     border-radius: 0 0 3px 3px;
-    min-width: 160px;
+    min-width: 180px;
     box-sizing: border-box;
 }
 
@@ -133,7 +133,7 @@ h1 {
     justify-content: center;
     gap: 6px;
     padding: 6px 12px;
-    min-width: 160px;
+    min-width: 180px;
     height: 32px;
     background: var(--color-primary);
     color: white;
@@ -150,15 +150,15 @@ h1 {
 }
 
 .btn-update.updates-available {
-    background: var(--color-accent);
+    background: #48bb78;
     color: white;
-    border-color: var(--color-accent);
+    border-color: #48bb78;
     animation: pulse 2s ease-in-out infinite;
 }
 
 .btn-update.updates-available:hover {
-    background: var(--color-accent-hover);
-    border-color: var(--color-accent-hover);
+    background: #38a169;
+    border-color: #38a169;
 }
 
 .update-icon {

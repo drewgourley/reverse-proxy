@@ -1115,6 +1115,14 @@ async function pullUpdates() {
             throw new Error(data.error || 'Update failed');
         }
         
+        const data = await response.json();
+        
+        if (data.isDevelopment) {
+            loadingOverlay.classList.remove('active');
+            showStatus('Update endpoint tested successfully', 'success');
+            return;
+        }
+        
         await waitForServerRestart();
         
         const url = new URL(window.location);
