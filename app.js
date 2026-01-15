@@ -370,6 +370,23 @@ const initApplication = () => {
   return application;
 }
 
+// declare websocket upgrade handler
+const handleWebSocketUpgrade = (req, socket, head) => {
+  const websockets = Object.keys(config.services).filter(name => config.services[name].subdomain?.proxy?.socket);
+  let found = false;
+  websockets.forEach(name => {
+    if (req.headers.host === `${name}.${config.domain}`) {
+      config.services[name].subdomain.proxy.websocket.upgrade(req, socket, head);
+      found = true;
+    }
+  });
+  if (!found) {
+    // Properly close the connection if no WebSocket service matches
+    socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+    socket.destroy();
+  }
+};
+
 // initialize application
 let app = initApplication();
 
@@ -398,32 +415,12 @@ if (env === 'production') {
   // setup listeners
   httpServer.listen(ports.http, () => {
     console.log(`HTTP Server running on port ${ports.http}`);
-    httpServer.on('upgrade', (req, socket, head) => {
-      const websockets = Object.keys(config.services).filter(name => config.services[name].subdomain?.proxy?.socket);
-      let found = false;
-      websockets.forEach(name => {
-        if (req.headers.host === `${name}.${config.domain}`) {
-          config.services[name].subdomain.proxy.websocket.upgrade(req, socket, head);
-          found = true;
-        }
-      });
-      if (!found) socket.pipe(socket);
-    });
+    httpServer.on('upgrade', handleWebSocketUpgrade);
   });
   if (httpsServer) {
     httpsServer.listen(ports.https, () => {
       console.log(`HTTPS Server running on port ${ports.https}`);
-      httpsServer.on('upgrade', (req, socket, head) => {
-        const websockets = Object.keys(config.services).filter(name => config.services[name].subdomain?.proxy?.socket);
-        let found = false;
-        websockets.forEach(name => {
-          if (req.headers.host === `${name}.${config.domain}`) {
-            config.services[name].subdomain.proxy.websocket.upgrade(req, socket, head);
-            found = true;
-          }
-        });
-        if (!found) socket.pipe(socket);
-      });
+      httpsServer.on('upgrade', handleWebSocketUpgrade);
     });
   }
 
@@ -450,17 +447,7 @@ if (env === 'development') {
   // setup listener
   server.listen(port, () => {
     console.log(`HTTP Server running on port ${port}`);
-    server.on('upgrade', (req, socket, head) => {
-      const websockets = Object.keys(config.services).filter(name => config.services[name].subdomain?.proxy?.socket);
-      let found = false;
-      websockets.forEach(name => {
-        if (req.headers.host === `${name}.${config.domain}`) {
-          config.services[name].subdomain.proxy.websocket.upgrade(req, socket, head);
-          found = true;
-        }
-      });
-      if (!found) socket.pipe(socket);
-    });
+    server.on('upgrade', handleWebSocketUpgrade);
   });
 
   // setup healthcheck ping
@@ -757,6 +744,20 @@ manrouter.get('/colors', (request, response) => {
 manrouter.put('/colors', (request, response) => {
   try {
     const updatedColors = request.body;
+    
+    // Validate color values are valid hex colors
+    const hexColorRegex = /^#([0-9A-Fa-f]{3}){1,2}$/;
+    const colorFields = ['primary', 'secondary', 'accent', 'background', 'inverse'];
+    
+    for (const field of colorFields) {
+      if (updatedColors[field] && !hexColorRegex.test(updatedColors[field])) {
+        return response.status(400).send({ 
+          success: false, 
+          error: `Invalid color format for ${field}. Must be a valid hex color (e.g., #ffffff or #fff)` 
+        });
+      }
+    }
+    
     const colorsPath = path.join(__dirname, 'web', 'global', 'colors.json');
     fs.writeFileSync(colorsPath, JSON.stringify(updatedColors, null, 2));
     
@@ -1095,6 +1096,24 @@ manrouter.put('/certs', (request, response) => {
     
     if (!email) {
       return response.status(400).send({ success: false, error: 'Email address is required' });
+    }
+    
+    // Validate email format and prevent shell metacharacters
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      return response.status(400).send({ 
+        success: false, 
+        error: 'Invalid email address format' 
+      });
+    }
+    
+    // Additional check - reject emails with shell metacharacters
+    const dangerousChars = /[;`$&|<>\\]/;
+    if (dangerousChars.test(email)) {
+      return response.status(400).send({ 
+        success: false, 
+        error: 'Email contains invalid characters' 
+      });
     }
     
     const domains = [config.domain];
