@@ -162,218 +162,6 @@ function getDefaultConfig() {
 let colors = {};
 let originalColors = {};
 
-async function saveColors() {
-    try {
-        const accent = document.getElementById('color3').value;
-        
-        const colorData = {
-            primary: document.getElementById('color1').value,
-            secondary: document.getElementById('color2').value,
-            accent: accent,
-            background: document.getElementById('color4').value,
-            inverse: getInverseColor(accent)
-        };
-        
-        const response = await fetch('colors', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(colorData)
-        });
-        
-        if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to save colors`);
-        
-        const result = await response.json();
-        colors = colorData;
-        originalColors = JSON.parse(JSON.stringify(colorData));
-        
-        showStatus('✓ Colors saved successfully!', 'success');
-    } catch (error) {
-        console.error('Failed to save colors:', error);
-        showStatus('Failed to save colors: ' + error.message, 'error');
-    }
-}
-
-function hexToHSL(hex) {
-    // Convert hex to RGB
-    let r = parseInt(hex.slice(1, 3), 16) / 255;
-    let g = parseInt(hex.slice(3, 5), 16) / 255;
-    let b = parseInt(hex.slice(5, 7), 16) / 255;
-    
-    let max = Math.max(r, g, b);
-    let min = Math.min(r, g, b);
-    let h, s, l = (max + min) / 2;
-    
-    if (max === min) {
-        h = s = 0;
-    } else {
-        let d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        
-        switch (max) {
-            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-            case g: h = ((b - r) / d + 2) / 6; break;
-            case b: h = ((r - g) / d + 4) / 6; break;
-        }
-    }
-    
-    return { h: h * 360, s: s * 100, l: l * 100 };
-}
-
-function hslToHex(h, s, l) {
-    s /= 100;
-    l /= 100;
-    
-    let c = (1 - Math.abs(2 * l - 1)) * s;
-    let x = c * (1 - Math.abs((h / 60) % 2 - 1));
-    let m = l - c / 2;
-    let r = 0, g = 0, b = 0;
-    
-    if (h >= 0 && h < 60) {
-        r = c; g = x; b = 0;
-    } else if (h >= 60 && h < 120) {
-        r = x; g = c; b = 0;
-    } else if (h >= 120 && h < 180) {
-        r = 0; g = c; b = x;
-    } else if (h >= 180 && h < 240) {
-        r = 0; g = x; b = c;
-    } else if (h >= 240 && h < 300) {
-        r = x; g = 0; b = c;
-    } else if (h >= 300 && h < 360) {
-        r = c; g = 0; b = x;
-    }
-    
-    let rHex = Math.round((r + m) * 255).toString(16).padStart(2, '0');
-    let gHex = Math.round((g + m) * 255).toString(16).padStart(2, '0');
-    let bHex = Math.round((b + m) * 255).toString(16).padStart(2, '0');
-    
-    return `#${rHex}${gHex}${bHex}`;
-}
-
-function getInverseColor(hex) {
-    const hsl = hexToHSL(hex);
-    // Rotate hue by 180 degrees for inverse color
-    const inverseHue = (hsl.h + 180) % 360;
-    return hslToHex(inverseHue, hsl.s, hsl.l);
-}
-
-function revertColors() {
-    document.getElementById('color1').value = originalColors.primary || '#667eea';
-    document.getElementById('color2').value = originalColors.secondary || '#764ba2';
-    document.getElementById('color3').value = originalColors.accent || '#48bb78';
-    document.getElementById('color4').value = originalColors.background || '#ffffff';
-    updateTheme();
-}
-
-function clampBackgroundColor(hex) {
-    // Prevent background from going darker than #181818
-    const hsl = hexToHSL(hex);
-    const minLightness = 9.4; // ~#181818
-    if (hsl.l < minLightness) {
-        return hslToHex(hsl.h, hsl.s, minLightness);
-    }
-    return hex;
-}
-
-function updateTheme() {
-    const primary = document.getElementById('color1').value;
-    const secondary = document.getElementById('color2').value;
-    const accent = document.getElementById('color3').value;
-    const background = document.getElementById('color4').value;
-    const inverse = getInverseColor(accent);
-    
-    // Clamp background color for display (doesn't affect saved value)
-    const displayBackground = clampBackgroundColor(background);
-    
-    // Update CSS variables
-    const root = document.documentElement;
-    root.style.setProperty('--color-primary', primary);
-    root.style.setProperty('--color-secondary', secondary);
-    root.style.setProperty('--color-accent', accent);
-    root.style.setProperty('--color-background', displayBackground);
-    root.style.setProperty('--color-inverse', inverse);
-    
-    // Calculate hover colors (darken by 10%)
-    root.style.setProperty('--color-accent-hover', darkenColor(accent, 10));
-    root.style.setProperty('--color-primary-hover', darkenColor(primary, 10));
-    root.style.setProperty('--color-inverse-hover', darkenColor(inverse, 10));
-    
-    // Calculate grayscale based on background
-    const bgHSL = hexToHSL(background);
-    const isDark = bgHSL.l < 50;
-    
-    // Generate gray colors based on background lightness
-    if (isDark) {
-        // Dark background: lighten for grays
-        root.style.setProperty('--color-gray-50', lightenFromBackground(background, 5));
-        root.style.setProperty('--color-gray-100', lightenFromBackground(background, 10));
-        root.style.setProperty('--color-gray-200', lightenFromBackground(background, 15));
-        root.style.setProperty('--color-gray-300', lightenFromBackground(background, 25));
-        root.style.setProperty('--color-gray-400', lightenFromBackground(background, 35));
-        root.style.setProperty('--color-gray-500', lightenFromBackground(background, 45));
-        root.style.setProperty('--color-gray-600', lightenFromBackground(background, 55));
-        root.style.setProperty('--color-gray-700', lightenFromBackground(displayBackground, 65));
-        root.style.setProperty('--color-gray-800', lightenFromBackground(displayBackground, 75));
-        root.style.setProperty('--color-gray-900', lightenFromBackground(displayBackground, 85));
-        root.style.setProperty('--color-text-primary', '#ffffff');
-        root.style.setProperty('--color-text-secondary', lightenFromBackground(displayBackground, 70));
-    } else {
-        // Light background: darken for grays
-        root.style.setProperty('--color-gray-50', darkenFromBackground(displayBackground, 2));
-        root.style.setProperty('--color-gray-100', darkenFromBackground(displayBackground, 5));
-        root.style.setProperty('--color-gray-200', darkenFromBackground(displayBackground, 10));
-        root.style.setProperty('--color-gray-300', darkenFromBackground(displayBackground, 18));
-        root.style.setProperty('--color-gray-400', darkenFromBackground(displayBackground, 38));
-        root.style.setProperty('--color-gray-500', darkenFromBackground(displayBackground, 58));
-        root.style.setProperty('--color-gray-600', darkenFromBackground(displayBackground, 71));
-        root.style.setProperty('--color-gray-700', darkenFromBackground(displayBackground, 78));
-        root.style.setProperty('--color-gray-800', darkenFromBackground(displayBackground, 88));
-        root.style.setProperty('--color-gray-900', darkenFromBackground(displayBackground, 93));
-        root.style.setProperty('--color-text-primary', '#111827');
-        root.style.setProperty('--color-text-secondary', '#4b5563');
-    }
-    
-    // Update background gradient - darken based on background color
-    // The darker the background, the more we darken the gradient
-    const darkenAmount = Math.max(0, (50 - bgHSL.l) * 0.9); // Scale based on how dark bg is
-    const gradientPrimary = darkenColor(primary, darkenAmount);
-    const gradientSecondary = darkenColor(secondary, darkenAmount);
-    document.body.style.background = `linear-gradient(135deg, ${gradientPrimary} 0%, ${gradientSecondary} 100%)`;
-}
-
-function darkenColor(hex, percent) {
-    const hsl = hexToHSL(hex);
-    hsl.l = Math.max(0, hsl.l - percent);
-    return hslToHex(hsl.h, hsl.s, hsl.l);
-}
-
-function lightenFromBackground(hex, percent) {
-    const hsl = hexToHSL(hex);
-    hsl.l = Math.min(100, hsl.l + percent);
-    return hslToHex(hsl.h, hsl.s, hsl.l);
-}
-
-function darkenFromBackground(hex, percent) {
-    const hsl = hexToHSL(hex);
-    hsl.l = Math.max(0, hsl.l - percent);
-    return hslToHex(hsl.h, hsl.s, hsl.l);
-}
-
-function updateBackgroundGradient() {
-    const primary = document.getElementById('color1').value;
-    const secondary = document.getElementById('color2').value;
-    document.body.style.background = `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`;
-}
-
-// Add event listeners for live theme updates
-document.addEventListener('DOMContentLoaded', () => {
-    ['color1', 'color2', 'color3', 'color4'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.addEventListener('input', updateTheme);
-        }
-    });
-});
-
 async function loadConfig() {
     try {
         const url = 'config';
@@ -930,6 +718,16 @@ function darkenFromBackground(hex, percent) {
     return hslToHex(hsl.h, hsl.s, hsl.l);
 }
 
+function clampBackgroundColor(hex) {
+    // Prevent background from going darker than #181818
+    const hsl = hexToHSL(hex);
+    const minLightness = 9.4; // ~#181818
+    if (hsl.l < minLightness) {
+        return hslToHex(hsl.h, hsl.s, minLightness);
+    }
+    return hex;
+}
+
 function updateTheme() {
     const primary = colors.primary || '#667eea';
     const secondary = colors.secondary || '#764ba2';
@@ -1377,49 +1175,17 @@ async function pullUpdates() {
             throw new Error(data.error || 'Update failed');
         }
         
-        // Wait for server to restart
         await waitForServerRestart();
+        
+        const url = new URL(window.location);
+        url.searchParams.set('updated', 'true');
+        window.location.href = url.toString();
         
     } catch (error) {
         console.error('Update error:', error);
         loadingOverlay.classList.remove('active');
         showStatus('Update failed: ' + error.message, 'error');
     }
-}
-
-async function waitForServerRestart() {
-    const maxAttempts = 30;
-    let attempts = 0;
-    
-    const checkServer = async () => {
-        try {
-            const response = await fetch('git/status');
-            if (response.ok) {
-                // Server is back online - reload with updated flag
-                const url = new URL(window.location);
-                url.searchParams.set('updated', 'true');
-                window.location.href = url.toString();
-                return true;
-            }
-        } catch (error) {
-            // Server not ready yet
-        }
-        return false;
-    };
-    
-    // Wait 3 seconds before first check
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    while (attempts < maxAttempts) {
-        const isReady = await checkServer();
-        if (isReady) return;
-        
-        attempts++;
-        await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-    
-    // Timeout - reload anyway
-    window.location.reload();
 }
 
 function renderApplicationEditor() {
