@@ -32,12 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const url = new URL(window.location);
         url.search = urlParams.toString();
         window.history.replaceState({}, '', url);
-        
-        // Show success message and force update check
         showStatus('Update completed successfully!', 'success');
-        setTimeout(() => {
-            checkForUpdates();
-        }, 1000);
     }
     
     // Check if this is first-time setup (ecosystem has default: true)
