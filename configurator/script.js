@@ -185,7 +185,7 @@ async function loadConfig() {
         console.error('Config load error:', error);
         config = getDefaultConfig();
         originalConfig = JSON.parse(JSON.stringify(config));
-        showStatus('Using default config (could not load existing): ' + error.message, 'error');
+        showStatus('Could not load Config: ' + error.message, 'error');
     }
 }
 
@@ -234,7 +234,7 @@ async function loadSecrets() {
         console.error('Secrets load error:', error);
         secrets = getDefaultSecrets();
         originalSecrets = JSON.parse(JSON.stringify(secrets));
-        showStatus('Using default secrets (could not load existing): ' + error.message, 'error');
+        showStatus('Could not load Secrets: ' + error.message, 'error');
     }
 }
 
@@ -265,7 +265,7 @@ async function loadDdns() {
         console.error('DDNS load error:', error);
         ddns = getDefaultDdns();
         originalDdns = JSON.parse(JSON.stringify(ddns));
-        showStatus('Using default DDNS config (could not load existing): ' + error.message, 'error');
+        showStatus('Could not load DDNS Config: ' + error.message, 'error');
     }
 }
 
@@ -2261,12 +2261,36 @@ function resetEditor() {
 }
 
 function showStatus(message, type) {
-    const statusEl = document.getElementById('statusMessage');
-    statusEl.textContent = message;
+    const container = document.getElementById('statusContainer');
+    
+    // Create new status element
+    const statusEl = document.createElement('div');
     statusEl.className = 'status ' + type;
+    statusEl.textContent = message;
+    
+    // Click to dismiss
+    statusEl.addEventListener('click', () => {
+        removeStatus(statusEl);
+    });
+    
+    // Add to container
+    container.appendChild(statusEl);
+    
+    // Auto-remove after 5 seconds
     setTimeout(() => {
-        statusEl.className = 'status';
+        removeStatus(statusEl);
     }, 5000);
+}
+
+function removeStatus(statusEl) {
+    if (!statusEl || !statusEl.parentNode) return;
+    
+    statusEl.classList.add('removing');
+    setTimeout(() => {
+        if (statusEl.parentNode) {
+            statusEl.parentNode.removeChild(statusEl);
+        }
+    }, 300);
 }
 
 let confirmCallback = null;

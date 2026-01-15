@@ -308,18 +308,25 @@ button {
     box-shadow: 0 4px 12px rgba(237, 137, 54, 0.3);
 }
 
-.status {
-    padding: 12px 20px;
-    border-radius: 5px;
-    display: none;
+.status-container {
     position: fixed;
     bottom: 20px;
     left: 20px;
-    right: 20px;
-    max-width: 500px;
     z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 500px;
+    pointer-events: none;
+}
+
+.status {
+    padding: 12px 20px;
+    border-radius: 5px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     animation: slideIn 0.3s ease;
+    pointer-events: auto;
+    cursor: pointer;
 }
 
 @keyframes slideIn {
@@ -348,14 +355,16 @@ button {
     background: #c6f6d5;
     color: #22543d;
     border: 1px solid #9ae6b4;
-    display: block;
 }
 
 .status.error {
     background: #fed7d7;
     color: #742a2a;
     border: 1px solid #fc8181;
-    display: block;
+}
+
+.status.removing {
+    animation: slideOut 0.3s ease forwards;
 }
 
 .main-content {
