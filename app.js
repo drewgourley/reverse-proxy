@@ -749,8 +749,33 @@ manrouter.put('/colors', (request, response) => {
     const hexColorRegex = /^#([0-9A-Fa-f]{3}){1,2}$/;
     const colorFields = ['primary', 'secondary', 'accent', 'background', 'inverse'];
     
+    // Only allow the specific color fields - reject any extra properties
+    const receivedFields = Object.keys(updatedColors);
+    const extraFields = receivedFields.filter(f => !colorFields.includes(f));
+    if (extraFields.length > 0) {
+      return response.status(400).send({ 
+        success: false, 
+        error: `Unexpected fields: ${extraFields.join(', ')}. Only ${colorFields.join(', ')} are allowed.` 
+      });
+    }
+    
+    // Validate each color field is present and has valid hex format
     for (const field of colorFields) {
-      if (updatedColors[field] && !hexColorRegex.test(updatedColors[field])) {
+      if (!updatedColors[field]) {
+        return response.status(400).send({ 
+          success: false, 
+          error: `Missing required field: ${field}` 
+        });
+      }
+      
+      if (typeof updatedColors[field] !== 'string') {
+        return response.status(400).send({ 
+          success: false, 
+          error: `Invalid type for ${field}. Must be a string.` 
+        });
+      }
+      
+      if (!hexColorRegex.test(updatedColors[field])) {
         return response.status(400).send({ 
           success: false, 
           error: `Invalid color format for ${field}. Must be a valid hex color (e.g., #ffffff or #fff)` 
