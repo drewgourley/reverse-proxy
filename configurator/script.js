@@ -1103,9 +1103,9 @@ function renderGitStatus(status) {
             </div>
         </div>
         <div class="version-column">
-            <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Check for updates'}" ${isFirstTimeSetup ? 'disabled style="opacity: 0.5; cursor: default; pointer-events: none;"' : ''}>
+            <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Loading...'}" ${isFirstTimeSetup ? 'disabled style="opacity: 0.5; cursor: default; pointer-events: none;"' : 'disabled'}>
                 <span class="update-icon">↻</span>
-                <span class="update-text">Check Updates</span>
+                <span class="update-text">Loading...</span>
             </button>
             ${status.date ? `
                 <span class="version-date">${status.date}</span>
@@ -1137,14 +1137,20 @@ async function checkForUpdates() {
             updateBtn.classList.add('updates-available');
             updateText.textContent = data.message || 'Updates Available';
             updateBtn.setAttribute('data-has-updates', 'true');
+            updateBtn.disabled = false;
+            updateBtn.title = 'Update available - click to install';
         } else {
             updateText.textContent = 'Up to Date';
             updateBtn.setAttribute('data-has-updates', 'false');
+            updateBtn.disabled = false;
+            updateBtn.title = 'Check for updates';
         }
     } catch (error) {
         console.error('Update check error:', error);
         updateIcon.classList.remove('spinning');
         updateText.textContent = 'Check Updates';
+        updateBtn.disabled = false;
+        updateBtn.title = 'Check for updates';
     }
 }
 
