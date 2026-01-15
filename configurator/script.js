@@ -22,6 +22,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderServicesList();
     updateSidebarButtons();
     
+    // Check if we just completed an update
+    const urlParams = new URLSearchParams(window.location.search);
+    const justUpdated = urlParams.get('updated') === 'true';
+    
+    if (justUpdated) {
+        // Clear the updated flag from URL
+        urlParams.delete('updated');
+        const url = new URL(window.location);
+        url.search = urlParams.toString();
+        window.history.replaceState({}, '', url);
+        
+        // Show success message and force update check
+        showStatus('Update completed successfully!', 'success');
+        setTimeout(() => {
+            checkForUpdates();
+        }, 1000);
+    }
+    
     // Check if this is first-time setup (ecosystem has default: true)
     const isFirstTimeSetup = ecosystem.default === true;
     
@@ -30,7 +48,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectItem('management-application');
     } else {
         // Check for section in query string and auto-select
-        const urlParams = new URLSearchParams(window.location.search);
         const section = urlParams.get('section');
         if (section) {
             // Verify the section exists
@@ -1257,6 +1274,7 @@ async function loadGitStatus() {
 
 function renderGitStatus(status) {
     const versionInfo = document.getElementById('versionInfo');
+    const isFirstTimeSetup = ecosystem.default === true;
     
     if (status.error) {
         versionInfo.innerHTML = `
@@ -1279,7 +1297,7 @@ function renderGitStatus(status) {
             </div>
         </div>
         <div class="version-column">
-            <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="Check for updates">
+            <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Check for updates'}" ${isFirstTimeSetup ? 'disabled style="opacity: 0.5; cursor: default; pointer-events: none;"' : ''}>
                 <span class="update-icon">↻</span>
                 <span class="update-text">Check Updates</span>
             </button>
@@ -1377,8 +1395,10 @@ async function waitForServerRestart() {
         try {
             const response = await fetch('git/status');
             if (response.ok) {
-                // Server is back online
-                window.location.reload();
+                // Server is back online - reload with updated flag
+                const url = new URL(window.location);
+                url.searchParams.set('updated', 'true');
+                window.location.href = url.toString();
                 return true;
             }
         } catch (error) {
@@ -1471,6 +1491,11 @@ async function saveEcosystem() {
         // Re-enable sidebar items and buttons now that first-time setup is complete
         renderServicesList();
         updateSidebarButtons();
+        
+        // Re-render git status to enable update button
+        if (gitStatus && !gitStatus.error) {
+            renderGitStatus(gitStatus);
+        }
 
         // Refresh application editor if it's currently selected to update the save button
         if (currentSelection === 'management-application') {
