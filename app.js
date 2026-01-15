@@ -1011,11 +1011,9 @@ manrouter.get('/git/status', (request, response) => {
         exec('git log -1 --format=%s', (messageError, messageOut) => {
           const message = messageError ? '' : messageOut.trim();
           
-          // Get commit timestamp for version number
           exec('git log -1 --format=%ct', (timestampError, timestampOut) => {
             let version = 'Unknown';
             
-            // In development mode, always show "Developer Mode"
             if (env === 'development') {
               version = 'Developer Mode';
             } else if (!timestampError && timestampOut.trim()) {
@@ -1048,7 +1046,6 @@ manrouter.get('/git/status', (request, response) => {
 
 manrouter.get('/git/check', (request, response) => {
   try {
-    // In development mode, simulate an update check without actually fetching
     if (env === 'development') {
       return response.status(200).send({
         success: true,
@@ -1106,7 +1103,6 @@ manrouter.get('/git/check', (request, response) => {
 
 manrouter.post('/git/pull', (request, response) => {
   try {
-    // In development mode, simulate pull success without actually pulling or restarting
     if (env === 'development') {
       return response.status(200).send({
         success: true,
