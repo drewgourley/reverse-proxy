@@ -58,6 +58,15 @@ try {
   console.warn('DDNS not configured');
 }
 
+// retrieve advanced config
+let advancedConfig;
+try {
+  advancedConfig = require('./advanced.json');
+} catch (e) {
+  advancedConfig = { parsers: {}, extractors: {}, queryTypes: [] };
+  console.warn('Advanced config not found, using defaults');
+}
+
 // retrieve environment variables
 dotenv.config();
 
@@ -71,9 +80,8 @@ const protocols = {
 };
 if (env === 'development') protocols.secure = 'http://';
 
-// TODO: Make parsers and extractors configurable so the user can add new services as needed.
-// declare parsers
-const parsers = {
+// declare default parsers
+const defaultParsers = {
   hass: (body) => {
     const dom = cheerio.load(body);
     const health = dom('.connected').last().text();
@@ -84,10 +92,10 @@ const parsers = {
     return json.icestats && json.icestats.source;
   },
   body: (body) => body !== null && body !== undefined,
-}
+};
 
-// declare extractors
-const extractors = {
+// declare default extractors
+const defaultExtractors = {
   doom: (state) => ({
     online: state.server.players.length,
     max: state.server.maxPlayers,
@@ -112,6 +120,34 @@ const extractors = {
       };
     }
   },
+};
+
+// Merge custom parsers/extractors from advanced config
+const parsers = { ...defaultParsers };
+const extractors = { ...defaultExtractors };
+
+// Load custom parsers
+if (advancedConfig.parsers) {
+  Object.keys(advancedConfig.parsers).forEach(key => {
+    try {
+      // Using Function constructor to evaluate the function string
+      parsers[key] = eval(`(${advancedConfig.parsers[key]})`);
+    } catch (error) {
+      console.error(`Error loading custom parser "${key}":`, error);
+    }
+  });
+}
+
+// Load custom extractors
+if (advancedConfig.extractors) {
+  Object.keys(advancedConfig.extractors).forEach(key => {
+    try {
+      // Using Function constructor to evaluate the function string
+      extractors[key] = eval(`(${advancedConfig.extractors[key]})`);
+    } catch (error) {
+      console.error(`Error loading custom extractor "${key}":`, error);
+    }
+  });
 }
 
 // declare health checker
@@ -919,6 +955,59 @@ manrouter.put('/ddns', (request, response) => {
     
     const ddnsPath = path.join(__dirname, 'ddns.json');
     saveConfigAndRestart(ddnsPath, updatedDdns, 'DDNS configuration updated successfully', response);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+manrouter.get('/advanced', (request, response) => {
+  try {
+    const advancedPath = path.join(__dirname, 'advanced.json');
+    
+    if (!fs.existsSync(advancedPath)) {
+      const defaultAdvanced = {
+        parsers: {},
+        extractors: {},
+        queryTypes: []
+      };
+      response.setHeader('Content-Type', 'application/json');
+      return response.send(defaultAdvanced);
+    }
+    
+    const advancedData = fs.readFileSync(advancedPath, 'utf8');
+    const advancedObj = JSON.parse(advancedData);
+    response.setHeader('Content-Type', 'application/json');
+    response.send(advancedObj);
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+manrouter.put('/advanced', (request, response) => {
+  try {
+    const updatedAdvanced = request.body;
+    
+    // Validate advanced schema
+    const advancedSchema = {
+      type: 'object',
+      properties: {
+        parsers: { type: 'object' },
+        extractors: { type: 'object' },
+        queryTypes: { 
+          type: 'array',
+          items: { type: 'string' }
+        }
+      },
+      additionalProperties: false
+    };
+    
+    const validate = ajv.compile(advancedSchema);
+    if (!validate(updatedAdvanced)) {
+      return sendError(response, 400, { message: 'Invalid advanced configuration format', details: validate.errors });
+    }
+    
+    const advancedPath = path.join(__dirname, 'advanced.json');
+    saveConfigAndRestart(advancedPath, updatedAdvanced, 'Advanced configuration updated successfully', response);
   } catch (error) {
     sendError(response, 500, error);
   }

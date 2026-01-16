@@ -1,0 +1,14 @@
+{
+  "parsers": {
+    "buns": "(body) => {\n  // Your parser code here\n  return true;\n}",
+    "beans": "(body) => {\n  // Your parser code here\n  return true;\n}"
+  },
+  "extractors": {
+    "buns": "(state) => ({\n  online: 0,\n  max: 0,\n  version: \"1.0\"\n})",
+    "beans": "(state) => ({\n  online: 0,\n  max: 0,\n  version: \"1.0\"\n})"
+  },
+  "queryTypes": [
+    "buns",
+    "beans"
+  ]
+}

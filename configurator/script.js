@@ -6,6 +6,8 @@ let ddns = {};
 let originalDdns = {};
 let ecosystem = {};
 let originalEcosystem = {};
+let advanced = {};
+let originalAdvanced = {};
 let currentSelection = null;
 let configSavedThisSession = false;
 let servicesWithSubdomainsAtLastSave = new Set();
@@ -17,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadSecrets();
     await loadDdns();
     await loadEcosystem();
+    await loadAdvanced();
     await loadGitStatus();
     renderServicesList();
     updateSidebarButtons();
@@ -39,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         const section = urlParams.get('section');
         if (section) {
-            const validManagementSections = ['management-application', 'management-certificates', 'management-secrets', 'management-ddns', 'management-theme'];
+            const validManagementSections = ['management-application', 'management-certificates', 'management-secrets', 'management-ddns', 'management-theme', 'management-advanced'];
             const validConfigSections = ['config-domain'];
             const isValidManagement = validManagementSections.includes(section);
             const isValidConfig = validConfigSections.includes(section);
@@ -264,6 +267,45 @@ async function loadDdns() {
         originalDdns = JSON.parse(JSON.stringify(ddns));
         showStatus('Could not load DDNS Config: ' + error.message, 'error');
     }
+}
+
+async function loadAdvanced() {
+    try {
+        const url = 'advanced';
+        const response = await fetch(url);
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load Advanced config`);
+        
+        const text = await response.text();
+        
+        if (!text) {
+            advanced = getDefaultAdvanced();
+            originalAdvanced = JSON.parse(JSON.stringify(advanced));
+            return;
+        }
+        
+        advanced = JSON.parse(text);
+        
+        const defaults = getDefaultAdvanced();
+        Object.keys(defaults).forEach(key => {
+            if (advanced[key] === undefined) advanced[key] = defaults[key];
+        });
+        
+        originalAdvanced = JSON.parse(JSON.stringify(advanced));
+    } catch (error) {
+        console.error('Advanced config load error:', error);
+        advanced = getDefaultAdvanced();
+        originalAdvanced = JSON.parse(JSON.stringify(advanced));
+        showStatus('Could not load Advanced Config: ' + error.message, 'error');
+    }
+}
+
+function getDefaultAdvanced() {
+    return {
+        parsers: {},
+        extractors: {},
+        queryTypes: []
+    };
 }
 
 function renderSecretsEditor() {
@@ -1223,6 +1265,264 @@ function revertEcosystem() {
     );
 }
 
+function renderAdvancedEditor() {
+    const panel = document.getElementById('editorPanel');
+    
+    // Build parsers list
+    let parsersHtml = '';
+    if (advanced.parsers) {
+        Object.keys(advanced.parsers).forEach(key => {
+            parsersHtml += `
+                <div class="form-group">
+                    <label for="parser_${key}">${key}</label>
+                    <textarea id="parser_${key}" rows="5" onchange="updateAdvancedParser('${key}', this.value)">${advanced.parsers[key] || ''}</textarea>
+                    <button class="btn-remove" onclick="removeAdvancedParser('${key}')">Remove</button>
+                </div>
+            `;
+        });
+    }
+    
+    // Build extractors list
+    let extractorsHtml = '';
+    if (advanced.extractors) {
+        Object.keys(advanced.extractors).forEach(key => {
+            extractorsHtml += `
+                <div class="form-group">
+                    <label for="extractor_${key}">${key}</label>
+                    <textarea id="extractor_${key}" rows="5" onchange="updateAdvancedExtractor('${key}', this.value)">${advanced.extractors[key] || ''}</textarea>
+                    <button class="btn-remove" onclick="removeAdvancedExtractor('${key}')">Remove</button>
+                </div>
+            `;
+        });
+    }
+    
+    // Build query types list
+    let queryTypesHtml = '';
+    if (advanced.queryTypes && advanced.queryTypes.length > 0) {
+        advanced.queryTypes.forEach((qt, index) => {
+            queryTypesHtml += `
+                <div class="form-group">
+                    <input type="text" id="querytype_${index}" value="${qt}" onchange="updateAdvancedQueryType(${index}, this.value)">
+                    <button class="btn-remove" style="margin-top:4px;" onclick="removeAdvancedQueryType(${index})">Remove</button>
+                </div>
+            `;
+        });
+    }
+    
+    panel.innerHTML = `
+        <div class="section">
+            <div class="section-title">🔬 Advanced Configuration</div>
+            <div class="hint hint-section">Configure custom parsers, extractors, and GameDig query types. These are advanced features for extending healthcheck functionality.</div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">HTTP Response Body Parsers</div>
+            <div class="hint hint-section">Custom parsers for HTTP healthchecks. Must be valid JavaScript function code that takes (body) as parameter and returns boolean.</div>
+            ${parsersHtml}
+            <button class="btn-add-field" onclick="addAdvancedParser()">+ Add Parser</button>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Metadata Extractors</div>
+            <div class="hint hint-section">Custom extractors for pulling metadata from healthcheck responses. Must be valid JavaScript function code that takes (state) as parameter and returns object with online, max, version properties.</div>
+            ${extractorsHtml}
+            <button class="btn-add-field" onclick="addAdvancedExtractor()">+ Add Extractor</button>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">GameDig Query Types</div>
+            <div class="hint hint-section">Supported game types for GameDig healthchecks (e.g., "mbe", "valheim").</div>
+            ${queryTypesHtml}
+            <button class="btn-add-field" onclick="addAdvancedQueryType()">+ Add Query Type</button>
+        </div>
+        
+        <div class="section">
+            <div class="actions-row">
+                <button class="btn-reset" onclick="revertAdvanced()">Revert</button>
+                <button class="btn-save" id="saveAdvancedBtn" onclick="saveAdvanced()">Save Advanced Config</button>
+            </div>
+        </div>
+    `;
+}
+
+function addAdvancedParser() {
+    showPromptModal(
+        'Add Parser',
+        'Enter the name for the new parser:',
+        'e.g., myservice',
+        '',
+        (name) => {
+            if (!name || name.trim() === '') {
+                showStatus('Parser name cannot be empty', 'error');
+                return false;
+            }
+            if (advanced.parsers[name]) {
+                showStatus('Parser with that name already exists', 'error');
+                return false;
+            }
+            advanced.parsers[name] = '(body) => {\n  // Your parser code here\n  return true;\n}';
+            renderAdvancedEditor();
+            showStatus('Parser added', 'success');
+            return true;
+        }
+    );
+}
+
+function addAdvancedExtractor() {
+    showPromptModal(
+        'Add Extractor',
+        'Enter the name for the new extractor:',
+        'e.g., mygame',
+        '',
+        (name) => {
+            if (!name || name.trim() === '') {
+                showStatus('Extractor name cannot be empty', 'error');
+                return false;
+            }
+            if (advanced.extractors[name]) {
+                showStatus('Extractor with that name already exists', 'error');
+                return false;
+            }
+            advanced.extractors[name] = '(state) => ({\n  online: 0,\n  max: 0,\n  version: "1.0"\n})';
+            renderAdvancedEditor();
+            showStatus('Extractor added', 'success');
+            return true;
+        }
+    );
+}
+
+function addAdvancedQueryType() {
+    showPromptModal(
+        'Add Query Type',
+        'Enter the query type name:',
+        'e.g., minecraft',
+        '',
+        (name) => {
+            if (!name || name.trim() === '') {
+                showStatus('Query type cannot be empty', 'error');
+                return false;
+            }
+            if (advanced.queryTypes.includes(name)) {
+                showStatus('Query type already exists', 'error');
+                return false;
+            }
+            advanced.queryTypes.push(name);
+            renderAdvancedEditor();
+            showStatus('Query type added', 'success');
+            return true;
+        }
+    );
+}
+
+function updateAdvancedParser(name, value) {
+    advanced.parsers[name] = value;
+}
+
+function updateAdvancedExtractor(name, value) {
+    advanced.extractors[name] = value;
+}
+
+function updateAdvancedQueryType(index, value) {
+    advanced.queryTypes[index] = value;
+}
+
+function removeAdvancedParser(name) {
+    showConfirmModal(
+        'Remove Parser',
+        `Are you sure you want to remove the parser "${name}"?`,
+        (confirmed) => {
+            if (confirmed) {
+                delete advanced.parsers[name];
+                renderAdvancedEditor();
+                showStatus('Parser removed', 'success');
+            }
+        }
+    );
+}
+
+function removeAdvancedExtractor(name) {
+    showConfirmModal(
+        'Remove Extractor',
+        `Are you sure you want to remove the extractor "${name}"?`,
+        (confirmed) => {
+            if (confirmed) {
+                delete advanced.extractors[name];
+                renderAdvancedEditor();
+                showStatus('Extractor removed', 'success');
+            }
+        }
+    );
+}
+
+function removeAdvancedQueryType(index) {
+    showConfirmModal(
+        'Remove Query Type',
+        `Are you sure you want to remove the query type "${advanced.queryTypes[index]}"?`,
+        (confirmed) => {
+            if (confirmed) {
+                advanced.queryTypes.splice(index, 1);
+                renderAdvancedEditor();
+                showStatus('Query type removed', 'success');
+            }
+        }
+    );
+}
+
+async function saveAdvanced() {
+    const saveBtn = document.getElementById('saveAdvancedBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+        const response = await fetch('advanced', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(advanced)
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error);
+        }
+
+        originalAdvanced = JSON.parse(JSON.stringify(advanced));
+        showStatus('Advanced configuration saved successfully! Server will restart.', 'success');
+        
+        showLoadingOverlay(
+            'Server Restarting...',
+            'Waiting for the server to come back online. This usually takes a few seconds.'
+        );
+        
+        await waitForServerRestart();
+        
+        const url = new URL(window.location);
+        url.searchParams.set('section', 'management-advanced');
+        window.location.href = url.toString();
+        
+    } catch (error) {
+        console.error('Advanced config save error:', error);
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Advanced Config';
+        showStatus('Save failed: ' + error.message, 'error');
+    }
+}
+
+function revertAdvanced() {
+    showConfirmModal(
+        'Revert Changes',
+        'Are you sure you want to discard all changes to the advanced configuration?',
+        (confirmed) => {
+            if (confirmed) {
+                advanced = JSON.parse(JSON.stringify(originalAdvanced));
+                renderAdvancedEditor();
+                showStatus('Advanced configuration changes reverted', 'success');
+            }
+        }
+    );
+}
+
 function renderServicesList() {
     const list = document.getElementById('servicesList');
     list.innerHTML = '';
@@ -1295,6 +1595,19 @@ function renderServicesList() {
         themeItem.onclick = () => selectItem('management-theme');
     }
     list.appendChild(themeItem);
+
+    const advancedItem = document.createElement('div');
+    advancedItem.className = 'service-item' + (currentSelection === 'management-advanced' ? ' active' : '');
+    advancedItem.textContent = '🔬 Advanced';
+    if (isFirstTimeSetup) {
+        advancedItem.style.opacity = '0.5';
+        advancedItem.style.cursor = 'default';
+        advancedItem.style.pointerEvents = 'none';
+        advancedItem.onclick = null;
+    } else {
+        advancedItem.onclick = () => selectItem('management-advanced');
+    }
+    list.appendChild(advancedItem);
 
     const configHeader = document.createElement('h2');
     configHeader.style.marginTop = '20px';
@@ -1382,6 +1695,8 @@ function selectItem(prefixedName) {
         renderDdnsEditor();
     } else if (prefixedName === 'management-theme') {
         renderThemeEditor();
+    } else if (prefixedName === 'management-advanced') {
+        renderAdvancedEditor();
     } else if (prefixedName.startsWith('config-')) {
         renderServiceEditor(itemName);
     }
@@ -1833,6 +2148,45 @@ function renderApiHealthcheckSection(serviceName, healthcheck) {
 }
 
 function renderHealthcheckSection(serviceName, healthcheck) {
+    // Build parser options from both defaults and advanced config
+    const parserOptions = ['hass', 'radio', 'body'];
+    if (advanced.parsers) {
+        Object.keys(advanced.parsers).forEach(key => {
+            if (!parserOptions.includes(key)) {
+                parserOptions.push(key);
+            }
+        });
+    }
+    let parserOptionsHtml = parserOptions.map(parser => 
+        `<option value="${parser}" ${healthcheck.parser === parser ? 'selected' : ''}>${parser}</option>`
+    ).join('');
+    
+    // Build extractor options from both defaults and advanced config
+    const extractorOptions = ['doom', 'minecraft', 'valheim', 'radio'];
+    if (advanced.extractors) {
+        Object.keys(advanced.extractors).forEach(key => {
+            if (!extractorOptions.includes(key)) {
+                extractorOptions.push(key);
+            }
+        });
+    }
+    let extractorOptionsHtml = extractorOptions.map(extractor =>
+        `<option value="${extractor}" ${healthcheck.extractor === extractor ? 'selected' : ''}>${extractor}</option>`
+    ).join('');
+    
+    // Build query type options from both defaults and advanced config
+    const queryTypeOptions = ['mbe', 'valheim'];
+    if (advanced.queryTypes && advanced.queryTypes.length > 0) {
+        advanced.queryTypes.forEach(qt => {
+            if (!queryTypeOptions.includes(qt)) {
+                queryTypeOptions.push(qt);
+            }
+        });
+    }
+    let queryTypeOptionsHtml = queryTypeOptions.map(qt =>
+        `<option value="${qt}" ${healthcheck.queryType === qt ? 'selected' : ''}>${qt}</option>`
+    ).join('');
+    
     let html = `
         <div class="section">
             <div class="section-title">Health Check Configuration</div>
@@ -1871,17 +2225,14 @@ function renderHealthcheckSection(serviceName, healthcheck) {
                     <label for="hc_parser_${serviceName}">HTML Body Parser</label>
                     <select id="hc_parser_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.parser', this.value)">
                         <option value="">-- Select Parser --</option>
-                        <option value="hass" ${healthcheck.parser === 'hass' ? 'selected' : ''}>hass</option>
-                        <option value="radio" ${healthcheck.parser === 'radio' ? 'selected' : ''}>radio</option>
-                        <option value="body" ${healthcheck.parser === 'body' ? 'selected' : ''}>body</option>
+                        ${parserOptionsHtml}
                     </select>
                 </div>
                 <div class="form-group gamedig-only-field" data-service="${serviceName}">
                     <label for="hc_querytype_${serviceName}">Query Type</label>
                     <select id="hc_querytype_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.queryType', this.value)">
                         <option value="">-- Select Query Type --</option>
-                        <option value="mbe" ${healthcheck.queryType === 'mbe' ? 'selected' : ''}>mbe</option>
-                        <option value="valheim" ${healthcheck.queryType === 'valheim' ? 'selected' : ''}>valheim</option>
+                        ${queryTypeOptionsHtml}
                     </select>
                 </div>
                 <div class="form-group">
@@ -1889,7 +2240,7 @@ function renderHealthcheckSection(serviceName, healthcheck) {
                     <select id="hc_platform_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.platform', this.value)">
                         <option value="">-- Select Platform --</option>
                         <option value="compute" ${healthcheck.platform === 'compute' ? 'selected' : ''}>compute</option>
-                        <option value="storage" ${healthcheck.platform === 'storage' ? 'storage' : ''}>radio</option>
+                        <option value="storage" ${healthcheck.platform === 'storage' ? 'selected' : ''}>storage</option>
                         <option value="standalone" ${healthcheck.platform === 'standalone' ? 'selected' : ''}>standalone</option>
                     </select>
                     <div class="hint">If Wake-on-LAN secrets are configured, the API page can send a Wake-on-LAN packet if all services on the compute platform are down</div>
@@ -1902,12 +2253,9 @@ function renderHealthcheckSection(serviceName, healthcheck) {
                 </div>
                 <div class="form-group" data-service="${serviceName}">
                     <label for="hc_extractor_${serviceName}">Meta Data Extractor</label>
-                    <select id="hc_extractor_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.extractor', this.value)">
+                    <select id="hc_extractor_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.extractor', this.value); toggleMetaFieldVisibility('${serviceName}');">
                         <option value="">-- Select Extractor --</option>
-                        <option value="doom" ${healthcheck.extractor === 'doom' ? 'selected' : ''}>doom</option>
-                        <option value="minecraft" ${healthcheck.extractor === 'minecraft' ? 'selected' : ''}>minecraft</option>
-                        <option value="valheim" ${healthcheck.extractor === 'valheim' ? 'selected' : ''}>valheim</option>
-                        <option value="radio" ${healthcheck.extractor === 'radio' ? 'selected' : ''}>radio</option>
+                        ${extractorOptionsHtml}
                     </select>
                 </div>
                 ${renderMetaSection(serviceName, healthcheck.meta || {})}
@@ -2146,6 +2494,8 @@ function addNewService() {
     showPromptModal(
         'Add New Service',
         'Enter a name for the new service:',
+        'Lowercase letters, numbers, and hyphens only. Max 63 characters',
+        '',
         (serviceName) => {
             if (!serviceName) return;
             
@@ -2179,8 +2529,7 @@ function addNewService() {
             selectItem('config-' + serviceName);
             showStatus('Service added successfully', 'success');
             closePromptModal();
-        },
-        'Lowercase letters, numbers, and hyphens only. Max 63 characters'
+        }
     );
 }
 
@@ -2414,10 +2763,10 @@ function confirmAction() {
     closeConfirmModal();
 }
 
-function showPromptModal(title, message, callback, hint = '') {
+function showPromptModal(title, message, hint = '', defaultValue = '', callback) {
     document.getElementById('promptTitle').textContent = title;
     document.getElementById('promptMessage').textContent = message;
-    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').value = defaultValue;
     
     const hintEl = document.getElementById('promptHint');
     if (hint) {
@@ -2450,7 +2799,11 @@ function closePromptModal() {
 function submitPrompt() {
     const value = document.getElementById('promptInput').value;
     if (promptCallback) {
-        promptCallback(value);
+        const result = promptCallback(value);
+        // Only close modal if callback returns true (success)
+        if (result !== false) {
+            closePromptModal();
+        }
     }
 }
 
