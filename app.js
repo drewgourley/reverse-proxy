@@ -71,6 +71,7 @@ const protocols = {
 };
 if (env === 'development') protocols.secure = 'http://';
 
+// TODO: Make parsers and extractors configurable so the user can add new services as needed.
 // declare parsers
 const parsers = {
   hass: (body) => {
@@ -102,8 +103,8 @@ const extractors = {
     max: state.maxplayers,
     version: state.raw?.version,
   }),
-  radio: (body) => {
-    const json = JSON.parse(body);
+  radio: (state) => {
+    const json = JSON.parse(state);
     if (json.icestats && json.icestats.source) {
       return {
         online: json.icestats.source.listeners || 0,

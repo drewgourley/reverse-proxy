@@ -333,7 +333,8 @@ function renderSecretsEditor() {
                                 onchange="updateSecret('${key}', this.value)"
                                 autocomplete="current-password">
                         <button class="btn-toggle-password" onclick="togglePasswordVisibility('secret_${key}', this)">👁️ Show</button>
-                    </div>`;
+                    </div>
+                    <div class="hint">The MAC address of the compute platform device</div>`;
         }
         
         html += `
@@ -1552,6 +1553,15 @@ function renderServiceEditor(serviceName) {
     }
 
     panel.innerHTML = html;
+    
+    // Set initial visibility state for conditional fields
+    if (service.subdomain) {
+        toggleFieldVisibility(serviceName);
+    }
+    if (service.healthcheck) {
+        toggleHealthcheckFieldVisibility(serviceName);
+        toggleMetaFieldVisibility(serviceName);
+    }
 }
 
 function renderServiceProperties(serviceName, service, prefix = '', depth = 0) {
@@ -1745,7 +1755,7 @@ function renderSubdomainSection(serviceName, subdomain) {
                 <button class="btn-remove" onclick="removeSubdomain('${serviceName}')">Remove Subdomain</button>
                 <div class="form-group">
                     <label for="subdomain_type_${serviceName}">Type</label>
-                    <select id="subdomain_type_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'subdomain.type', this.value)">
+                    <select id="subdomain_type_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'subdomain.type', this.value); toggleFieldVisibility('${serviceName}')">
                         <option value="index" ${subdomain.type === 'index' ? 'selected' : ''}>Index</option>
                         <option value="dirlist" ${subdomain.type === 'dirlist' ? 'selected' : ''}>Directory List</option>
                         <option value="proxy" ${subdomain.type === 'proxy' ? 'selected' : ''}>Proxy</option>
@@ -1759,28 +1769,28 @@ function renderSubdomainSection(serviceName, subdomain) {
                         <option value="insecure" ${subdomain.protocol === 'insecure' ? 'selected' : ''}>Insecure (HTTP)</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group proxy-field" data-service="${serviceName}">
                     <label for="subdomain_path_${serviceName}">IP address and Port to Internal Service</label>
                     <input type="text" id="subdomain_path_${serviceName}" value="${subdomain.path || ''}" 
                             onchange="updateServiceProperty('${serviceName}', 'subdomain.path', this.value)"
                             placeholder="e.g., 192.168.1.2:8000">
-                    <div class="hint">Proxy specific, but can be used with index/dirlist services if Proxy Path is included below</div>
+                    <div class="hint">Index services can proxy a service if Proxy Path is included below</div>
                 </div>
-                <div class="form-group">
+                <div class="form-group basicauth-field" data-service="${serviceName}">
                     <label for="subdomain_basicUser_${serviceName}">Basic Auth Username</label>
                     <input type="text" id="subdomain_basicUser_${serviceName}" value="${subdomain.basicUser || ''}" 
                             onchange="updateServiceProperty('${serviceName}', 'subdomain.basicUser', this.value)"
                             placeholder="Optional username">
                     <div class="hint">Used for /protected folder in dirlist services</div>
                 </div>
-                <div class="form-group">
+                <div class="form-group basicauth-field" data-service="${serviceName}">
                     <label for="subdomain_basicPass_${serviceName}">Basic Auth Password</label>
                     <input type="text" id="subdomain_basicPass_${serviceName}" value="${subdomain.basicPass || ''}" 
                             onchange="updateServiceProperty('${serviceName}', 'subdomain.basicPass', this.value)"
                             placeholder="Optional password">
                     <div class="hint">Used for /protected folder in dirlist services</div>
                 </div>
-                <div class="form-group form-group-no-margin">
+                <div class="form-group form-group-no-margin proxy-field" data-service="${serviceName}">
                     <label>Proxy Options</label>
                     <div class="nested-object">
                         <div class="checkbox-item">
@@ -1789,10 +1799,11 @@ function renderSubdomainSection(serviceName, subdomain) {
                             <label for="proxy_socket_${serviceName}" class="inline-label">Enable WebSocket</label>
                         </div>
                         <div class="form-group form-group-spaced form-group-no-margin">
-                            <label for="proxy_path_${serviceName}">Proxy Path (optional)</label>
+                            <label for="proxy_path_${serviceName}">Proxy Path</label>
                             <input type="text" id="proxy_path_${serviceName}" value="${(subdomain.proxy && subdomain.proxy.path) || ''}" 
                                     onchange="updateServiceProperty('${serviceName}', 'subdomain.proxy.path', this.value)"
                                     placeholder="e.g., /stream">
+                            <div class="hint">Optional, can be used to expose a proxy under an Index type service, but has other uses for Proxy services as well</div>
                         </div>
                     </div>
                 </div>
@@ -1811,9 +1822,10 @@ function renderApiHealthcheckSection(serviceName, healthcheck) {
                     <label for="hc_id_${serviceName}">Health Check ID (UUID)</label>
                     <input type="text" id="hc_id_${serviceName}" value="${healthcheck.id || ''}" 
                             onchange="updateServiceProperty('${serviceName}', 'healthcheck.id', this.value)"
-                            placeholder="UUID for third-party health check">
-                    <div class="hint">API service only uses external health check ID</div>
+                            placeholder="UUID for healthchecks.io health check">
+                    <div class="hint">Optional, used for pinging a healthchecks.io healthcheck</div>
                 </div>
+                <div class="hint">Default api service uses simplified configuration</div>
             </div>
         </div>
     `;
@@ -1830,30 +1842,33 @@ function renderHealthcheckSection(serviceName, healthcheck) {
                     <label for="hc_id_${serviceName}">Health Check ID (UUID)</label>
                     <input type="text" id="hc_id_${serviceName}" value="${healthcheck.id || ''}" 
                             onchange="updateServiceProperty('${serviceName}', 'healthcheck.id', this.value)"
-                            placeholder="UUID for third-party health check">
+                            placeholder="UUID for healthchecks.io health check">
+                    <div class="hint">Optional, used for pinging a healthchecks.io healthcheck</div>
                 </div>
                 <div class="form-group">
-                    <label for="hc_path_${serviceName}">Path (IP:Port or URL)</label>
+                    <label for="hc_path_${serviceName}">Path to Service Status Monitor (IP:Port or URL)</label>
                     <input type="text" id="hc_path_${serviceName}" value="${healthcheck.path || ''}" 
                             onchange="updateServiceProperty('${serviceName}', 'healthcheck.path', this.value)"
                             placeholder="e.g., 192.168.1.213:8000/status or http://service/health">
+                    <div class="hint">Some services have dedicated ports or routes for this, otherwise you can just check if the service returns its home or login page</div>
                 </div>
                 <div class="form-group">
                     <label for="hc_type_${serviceName}">Type</label>
-                    <select id="hc_type_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.type', this.value)">
+                    <select id="hc_type_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.type', this.value); toggleHealthcheckFieldVisibility('${serviceName}')">
                         <option value="">-- Select Type --</option>
                         <option value="http" ${healthcheck.type === 'http' ? 'selected' : ''}>HTTP</option>
                         <option value="gamedig" ${healthcheck.type === 'gamedig' ? 'selected' : ''}>GameDig</option>
                         <option value="odalpapi" ${healthcheck.type === 'odalpapi' ? 'selected' : ''}>OdalPAPI</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group http-only-field" data-service="${serviceName}">
                     <label for="hc_timeout_${serviceName}">Timeout (ms)</label>
                     <input type="number" id="hc_timeout_${serviceName}" value="${healthcheck.timeout || ''}" 
                             onchange="updateServiceProperty('${serviceName}', 'healthcheck.timeout', parseInt(this.value) || undefined)">
+                    <div class="hint">Defaults to 1000ms if left blank</div>
                 </div>
-                <div class="form-group">
-                    <label for="hc_parser_${serviceName}">Parser</label>
+                <div class="form-group http-only-field" data-service="${serviceName}">
+                    <label for="hc_parser_${serviceName}">HTML Body Parser</label>
                     <select id="hc_parser_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.parser', this.value)">
                         <option value="">-- Select Parser --</option>
                         <option value="hass" ${healthcheck.parser === 'hass' ? 'selected' : ''}>hass</option>
@@ -1861,17 +1876,7 @@ function renderHealthcheckSection(serviceName, healthcheck) {
                         <option value="body" ${healthcheck.parser === 'body' ? 'selected' : ''}>body</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="hc_extractor_${serviceName}">Extractor</label>
-                    <select id="hc_extractor_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.extractor', this.value)">
-                        <option value="">-- Select Extractor --</option>
-                        <option value="doom" ${healthcheck.extractor === 'doom' ? 'selected' : ''}>doom</option>
-                        <option value="minecraft" ${healthcheck.extractor === 'minecraft' ? 'selected' : ''}>minecraft</option>
-                        <option value="valheim" ${healthcheck.extractor === 'valheim' ? 'selected' : ''}>valheim</option>
-                        <option value="radio" ${healthcheck.extractor === 'radio' ? 'selected' : ''}>radio</option>
-                    </select>
-                </div>
-                <div class="form-group">
+                <div class="form-group gamedig-only-field" data-service="${serviceName}">
                     <label for="hc_querytype_${serviceName}">Query Type</label>
                     <select id="hc_querytype_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.queryType', this.value)">
                         <option value="">-- Select Query Type --</option>
@@ -1887,11 +1892,23 @@ function renderHealthcheckSection(serviceName, healthcheck) {
                         <option value="storage" ${healthcheck.platform === 'storage' ? 'storage' : ''}>radio</option>
                         <option value="standalone" ${healthcheck.platform === 'standalone' ? 'selected' : ''}>standalone</option>
                     </select>
+                    <div class="hint">If Wake-on-LAN secrets are configured, the API page can send a Wake-on-LAN packet if all services on the compute platform are down</div>
                 </div>
                 <div class="form-group">
                     <label for="hc_pollrate_${serviceName}">Polling Rate (s)</label>
                     <input type="number" id="hc_pollrate_${serviceName}" value="${healthcheck.pollrate || ''}" 
                             onchange="updateServiceProperty('${serviceName}', 'healthcheck.pollrate', parseInt(this.value) || undefined)">
+                    <div class="hint">How often the API page will poll the service for health status updates, defaults to 30s if left blank</div>
+                </div>
+                <div class="form-group" data-service="${serviceName}">
+                    <label for="hc_extractor_${serviceName}">Meta Data Extractor</label>
+                    <select id="hc_extractor_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.extractor', this.value)">
+                        <option value="">-- Select Extractor --</option>
+                        <option value="doom" ${healthcheck.extractor === 'doom' ? 'selected' : ''}>doom</option>
+                        <option value="minecraft" ${healthcheck.extractor === 'minecraft' ? 'selected' : ''}>minecraft</option>
+                        <option value="valheim" ${healthcheck.extractor === 'valheim' ? 'selected' : ''}>valheim</option>
+                        <option value="radio" ${healthcheck.extractor === 'radio' ? 'selected' : ''}>radio</option>
+                    </select>
                 </div>
                 ${renderMetaSection(serviceName, healthcheck.meta || {})}
             </div>
@@ -1901,32 +1918,33 @@ function renderHealthcheckSection(serviceName, healthcheck) {
 }
 
 function renderMetaSection(serviceName, meta) {
-    let html = '<div class="form-group form-group-no-margin"><label>Meta Data</label><div class="nested-object">';
+    let html = '<div class="form-group form-group-no-margin"><label>Meta Data Defaults</label><div class="nested-object">';
     
     const allMetaFields = [
-        {key: 'tag', type: 'text'},
-        {key: 'online', type: 'number'},
-        {key: 'max', type: 'number'},
-        {key: 'version', type: 'text'},
-        {key: 'link', type: 'checkbox'}
+        {key: 'tag', type: 'text', extractorDependent: true},
+        {key: 'online', type: 'number', extractorDependent: true},
+        {key: 'max', type: 'number', extractorDependent: true},
+        {key: 'version', type: 'text', extractorDependent: false},
+        {key: 'link', type: 'checkbox', extractorDependent: false}
     ];
-    allMetaFields.forEach(({key, type}) => {
+    allMetaFields.forEach(({key, type, extractorDependent}) => {
         const value = meta[key] !== undefined ? meta[key] : '';
         const inputType = type;
+        const fieldClass = extractorDependent ? 'form-group extractor-dependent-field' : 'form-group';
         if (inputType === 'checkbox') {
             html += `
                 <div class="form-group form-group-spaced form-group-no-margin">
                         <div class="checkbox-item">
                             <input type="checkbox" id="meta_${serviceName}_${key}" ${value ? 'checked' : ''} 
                                 onchange="updateServiceProperty('${serviceName}', 'healthcheck.meta.${key}', this.checked)">
-                            <label for="meta_${serviceName}_${key}" class="inline-label">Provide Service Link</label>
+                            <label for="meta_${serviceName}_${key}" class="inline-label">Provide Service Link in Metadata</label>
                         </div>
                     </div>
                 </div>
             `;
         } else {
             html += `
-                <div class="form-group">
+                <div class="${fieldClass}" data-service="${serviceName}">
                     <label for="meta_${serviceName}_${key}">${key}</label>
                     <input type="${inputType}" id="meta_${serviceName}_${key}" value="${value}" 
                         onchange="updateServiceProperty('${serviceName}', 'healthcheck.meta.${key}', ${inputType === 'number' ? 'parseInt(this.value) || 0' : 'this.value'})">
@@ -1949,6 +1967,8 @@ function addHealthcheck(serviceName) {
             parser: '',
             extractor: '',
             queryType: '',
+            pollrate: 30,
+            platform: '',
             meta: {}
         };
         renderServiceEditor(serviceName);
@@ -2013,6 +2033,87 @@ function updateServiceProperty(serviceName, path, value) {
     }
 
     obj[parts[parts.length - 1]] = value;
+}
+
+function toggleFieldVisibility(serviceName) {
+    const typeSelect = document.getElementById(`subdomain_type_${serviceName}`);
+    if (!typeSelect) return;
+    
+    const selectedType = typeSelect.value;
+    const basicAuthFields = document.querySelectorAll(`.basicauth-field[data-service="${serviceName}"]`);
+    const proxyFields = document.querySelectorAll(`.proxy-field[data-service="${serviceName}"]`);
+    
+    // Basic Auth fields: show only for dirlist
+    basicAuthFields.forEach(field => {
+        if (selectedType === 'dirlist') {
+            field.classList.remove('form-group-hidden');
+        } else {
+            field.classList.add('form-group-hidden');
+        }
+    });
+    
+    // Proxy fields: hide for dirlist, show for index and proxy
+    proxyFields.forEach(field => {
+        if (selectedType === 'dirlist') {
+            field.classList.add('form-group-hidden');
+        } else {
+            field.classList.remove('form-group-hidden');
+        }
+    });
+}
+
+function toggleHealthcheckFieldVisibility(serviceName) {
+    const typeSelect = document.getElementById(`hc_type_${serviceName}`);
+    if (!typeSelect) return;
+    
+    const selectedType = typeSelect.value;
+    const httpOnlyFields = document.querySelectorAll(`.http-only-field[data-service="${serviceName}"]`);
+    const gamedigOnlyFields = document.querySelectorAll(`.gamedig-only-field[data-service="${serviceName}"]`);
+    const httpGamedigFields = document.querySelectorAll(`.http-gamedig-field[data-service="${serviceName}"]`);
+    
+    // HTTP-only fields: show only for http type
+    httpOnlyFields.forEach(field => {
+        if (selectedType === 'http') {
+            field.classList.remove('form-group-hidden');
+        } else {
+            field.classList.add('form-group-hidden');
+        }
+    });
+    
+    // GameDig-only fields: show only for gamedig type
+    gamedigOnlyFields.forEach(field => {
+        if (selectedType === 'gamedig') {
+            field.classList.remove('form-group-hidden');
+        } else {
+            field.classList.add('form-group-hidden');
+        }
+    });
+    
+    // HTTP and GameDig fields: show for both http and gamedig types
+    httpGamedigFields.forEach(field => {
+        if (selectedType === 'http' || selectedType === 'gamedig') {
+            field.classList.remove('form-group-hidden');
+        } else {
+            field.classList.add('form-group-hidden');
+        }
+    });
+}
+
+function toggleMetaFieldVisibility(serviceName) {
+    const extractorSelect = document.getElementById(`hc_extractor_${serviceName}`);
+    if (!extractorSelect) return;
+    
+    const selectedExtractor = extractorSelect.value;
+    const extractorDependentFields = document.querySelectorAll(`.extractor-dependent-field[data-service="${serviceName}"]`);
+    
+    // Extractor-dependent fields: show only when an extractor is selected
+    extractorDependentFields.forEach(field => {
+        if (selectedExtractor && selectedExtractor !== '') {
+            field.classList.remove('form-group-hidden');
+        } else {
+            field.classList.add('form-group-hidden');
+        }
+    });
 }
 
 function removeService(serviceName) {
@@ -2087,10 +2188,10 @@ function mapChecklist(config) {
     const checklist = [];
     if (config.services) {
         Object.entries(config.services).forEach(([name, service]) => {
-            if (service.healthcheck && service.healthcheck.pollrate && service.healthcheck.platform) {
+            if (service.healthcheck && service.healthcheck.platform) {
                 const item = { 
                     name, 
-                    polltime: service.healthcheck.pollrate*1000, 
+                    polltime: service.healthcheck.pollrate ? service.healthcheck.pollrate*1000 : 30000, 
                     platform: service.healthcheck.platform
                 };
                 if (service.nicename) {

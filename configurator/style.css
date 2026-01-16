@@ -897,6 +897,10 @@ input[type="checkbox"] {
     margin-bottom: 0;
 }
 
+.form-group-hidden {
+    display: none;
+}
+
 /* Loading overlay styles */
 .loading-overlay {
     display: flex;
