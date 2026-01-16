@@ -2,6 +2,7 @@
 ecosystem.config.js
 node_modules
 _graveyard
+advanced.json
 secrets.json
 ddns.json
 config.json
