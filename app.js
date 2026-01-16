@@ -381,7 +381,6 @@ const handleWebSocketUpgrade = (req, socket, head) => {
     }
   });
   if (!found) {
-    // Properly close the connection if no WebSocket service matches
     socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
     socket.destroy();
   }
@@ -1033,7 +1032,6 @@ manrouter.get('/git/status', (request, response) => {
               commit,
               message,
               version,
-              isDevelopment: env === 'development'
             });
           });
         });
@@ -1052,7 +1050,6 @@ manrouter.get('/git/check', (request, response) => {
         updatesAvailable: true,
         commitsAhead: 1,
         message: '1 Update Available',
-        isDevelopment: true
       });
     }
     
@@ -1104,12 +1101,15 @@ manrouter.get('/git/check', (request, response) => {
 manrouter.post('/git/pull', (request, response) => {
   try {
     if (env === 'development') {
-      return response.status(200).send({
+      response.status(200).send({
         success: true,
         message: 'Update endpoint tested successfully',
         output: 'Development mode: No actual git pull performed',
-        isDevelopment: true
       });
+      setTimeout(() => {
+        process.exit(0);
+      }, 2000);
+      return;
     }
     
     exec('git pull origin', (error, stdout, stderr) => {
@@ -1123,15 +1123,10 @@ manrouter.post('/git/pull', (request, response) => {
         output: stdout
       });
       
-      // Restart server after update
       setTimeout(() => {
-        if (env === 'development') {
+        exec('pm2 restart 0', () => {
           process.exit(0);
-        } else {
-          exec('pm2 restart 0', () => {
-            process.exit(0);
-          });
-        }
+        });
       }, 2000);
     });
   } catch (error) {
