@@ -182,7 +182,7 @@ const checkService = (name, callback) => {
         callback(report);
       });
     }
-  } else if (check.id) {
+  } else if (check.id && name === 'api') {
     report.healthy = true;
     report.deck = 'deckhealthy';
     callback(report);
