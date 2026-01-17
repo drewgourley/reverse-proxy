@@ -1298,7 +1298,7 @@ if (config.domain) {
   // initialize application
   let app = initApplication();
 
-  const port_http = 8080;
+  const port_http = env === 'development' ? 80 : 8080;
   const port_https = 8443;
   const httpServer = http.createServer(app);
   const httpsServer = cert ? https.createServer(cert, app) : null;
