@@ -440,7 +440,7 @@ const sendError = (response, statusCode, error) => {
 /* DDNS SETUP */
 if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key && ddns.aws_region && ddns.route53_hosted_zone_id) {
   // setup ddns updater for aws route53
-  const { Route53Client, ChangeResourceRecordSetsCommand } = require('@aws-sdk/client-route53');
+  const { Route53Client, ChangeResourceRecordSetsCommand } = require('@aws-sdk/client-route-53');
   const route53 = new Route53Client({
     region: ddns.aws_region,
     credentials: {
