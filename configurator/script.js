@@ -9,21 +9,65 @@ let originalEcosystem = {};
 let advanced = {};
 let originalAdvanced = {};
 let currentSelection = null;
-let configSavedThisSession = false;
+let secureServicesChangedThisSession = false;
+let firstConfigSave = true;
+let secretsSaved = false;
 let servicesWithSubdomainsAtLastSave = new Set();
 let gitStatus = {};
 
+function parseErrorMessage(error) {
+    try {
+        const errorObj = JSON.parse(error.message);
+        
+        if (errorObj.details && Array.isArray(errorObj.details) && errorObj.details.length > 0) {
+            const detail = errorObj.details[0];
+            
+            if (detail.keyword === 'required' && detail.params?.missingProperty) {
+                return `Missing required field: ${detail.params.missingProperty}`;
+            }
+            
+            if (detail.keyword === 'minLength' && detail.params?.limit === 1) {
+                const fieldName = detail.instancePath ? detail.instancePath.split('/').pop() : '';
+                return fieldName ? `${fieldName} must not be empty` : 'Field must not be empty';
+            }
+            
+            if (detail.keyword === 'pattern' && detail.instancePath) {
+                const fieldName = detail.instancePath.split('/').pop();
+                return `Invalid format for field: ${fieldName}`;
+            }
+            
+            if (detail.keyword === 'type' && detail.instancePath) {
+                const fieldName = detail.instancePath.split('/').pop();
+                return `Invalid type for field: ${fieldName}`;
+            }
+            
+            if (detail.message) {
+                const fieldName = detail.instancePath ? detail.instancePath.split('/').pop() : '';
+                return fieldName ? `${fieldName}: ${detail.message}` : detail.message;
+            }
+        }
+        
+        if (errorObj.error) {
+            return errorObj.error;
+        }
+        
+        return 'Validation error occurred';
+    } catch (e) {
+        return error.message || 'An error occurred';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadColors();
-    await loadConfig();
-    await loadSecrets();
-    await loadDdns();
-    await loadEcosystem();
-    await loadAdvanced();
-    await loadGitStatus();
+    await loadConfig(true);
+    await loadSecrets(true);
+    await loadDdns(true);
+    await loadEcosystem(true);
+    await loadAdvanced(true);
+    await loadGitStatus(true);
+
     renderServicesList();
     updateSidebarButtons();
-    
+
     const urlParams = new URLSearchParams(window.location.search);
     const justUpdated = urlParams.get('updated') === 'true';
     
@@ -39,15 +83,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (isFirstTimeSetup) {
         selectItem('management-application');
+    } else if (secretsSaved === false) {
+        selectItem('management-secrets');
+    } else if (config.domain === '' || config.domain.trim() === '') {
+        selectItem('config-domain');
     } else {
         const section = urlParams.get('section');
         if (section) {
-            const validManagementSections = ['management-application', 'management-certificates', 'management-secrets', 'management-ddns', 'management-theme', 'management-advanced'];
+            const validManagementSections = ['management-application', 'management-secrets', 'management-theme', 'management-advanced'];
+            if (secrets.admin_email_address && secrets.admin_email_address.trim() !== '') {
+                validManagementSections.push('management-certificates');
+            }
+            if (config.domain && config.domain.trim() !== '') {
+                validManagementSections.push('management-ddns');
+            }
             const validConfigSections = ['config-domain'];
             const isValidManagement = validManagementSections.includes(section);
             const isValidConfig = validConfigSections.includes(section);
             const isService = section.startsWith('config-') && config.services && config.services[section.replace('config-', '')];
-            
+
+
             if (isValidManagement || isValidConfig || isService) {
                 selectItem(section);
             } else {
@@ -73,10 +128,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function updateSidebarButtons() {
-    const isFirstTimeSetup = ecosystem.default === true;
+    const isFirstTimeSetup = ecosystem.default === true || !secretsSaved;
     const saveBtn = document.getElementById('saveBtn');
-    const resetBtn = document.querySelector('.sidebar-actions .btn-reset');
-    const addServiceBtn = document.querySelector('.sidebar .btn-add-field');
+    const resetBtn = document.getElementById('resetBtn');
+    const addServiceBtn = document.getElementById('addServiceBtn');
     
     if (isFirstTimeSetup) {
         if (saveBtn) {
@@ -126,7 +181,7 @@ function getDefaultConfig() {
             api: {
                 subdomain: {
                     type: 'index',
-                    protocol: 'secure',
+                    protocol: secrets.admin_email_address ? 'secure' : 'insecure',
                     proxy: {
                         websocket: null,
                         middleware: null
@@ -137,7 +192,7 @@ function getDefaultConfig() {
             www: {
                 subdomain: {
                     type: 'index',
-                    protocol: 'secure',
+                    protocol: secrets.admin_email_address ? 'secure' : 'insecure',
                     proxy: {
                         websocket: null,
                         middleware: null
@@ -152,7 +207,7 @@ function getDefaultConfig() {
 let colors = {};
 let originalColors = {};
 
-async function loadConfig() {
+async function loadConfig(suppressStatus = false) {
     try {
         const url = 'config';
         const response = await fetch(url);
@@ -178,14 +233,14 @@ async function loadConfig() {
         if (!config.services.www) {
             config.services.www = defaults.services.www;
         }
-        
+
         originalConfig = JSON.parse(JSON.stringify(config));
         showStatus('Config loaded successfully', 'success');
     } catch (error) {
         console.error('Config load error:', error);
         config = getDefaultConfig();
         originalConfig = JSON.parse(JSON.stringify(config));
-        showStatus('Could not load Config: ' + error.message, 'error');
+        if (!suppressStatus) showStatus('Could not load Config: ' + error.message, 'error');
     }
 }
 
@@ -207,7 +262,7 @@ function getDefaultDdns() {
     };
 }
 
-async function loadSecrets() {
+async function loadSecrets(suppressStatus = false) {
     try {
         const url = 'secrets';
         const response = await fetch(url);
@@ -220,6 +275,7 @@ async function loadSecrets() {
             throw new Error('Empty response from server');
         }
         
+        secretsSaved = true;
         secrets = JSON.parse(text);
         
         const defaults = getDefaultSecrets();
@@ -234,11 +290,12 @@ async function loadSecrets() {
         console.error('Secrets load error:', error);
         secrets = getDefaultSecrets();
         originalSecrets = JSON.parse(JSON.stringify(secrets));
-        showStatus('Could not load Secrets: ' + error.message, 'error');
+        secretsSaved = false;
+        if (!suppressStatus) showStatus('Could not load Secrets: ' + error.message, 'error');
     }
 }
 
-async function loadDdns() {
+async function loadDdns(suppressStatus = false) {
     try {
         const url = 'ddns';
         const response = await fetch(url);
@@ -265,11 +322,11 @@ async function loadDdns() {
         console.error('DDNS load error:', error);
         ddns = getDefaultDdns();
         originalDdns = JSON.parse(JSON.stringify(ddns));
-        showStatus('Could not load DDNS Config: ' + error.message, 'error');
+        if (!suppressStatus) showStatus('Could not load DDNS Config: ' + error.message, 'error');
     }
 }
 
-async function loadAdvanced() {
+async function loadAdvanced(suppressStatus = false) {
     try {
         const url = 'advanced';
         const response = await fetch(url);
@@ -296,7 +353,7 @@ async function loadAdvanced() {
         console.error('Advanced config load error:', error);
         advanced = getDefaultAdvanced();
         originalAdvanced = JSON.parse(JSON.stringify(advanced));
-        showStatus('Could not load Advanced Config: ' + error.message, 'error');
+        if (!suppressStatus) showStatus('Could not load Advanced Config: ' + error.message, 'error');
     }
 }
 
@@ -336,6 +393,8 @@ function renderSecretsEditor() {
         const isEmail = key === 'admin_email_address';
         const isPasswordHash = key === 'shock_password_hash';
         const isExistingHash = isPasswordHash && value && value.startsWith('$2b$');
+        const isEmpty = !value || value.trim() === '';
+        const shouldHighlight = isEmail && isEmpty;
         
         const labelMap = {
             'admin_email_address': 'Admin Email Address',
@@ -345,7 +404,7 @@ function renderSecretsEditor() {
         const displayLabel = labelMap[key] || key;
         
         html += `
-            <div class="secret-entry">
+            <div class="secret-entry${shouldHighlight ? ' highlight-required' : ''}">
                 <div class="form-group form-group-no-margin">
                     <label for="secret_${key}">${displayLabel}</label>`;
         
@@ -353,7 +412,9 @@ function renderSecretsEditor() {
             html += `
                     <input type="email" id="secret_${key}" value="${value}" 
                             onchange="updateSecret('${key}', this.value)"
-                            autocomplete="off">`;
+                            autocomplete="off"
+                            placeholder="${isEmpty ? 'Required for SSL certificates (https)' : ''}">
+                    <div class="hint">The email address to use for provisioning certificates</div>`;
         } else if (isPasswordHash) {
             const displayValue = isExistingHash ? '' : value;
             const placeholderText = isExistingHash ? 'Password already set - enter new password to change' : 'Enter new password to hash it automatically';
@@ -373,6 +434,7 @@ function renderSecretsEditor() {
                         <input type="text" id="secret_${key}" value="${value}"
                                 style="-webkit-text-security: disc;"
                                 onchange="updateSecret('${key}', this.value)"
+                                placeholder="Enter MAC address (e.g., 00:1A:2B:3C:4D:5E)"
                                 autocomplete="current-password">
                         <button class="btn-toggle-password" onclick="togglePasswordVisibility('secret_${key}', this)">👁️ Show</button>
                     </div>
@@ -470,6 +532,8 @@ async function saveSecrets() {
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
 
+    const isFirstSecretsSave = !secretsSaved;
+
     try {
         const response = await fetch('secrets', {
             method: 'PUT',
@@ -485,15 +549,23 @@ async function saveSecrets() {
         }
 
         originalSecrets = JSON.parse(JSON.stringify(secrets));
+        secretsSaved = true;
         showStatus('✓ Secrets saved successfully!', 'success');
         
         showLoadingOverlay('Server Restarting...', 'Secrets saved. Waiting for the server to restart...');
         await waitForServerRestart();
         
+        if (isFirstSecretsSave) {
+            selectItem('config-domain');
+        } else {
+            renderSecretsEditor();
+        }
+
         renderServicesList();
+        updateSidebarButtons();
         
     } catch (error) {
-        showStatus('✗ Error saving secrets: ' + error.message, 'error');
+        showStatus('✗ Error saving secrets: ' + parseErrorMessage(error), 'error');
     } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = 'Save Secrets';
@@ -601,7 +673,8 @@ async function saveDdns() {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            const error = await response.text();
+            throw new Error(error);
         }
 
         originalDdns = JSON.parse(JSON.stringify(ddns));
@@ -611,7 +684,7 @@ async function saveDdns() {
         await waitForServerRestart();
         
     } catch (error) {
-        showStatus('✗ Error saving DDNS config: ' + error.message, 'error');
+        showStatus('✗ Error saving DDNS config: ' + parseErrorMessage(error), 'error');
     } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = 'Save DDNS Config';
@@ -634,7 +707,7 @@ function revertDdns() {
 
 let pendingFaviconFile = null;
 
-async function loadColors() {
+async function loadColors(suppressStatus = false) {
     try {
         const response = await fetch('colors');
         if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load colors`);
@@ -655,7 +728,7 @@ async function loadColors() {
         if (color3) color3.value = colors.accent || '#48bb78';
         if (color4) color4.value = colors.background || '#ffffff';
     } catch (error) {
-        console.error('Failed to load colors:', error);
+        if (!suppressStatus) console.error('Failed to load colors:', error);
         colors = {
             primary: '#667eea',
             secondary: '#764ba2',
@@ -1017,7 +1090,7 @@ function renderThemeEditor() {
     document.getElementById('faviconUpload').addEventListener('change', handleFaviconPreview);
 }
 
-async function loadEcosystem() {
+async function loadEcosystem(suppressStatus = false) {
     try {
         const url = 'ecosystem';
         const response = await fetch(url);
@@ -1033,15 +1106,15 @@ async function loadEcosystem() {
         ecosystem = JSON.parse(text);
         originalEcosystem = JSON.parse(JSON.stringify(ecosystem));
     } catch (error) {
-        console.error('Ecosystem load error:', error);
+        if (!suppressStatus) console.error('Ecosystem load error:', error);
     }
 }
 
-async function loadGitStatus() {
+async function loadGitStatus(suppressStatus = false) {
     try {
         const response = await fetch('git/status');
         if (!response.ok) {
-            renderGitStatus({ error: 'Git not available' });
+            renderGitStatus({ error: 'Version Unavailable' });
             return;
         }
         
@@ -1054,15 +1127,15 @@ async function loadGitStatus() {
             renderGitStatus({ error: data.error });
         }
     } catch (error) {
-        console.error('Git status error:', error);
-        renderGitStatus({ error: 'Failed to load git status' });
+        if (!suppressStatus) console.error('Git status error:', error);
+        renderGitStatus({ error: 'Version Unavailable' });
     }
 }
 
 function renderGitStatus(status) {
     const versionInfo = document.getElementById('versionInfo');
     const isFirstTimeSetup = ecosystem.default === true;
-    
+
     if (status.error) {
         versionInfo.innerHTML = `
             <div class="version-details">
@@ -1075,9 +1148,9 @@ function renderGitStatus(status) {
     const versionNumber = status.version || 'Unknown';
     
     versionInfo.innerHTML = `
-        <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Check for updates'}" ${isFirstTimeSetup ? 'disabled style="opacity: 0.5; cursor: default; pointer-events: none;"' : 'disabled'}>
-            <span class="update-icon">↻</span>
-            <span class="update-text">Checking...</span>
+        <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Check for updates'}" ${isFirstTimeSetup ? 'disabled' : ''}>
+            <span class="update-icon"${isFirstTimeSetup ? ' style="display:none"' : ''}>↻</span>
+            <span class="update-text">${isFirstTimeSetup ? 'Initial Setup' : 'Checking...'}</span>
         </button>
         <span class="version-number">${versionNumber}</span>
     `;
@@ -1085,11 +1158,12 @@ function renderGitStatus(status) {
 
 async function checkForUpdates() {
     const updateBtn = document.getElementById('updateBtn');
-    if (!updateBtn) return;
+    const isFirstTimeSetup = ecosystem.default === true;
+    if (!updateBtn || isFirstTimeSetup) return;
     
     const updateIcon = updateBtn.querySelector('.update-icon');
     const updateText = updateBtn.querySelector('.update-text');
-    
+    updateIcon.attributes.style = '';
     updateIcon.classList.add('spinning');
     updateText.textContent = 'Checking...';
     
@@ -1183,7 +1257,7 @@ function renderApplicationEditor() {
             <div class="hint hint-section">Configure your application's display name used by PM2.</div>
             <div class="form-group">
                 <label for="appNameInput">Application Name</label>
-                <input type="text" id="appNameInput" value="${appName}" onchange="updateEcosystemName(this.value)">
+                <input type="text" id="appNameInput" placeholder="Enter a nicename for the application (e.g., My Proxy Server)" value="${appName}" onchange="updateEcosystemName(this.value)">
                 <div class="hint">This name appears in PM2 process list</div>
             </div>
             <div class="actions-row">
@@ -1234,18 +1308,18 @@ async function saveEcosystem() {
         showLoadingOverlay('Server Restarting...', 'Application settings saved. Waiting for the server to restart...');
         await waitForServerRestart();
 
-        renderServicesList();
-        updateSidebarButtons();
+        if (isDefault) {
+            selectItem('management-secrets');
+        } else if (currentSelection) {
+            selectItem(currentSelection);
+        }
         
         if (gitStatus && !gitStatus.error) {
             renderGitStatus(gitStatus);
-        }
-
-        if (currentSelection === 'management-application') {
-            renderApplicationEditor();
+            checkForUpdates();
         }
     } catch (error) {
-        showStatus('✗ Error saving application settings: ' + error.message, 'error');
+        showStatus('✗ Error saving application settings: ' + parseErrorMessage(error), 'error');
         saveBtn.disabled = false;
         saveBtn.textContent = isDefault ? 'Generate Application Settings' : 'Save Application Settings';
     }
@@ -1497,9 +1571,7 @@ async function saveAdvanced() {
         
         await waitForServerRestart();
         
-        const url = new URL(window.location);
-        url.searchParams.set('section', 'management-advanced');
-        window.location.href = url.toString();
+        selectItem('management-advanced');
         
     } catch (error) {
         console.error('Advanced config save error:', error);
@@ -1531,6 +1603,7 @@ function renderServicesList() {
     
     const hasAdminEmail = secrets.admin_email_address && secrets.admin_email_address.trim() !== '';
     const hasDomain = config.domain && config.domain.trim() !== '';
+    const secretsEnabled = !isFirstTimeSetup;
     const certificatesEnabled = !isFirstTimeSetup && hasAdminEmail && hasDomain;
     const ddnsEnabled = !isFirstTimeSetup && hasDomain;
 
@@ -1547,7 +1620,7 @@ function renderServicesList() {
     const secretsItem = document.createElement('div');
     secretsItem.className = 'service-item' + (currentSelection === 'management-secrets' ? ' active' : '');
     secretsItem.textContent = '🔑 Secrets';
-    if (isFirstTimeSetup) {
+    if (!secretsEnabled) {
         secretsItem.style.opacity = '0.5';
         secretsItem.style.cursor = 'default';
         secretsItem.style.pointerEvents = 'none';
@@ -1586,7 +1659,7 @@ function renderServicesList() {
     const themeItem = document.createElement('div');
     themeItem.className = 'service-item' + (currentSelection === 'management-theme' ? ' active' : '');
     themeItem.textContent = '🎨 Theme';
-    if (isFirstTimeSetup) {
+    if (isFirstTimeSetup || !secretsSaved) {
         themeItem.style.opacity = '0.5';
         themeItem.style.cursor = 'default';
         themeItem.style.pointerEvents = 'none';
@@ -1599,7 +1672,7 @@ function renderServicesList() {
     const advancedItem = document.createElement('div');
     advancedItem.className = 'service-item' + (currentSelection === 'management-advanced' ? ' active' : '');
     advancedItem.textContent = '🔬 Advanced';
-    if (isFirstTimeSetup) {
+    if (isFirstTimeSetup || !secretsSaved) {
         advancedItem.style.opacity = '0.5';
         advancedItem.style.cursor = 'default';
         advancedItem.style.pointerEvents = 'none';
@@ -1617,7 +1690,7 @@ function renderServicesList() {
     const domainItem = document.createElement('div');
     domainItem.className = 'service-item' + (currentSelection === 'config-domain' ? ' active' : '');
     domainItem.textContent = '🌐 Domain';
-    if (isFirstTimeSetup) {
+    if (isFirstTimeSetup || !secretsSaved) {
         domainItem.style.opacity = '0.5';
         domainItem.style.cursor = 'default';
         domainItem.style.pointerEvents = 'none';
@@ -1658,9 +1731,10 @@ function renderServicesList() {
     
     sortedServices.forEach(serviceName => {
         const item = document.createElement('div');
-        item.className = 'service-item' + (currentSelection === 'config-' + serviceName ? ' active' : '');
-        item.textContent = '⚙️ ' + serviceName;
-        if (isFirstTimeSetup) {
+        console.log(config.services[serviceName]);
+        item.className = 'service-item' + (currentSelection === 'config-' + serviceName ? ' active' : '') + (config.services[serviceName].subdomain?.protocol === 'insecure' ? ' insecure' : '');
+        item.innerHTML = '⚙️ ' + serviceName + (config.services[serviceName].subdomain?.protocol === 'insecure' ? '<span class="hint">Not Secure</span>' : '');
+        if (isFirstTimeSetup || !secretsSaved) {
             item.style.opacity = '0.5';
             item.style.cursor = 'default';
             item.style.pointerEvents = 'none';
@@ -1680,6 +1754,7 @@ function selectItem(prefixedName) {
     window.history.pushState({}, '', url);
     
     renderServicesList();
+    updateSidebarButtons();
     
     const itemName = prefixedName.replace(/^(management-|config-)/, '');
     
@@ -1704,13 +1779,17 @@ function selectItem(prefixedName) {
 
 function renderDomainEditor() {
     const panel = document.getElementById('editorPanel');
+    const isEmpty = !config.domain || config.domain.trim() === '';
+
     panel.innerHTML = `
         <div class="section">
             <div class="section-title">🌐 Domain Settings</div>
-            <div class="form-group">
-                <label for="domainInput">Domain Name</label>
-                <input type="text" id="domainInput" value="${config.domain || ''}" onchange="updateConfig('domain', this.value)">
-                <div class="hint">Primary domain name for your services</div>
+            <div class="domain-entry${isEmpty ? ' highlight-required' : ''}">
+                <div class="form-group form-group-no-margin">
+                    <label for="domainInput">Domain Name</label>
+                    <input type="text" id="domainInput" placeholder="example.com" value="${config.domain || ''}" onchange="updateConfig('domain', this.value)">
+                    <div class="hint">Primary domain name for your services</div>
+                </div>
             </div>
         </div>
     `;
@@ -1723,13 +1802,13 @@ function hasUnsavedConfigChanges() {
 function renderCertificatesEditor() {
     const panel = document.getElementById('editorPanel');
     const hasChanges = hasUnsavedConfigChanges();
-    const canProvision = !hasChanges && configSavedThisSession;
+    const canProvision = !hasChanges && secureServicesChangedThisSession;
     const adminEmail = secrets.admin_email_address || '';
     
     let warningMessage = '';
     if (hasChanges) {
         warningMessage = '<div class="hint" style="color: #ed8936; margin-bottom: 10px;">⚠️ Please save your configuration before provisioning certificates</div>';
-    } else if (!configSavedThisSession) {
+    } else if (!secureServicesChangedThisSession) {
         warningMessage = '<div class="hint" style="color: #718096; margin-bottom: 10px;">ℹ️ Save your configuration first to enable certificate provisioning</div>';
     }
     
@@ -1789,22 +1868,20 @@ async function provisionCertificates() {
         `;
         showStatus('Certificates provisioned successfully!', 'success');
         
-        configSavedThisSession = false;
-
-        if (currentSelection === 'management-certificates') {
-            renderCertificatesEditor();
-        }
+        secureServicesChangedThisSession = false;
 
         showLoadingOverlay('Server Restarting...', 'Certificates provisioned. Waiting for the server to restart...');
         await waitForServerRestart();
+
+        selectItem('management-certificates');
     } catch (error) {
         outputEl.innerHTML = `
             <div class="result-error">
                 <strong>✗ Error</strong>
-                <p class="result-message">${error.message}</p>
+                <p class="result-message">${parseErrorMessage(error)}</p>
             </div>
         `;
-        showStatus('Error provisioning certificates: ' + error.message, 'error');
+        showStatus('Error provisioning certificates: ' + parseErrorMessage(error), 'error');
         provisionBtn.disabled = false;
         provisionBtn.textContent = 'Provision Certificates';
     }
@@ -2052,8 +2129,8 @@ function renderDefaultSubdomainSection(serviceName, subdomain) {
                 <div class="form-group">
                     <label for="subdomain_protocol_${serviceName}">Protocol</label>
                     <select id="subdomain_protocol_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'subdomain.protocol', this.value)">
-                        <option value="secure" ${subdomain.protocol === 'secure' ? 'selected' : ''}>Secure (HTTPS)</option>
-                        <option value="insecure" ${subdomain.protocol === 'insecure' ? 'selected' : ''}>Insecure (HTTP)</option>
+                        <option ${secrets.admin_email_address ? '' : 'disabled '}value="secure" ${subdomain.protocol === 'secure' ? 'selected' : ''}>Secure (HTTPS)</option>
+                        <option value="insecure" ${subdomain.protocol === 'insecure' ? 'selected' : ''}>Not Secure (HTTP)</option>
                     </select>
                 </div>
                 ${isWww ? '<div class="hint">Default www service uses simplified configuration</div>' : '<div class="hint">Default api service uses simplified configuration</div>'}
@@ -2081,7 +2158,7 @@ function renderSubdomainSection(serviceName, subdomain) {
                     <label for="subdomain_protocol_${serviceName}">Protocol</label>
                     <select id="subdomain_protocol_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'subdomain.protocol', this.value)">
                         <option value="secure" ${subdomain.protocol === 'secure' ? 'selected' : ''}>Secure (HTTPS)</option>
-                        <option value="insecure" ${subdomain.protocol === 'insecure' ? 'selected' : ''}>Insecure (HTTP)</option>
+                        <option value="insecure" ${subdomain.protocol === 'insecure' ? 'selected' : ''}>Not Secure (HTTP)</option>
                     </select>
                 </div>
                 <div class="form-group proxy-field" data-service="${serviceName}">
@@ -2630,23 +2707,23 @@ async function saveConfig() {
         );
         
         if (hasNewServices || hasRemovedServices) {
-            configSavedThisSession = true;
+            secureServicesChangedThisSession = true;
             servicesWithSubdomainsAtLastSave = currentServicesWithSubdomains;
         }
         
         showStatus('✓ Config saved successfully!', 'success');
         
-        if (currentSelection === 'management-certificates') {
-            renderCertificatesEditor();
-        }
-        
         showLoadingOverlay('Server Restarting...', 'Configuration saved. Waiting for the server to restart...');
         await waitForServerRestart();
         
-        renderServicesList();
-        
+        if (secureServicesChangedThisSession) {
+            selectItem('management-certificates');
+            showStatus('⚠ Secure services changed, please provision new certificates!', 'warning');
+        } else if (currentSelection) {
+            selectItem(currentSelection);
+        }
     } catch (error) {
-        showStatus('✗ Error saving config: ' + error.message, 'error');
+        showStatus('✗ Error saving config: ' + parseErrorMessage(error), 'error');
     } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = 'Save Config';
@@ -2867,4 +2944,4 @@ async function waitForServerRestart() {
     showStatus('⚠ Server did not restart within expected time. Please check manually.', 'error');
 }
 
-loadColors();
+loadColors(true);

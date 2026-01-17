@@ -161,6 +161,13 @@ h1 {
     border-color: #38a169;
 }
 
+.btn-update:disabled, .btn-update:disabled:hover {
+    background: var(--color-gray-300);
+    border-color: var(--color-gray-300);
+    cursor: default;
+    transform: none;
+}
+
 .update-icon {
     font-size: 16px;
     line-height: 1;
@@ -280,17 +287,17 @@ button {
 }
 
 .btn-save {
-    background: #48bb78 !important;
+    background: #48bb78;
     color: white;
 }
 
 .btn-save:hover {
-    background: #38a169 !important;
+    background: #38a169;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
 }
 
-.btn-save:disabled {
+.btn-save[disabled] {
     background: var(--color-gray-300);
     cursor: default;
     pointer-events: none;
@@ -298,12 +305,12 @@ button {
 }
 
 .btn-reset {
-    background: #ed8936 !important;
+    background: #ed8936;
     color: white;
 }
 
 .btn-reset:hover {
-    background: #dd6b20 !important;
+    background: #dd6b20;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(237, 137, 54, 0.3);
 }
@@ -361,6 +368,12 @@ button {
     background: #fed7d7;
     color: #742a2a;
     border: 1px solid #fc8181;
+}
+
+.status.warning {
+    background: #fef3c7;
+    color: #78350f;
+    border: 1px solid #fbbf24;
 }
 
 .status.removing {
@@ -500,6 +513,9 @@ button {
     cursor: pointer;
     border-radius: 4px;
     transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .service-item:hover {
@@ -512,6 +528,21 @@ button {
     background: var(--color-secondary);
     color: white;
     border-left-color: var(--color-secondary);
+}
+
+.service-item.insecure {
+    border-left-color: var(--color-inverse) !important;
+}
+
+.service-item .hint {
+    margin-left: auto;
+    margin-top: 0;
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.service-item.active .hint {
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .editor-panel {
@@ -683,7 +714,7 @@ input[type="checkbox"] {
     background: var(--color-gray-300);
 }
 
-.secret-entry {
+.secret-entry, .domain-entry {
     background: var(--color-gray-50);
     padding: 15px;
     border-radius: 6px;
@@ -691,7 +722,25 @@ input[type="checkbox"] {
     border: 1px solid var(--color-gray-200);
 }
 
-.secret-entry label {
+.secret-entry.highlight-required, .domain-entry.highlight-required {
+    background: linear-gradient(135deg, 
+        rgba(255, 183, 77, 0.15) 0%, 
+        rgba(255, 152, 0, 0.1) 100%);
+    border: 2px solid var(--color-inverse);
+    box-shadow: 0 0 0 3px rgba(184, 72, 120, 0.1);
+    animation: pulse-highlight 2s ease-in-out infinite;
+}
+
+@keyframes pulse-highlight {
+    0%, 100% {
+        box-shadow: 0 0 0 3px rgba(184, 72, 120, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 0 6px rgba(184, 72, 120, 0.15);
+    }
+}
+
+.secret-entry label, .domain-entry label {
     font-weight: 600;
     color: var(--color-text-primary);
 }

@@ -64,7 +64,7 @@ try {
   advancedConfig = require('./advanced.json');
 } catch (e) {
   advancedConfig = { parsers: {}, extractors: {}, queryTypes: [] };
-  console.warn('Advanced config not found, using defaults');
+  console.warn('Advanced Options not configured');
 }
 
 // retrieve environment variables
@@ -169,10 +169,10 @@ const checkService = (name, callback) => {
     if (check.type === 'http') {
       got(`${protocols.insecure}${check.path}`, { timeout: { request: check.timeout || 1000 } })
         .then((response) => {
-          if (parsers[check.parser](response.body)) {
+          if (parsers[check.parser] && parsers[check.parser](response.body)) {
             report.healthy = true;
             report.deck = 'deckhealthy';
-            if (check.extractor && report.meta) {
+            if (check.extractor && extractors[check.extractor] && report.meta) {
               Object.assign(report.meta, extractors[check.extractor](response.body));
             }
           }
@@ -190,7 +190,7 @@ const checkService = (name, callback) => {
       .then((state) => {
         report.healthy = true;
         report.deck = 'deckhealthy';
-        if (check.extractor && report.meta) {
+        if (check.extractor && extractors[check.extractor] && report.meta) {
           Object.assign(report.meta, extractors[check.extractor](state));
         }
         callback(report);
@@ -208,7 +208,7 @@ const checkService = (name, callback) => {
       .then((state) => {
         report.healthy = true;
         report.deck = 'deckhealthy';
-        if (check.extractor && report.meta) {
+        if (check.extractor && extractors[check.extractor] && report.meta) {
           Object.assign(report.meta, extractors[check.extractor](state));
         }
         callback(report);
@@ -287,7 +287,7 @@ const initApplication = () => {
         }
       });
 
-      if ((secrets.shock_password || secrets.shock_password_hash) && secrets.shock_mac) {
+      if (secrets.shock_password_hash && secrets.shock_mac) {
         // create wake-on-lan service with rate limiting
         const shockLimiter = rateLimit({
           windowMs: 15 * 60 * 1000, // 15 minutes
@@ -303,12 +303,8 @@ const initApplication = () => {
           try {
             let isValid = false;
             
-            // Support both hashed (preferred) and plaintext (legacy) passwords
             if (secrets.shock_password_hash) {
               isValid = await bcrypt.compare(request.body.password, secrets.shock_password_hash);
-            } else if (secrets.shock_password) {
-              // Legacy plaintext comparison (deprecated)
-              isValid = request.body.password === secrets.shock_password;
             }
             
             if (isValid) {
@@ -441,73 +437,6 @@ const sendError = (response, statusCode, error) => {
   });
 };
 
-// initialize application
-let app = initApplication();
-
-if (env === 'production') {
-  /* PRODUCTION SETUP */
-  // retrieve certificate
-  let cert;
-  try {
-    cert = {
-      key: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'privkey.pem'), 'utf8'),
-      cert: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'cert.pem'), 'utf8'),
-      ca: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'chain.pem'), 'utf8'),
-    };
-  } catch (error) {
-    console.error('Error loading SSL certificates, try provisioning certificates using the configurator.');
-  }
-  // declare ports
-  const ports = {
-    http: 8080,
-    https: 8443,
-  };
-
-  const httpServer = http.createServer(app);
-  const httpsServer = cert ? https.createServer(cert, app) : null;
-
-  // setup listeners
-  httpServer.listen(ports.http, () => {
-    console.log(`HTTP Server running on port ${ports.http}`);
-    httpServer.on('upgrade', handleWebSocketUpgrade);
-  });
-  if (httpsServer) {
-    httpsServer.listen(ports.https, () => {
-      console.log(`HTTPS Server running on port ${ports.https}`);
-      httpsServer.on('upgrade', handleWebSocketUpgrade);
-    });
-  }
-
-  // setup healthcheck pings
-  cron.schedule('1 * * * *', () => {
-    const services = Object.keys(config.services).filter((name) => config.services[name].healthcheck);
-    services.forEach((name) => {
-      checkService(name, (service) => {
-        if (service.healthy) {
-          pingHealthcheck(name);
-        }
-      });
-    });
-  });
-}
-if (env === 'development') {
-  /* DEVELOPMENT SETUP */
-  // declare port
-  const port = 80;
-
-  // setup server
-  const server = http.createServer(app);
-
-  // setup listener
-  server.listen(port, () => {
-    console.log(`HTTP Server running on port ${port}`);
-    server.on('upgrade', handleWebSocketUpgrade);
-  });
-
-  // setup healthcheck ping
-  pingHealthcheck('test');
-}
-
 /* DDNS SETUP */
 if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key && ddns.aws_region && ddns.route53_hosted_zone_id) {
   // setup ddns updater for aws route53
@@ -569,6 +498,7 @@ if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key 
     });
   }
 }
+
 /* CONFIGURATOR SETUP */
 // config editor app
 const manapp = express();
@@ -635,6 +565,7 @@ manrouter.get('/ecosystem', (request, response) => {
             "ddns.json",
             "secrets.json",
             "package.json",
+            "advanced.json",
             "ecosystem.config.js",
             ".*"
           ],
@@ -719,10 +650,15 @@ manrouter.put('/secrets', async (request, response) => {
     const secretsSchema = {
       type: 'object',
       properties: {
-        admin_email_address: { type: 'string', format: 'email' },
+        admin_email_address: { 
+          type: 'string',
+          pattern: '^$|^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'
+        },
         shock_password_hash: { type: 'string' },
-        shock_password: { type: 'string' },
-        shock_mac: { type: 'string', pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$' }
+        shock_mac: { 
+          type: 'string', 
+          pattern: '^$|^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$' 
+        }
       },
       additionalProperties: true // Allow custom secrets
     };
@@ -750,12 +686,6 @@ manrouter.put('/secrets', async (request, response) => {
     // If shock_password_hash is provided and looks like plaintext (not a hash), hash it
     if (updatedSecrets.shock_password_hash && !updatedSecrets.shock_password_hash.startsWith('$2b$')) {
       updatedSecrets.shock_password_hash = await bcrypt.hash(updatedSecrets.shock_password_hash, 10);
-    }
-    
-    // Legacy support: If shock_password is provided (plaintext), hash it and replace with shock_password_hash
-    if (updatedSecrets.shock_password && !updatedSecrets.shock_password.startsWith('$2b$')) {
-      updatedSecrets.shock_password_hash = await bcrypt.hash(updatedSecrets.shock_password, 10);
-      delete updatedSecrets.shock_password;
     }
     
     const secretsPath = path.join(__dirname, 'secrets.json');
@@ -937,13 +867,13 @@ manrouter.put('/ddns', (request, response) => {
     // Validate DDNS schema
     const ddnsSchema = {
       type: 'object',
-      required: ['active'],
+      required: ['active', 'aws_access_key_id', 'aws_secret_access_key', 'aws_region', 'route53_hosted_zone_id'],
       properties: {
         active: { type: 'boolean' },
-        aws_access_key_id: { type: 'string' },
-        aws_secret_access_key: { type: 'string' },
-        aws_region: { type: 'string' },
-        route53_hosted_zone_id: { type: 'string' }
+        aws_access_key_id: { type: 'string', minLength: 1 },
+        aws_secret_access_key: { type: 'string', minLength: 1 },
+        aws_region: { type: 'string', minLength: 1 },
+        route53_hosted_zone_id: { type: 'string', minLength: 1 }
       },
       additionalProperties: false
     };
@@ -1332,3 +1262,55 @@ const manserver = http.createServer(manapp);
 manserver.listen(3000, () => {
   console.log(`Configurator running on port 3000`);
 });
+
+let cert;
+if (env === 'production') {
+  // retrieve certificate
+  try {
+    cert = {
+      key: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'privkey.pem'), 'utf8'),
+      cert: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'cert.pem'), 'utf8'),
+      ca: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'chain.pem'), 'utf8'),
+    };
+  } catch (error) {
+    console.error('Error loading SSL certificates, try provisioning certificates using the configurator.');
+  }
+
+  // setup healthcheck pings
+  cron.schedule('1 * * * *', () => {
+    const services = Object.keys(config.services).filter((name) => config.services[name].healthcheck);
+    services.forEach((name) => {
+      checkService(name, (service) => {
+        if (service.healthy) {
+          pingHealthcheck(name);
+        }
+      });
+    });
+  });
+}
+if (env === 'development') {
+  // test healthcheck pings
+  pingHealthcheck('test');
+}
+
+/* SERVER SETUP */
+if (config.domain) {
+  // initialize application
+  let app = initApplication();
+
+  const port_http = 8080;
+  const port_https = 8443;
+  const httpServer = http.createServer(app);
+  const httpsServer = cert ? https.createServer(cert, app) : null;
+
+  httpServer.listen(port_http, () => {
+    console.log(`HTTP Server running on port ${port_http}`);
+    httpServer.on('upgrade', handleWebSocketUpgrade);
+  });
+  if (httpsServer) {
+    httpsServer.listen(port_https, () => {
+      console.log(`HTTPS Server running on port ${port_https}`);
+      httpsServer.on('upgrade', handleWebSocketUpgrade);
+    });
+  }
+}
