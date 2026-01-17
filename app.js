@@ -545,6 +545,40 @@ manrouter.get('/secrets', (request, response) => {
   }
 });
 
+manrouter.get('/publicip', async (request, response) => {
+  try {
+    const ipResponse = await got('https://checkip.amazonaws.com/', { timeout: { request: 5000 } });
+    const publicIP = ipResponse.body.trim();
+    response.setHeader('Content-Type', 'application/json');
+    response.send({ success: true, ip: publicIP });
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+manrouter.get('/localip', (request, response) => {
+  try {
+    const networkInterfaces = os.networkInterfaces();
+    let localIP = null;
+    
+    for (const interfaceName in networkInterfaces) {
+      const interfaces = networkInterfaces[interfaceName];
+      for (const iface of interfaces) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          localIP = iface.address;
+          break;
+        }
+      }
+      if (localIP) break;
+    }
+    
+    response.setHeader('Content-Type', 'application/json');
+    response.send({ success: true, ip: localIP || '127.0.0.1' });
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
 manrouter.get('/ecosystem', (request, response) => {
   try {
     const ecosystemPath = path.join(__dirname, 'ecosystem.config.js');

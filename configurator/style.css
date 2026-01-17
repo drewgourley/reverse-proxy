@@ -778,6 +778,10 @@ input[type="checkbox"] {
         text-align: center;
         gap: 15px;
     }
+
+    .setup-heading, .setup-instructions {
+        flex-direction: column;
+    }
 }
 
 .json-viewer {
@@ -1011,4 +1015,115 @@ input[type="checkbox"] {
     font-size: 14px;
     color: var(--color-text-secondary);
     line-height: 1.5;
+}
+
+/* Setup Instructions Styles */
+.setup-section, .setup-heading {
+    margin-bottom: 30px;
+}
+
+.setup-heading, .setup-instructions {
+    /* sections equal width, side by side */
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+}
+.ip-display-row, .setup-section {
+    flex: 1;
+}
+
+.setup-section-title {
+    font-size: 15px;
+    display: block;
+    margin-bottom: 10px;
+    color: var(--color-text-primary);
+}
+
+.ip-display-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.ip-value {
+    font-family: 'Courier New', monospace;
+    color: #48bb78;
+}
+
+.ip-value.local {
+    color: #fbb6ce;
+}
+
+.btn-refresh-ip {
+    padding: 4px 12px;
+    background: #4a5568;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s ease;
+}
+
+.btn-refresh-ip:hover {
+    background: #374151;
+}
+
+.setup-box {
+    background: #2d3748;
+    padding: 15px 15px 5px;
+    border-radius: 6px;
+    border-left: 3px solid #4299e1;
+    font-size: 13px;
+}
+
+.setup-box.route53 {
+    border-left-color: #4299e1;
+}
+
+.setup-box.router {
+    border-left-color: #9f7aea;
+}
+
+.setup-record {
+    margin-bottom: 12px;
+}
+
+.setup-record:not(:last-child) {
+    padding-bottom: 12px;
+    border-bottom: 1px solid #4a5568;
+    margin-bottom: 12px;
+}
+
+.setup-record-label {
+    color: #a0aec0;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.setup-record-content {
+    font-family: 'Courier New', monospace;
+    color: #e2e8f0;
+}
+
+.setup-record-content strong {
+    color: #e2e8f0;
+}
+
+.setup-value-domain {
+    color: #63b3ed;
+}
+
+.setup-value-ip {
+    color: #48bb78;
+}
+
+.setup-value-local {
+    color: #fbb6ce;
+}
+
+.setup-divider {
+    border-top: 1px solid #4a5568;
+    margin: 12px 0;
 }

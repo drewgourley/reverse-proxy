@@ -1731,7 +1731,6 @@ function renderServicesList() {
     
     sortedServices.forEach(serviceName => {
         const item = document.createElement('div');
-        console.log(config.services[serviceName]);
         item.className = 'service-item' + (currentSelection === 'config-' + serviceName ? ' active' : '') + (config.services[serviceName].subdomain?.protocol === 'insecure' ? ' insecure' : '');
         item.innerHTML = '⚙️ ' + serviceName + (config.services[serviceName].subdomain?.protocol === 'insecure' ? '<span class="hint">Not Secure</span>' : '');
         if (isFirstTimeSetup || !secretsSaved) {
@@ -1792,7 +1791,138 @@ function renderDomainEditor() {
                 </div>
             </div>
         </div>
+        <div class="section">
+            <div class="section-title">📡 Environment & Setup</div>
+            <div class="setup-heading">
+                <div class="ip-display-row">
+                    <strong>Public IP Address:</strong>
+                    <span id="publicIpDisplay" class="ip-value">Loading...</span>
+                </div>
+                <div class="ip-display-row">
+                    <strong>Local IP Address:</strong>
+                    <span id="localIpDisplay" class="ip-value local">Loading...</span>
+                </div>
+            </div>
+            <div class="setup-instructions">
+                <div class="setup-section">
+                    <strong class="setup-section-title">🌍 Route53 DNS Configuration</strong>
+                    <div class="hint hint-section">Configure these records in your AWS Route53 hosted zone</div>
+                    <div class="setup-box route53">
+                        <div class="setup-record">
+                            <div class="setup-record-label">Record 1:</div>
+                            <div class="setup-record-content">
+                                <strong>Name:</strong> <span id="route53Record1" class="setup-value-domain">${config.domain || '(set domain above)'}</span><br>
+                                <strong>Type:</strong> A<br>
+                                <strong>Value:</strong> <span id="route53Ip1" class="setup-value-ip">Loading...</span><br>
+                                <strong>TTL:</strong> 300
+                            </div>
+                        </div>
+                        <div class="setup-record">
+                            <div class="setup-record-label">Record 2 (Wildcard for all subdomains):</div>
+                            <div class="setup-record-content">
+                                <strong>Name:</strong> <span id="route53Record2" class="setup-value-domain">*.${config.domain || '(set domain above)'}</span><br>
+                                <strong>Type:</strong> A<br>
+                                <strong>Value:</strong> <span id="route53Ip2" class="setup-value-ip">Loading...</span><br>
+                                <strong>TTL:</strong> 300
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="setup-section">
+                    <strong class="setup-section-title">🔌 Router Port Forwarding</strong>
+                    <div class="hint hint-section">Configure these port forwarding rules on your router</div>
+                    <div class="setup-box router">
+                        <div class="setup-record">
+                            <div class="setup-record-label">HTTP Traffic:</div>
+                            <div class="setup-record-content">
+                                <strong>External Port:</strong> 80 (HTTP)<br>
+                                <strong>Internal IP:</strong> <span id="localIp1" class="setup-value-local">Loading...</span><br>
+                                <strong>Internal Port:</strong> 8080<br>
+                                <strong>Protocol:</strong> TCP
+                            </div>
+                        </div>
+                        <div class="setup-record">
+                            <div class="setup-record-label">HTTPS Traffic:</div>
+                            <div class="setup-record-content">
+                                <strong>External Port:</strong> 443 (HTTPS)<br>
+                                <strong>Internal IP:</strong> <span id="localIp2" class="setup-value-local">Loading...</span><br>
+                                <strong>Internal Port:</strong> 8443<br>
+                                <strong>Protocol:</strong> TCP
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
+    
+    // Fetch and display public IP and local IP
+    fetchPublicIp();
+    fetchLocalIp();
+}
+
+async function fetchPublicIp() {
+    const displayElement = document.getElementById('publicIpDisplay');
+    const route53Ip1 = document.getElementById('route53Ip1');
+    const route53Ip2 = document.getElementById('route53Ip2');
+    
+    if (displayElement) displayElement.textContent = 'Loading...';
+    if (route53Ip1) route53Ip1.textContent = 'Loading...';
+    if (route53Ip2) route53Ip2.textContent = 'Loading...';
+    
+    try {
+        const response = await fetch('publicip');
+        const data = await response.json();
+        
+        if (data.success && data.ip) {
+            if (displayElement) displayElement.textContent = data.ip;
+            if (route53Ip1) route53Ip1.textContent = data.ip;
+            if (route53Ip2) route53Ip2.textContent = data.ip;
+        } else {
+            const errorMsg = 'Unable to fetch';
+            if (displayElement) displayElement.textContent = errorMsg;
+            if (route53Ip1) route53Ip1.textContent = errorMsg;
+            if (route53Ip2) route53Ip2.textContent = errorMsg;
+        }
+    } catch (error) {
+        console.error('Error fetching public IP:', error);
+        const errorMsg = 'Error loading IP';
+        if (displayElement) displayElement.textContent = errorMsg;
+        if (route53Ip1) route53Ip1.textContent = errorMsg;
+        if (route53Ip2) route53Ip2.textContent = errorMsg;
+    }
+}
+
+async function fetchLocalIp() {
+    const localIpDisplay = document.getElementById('localIpDisplay');
+    const localIp1 = document.getElementById('localIp1');
+    const localIp2 = document.getElementById('localIp2');
+    
+    if (localIpDisplay) localIpDisplay.textContent = 'Loading...';
+    if (localIp1) localIp1.textContent = 'Loading...';
+    if (localIp2) localIp2.textContent = 'Loading...';
+    
+    try {
+        const response = await fetch('localip');
+        const data = await response.json();
+        
+        if (data.success && data.ip) {
+            if (localIpDisplay) localIpDisplay.textContent = data.ip;
+            if (localIp1) localIp1.textContent = data.ip;
+            if (localIp2) localIp2.textContent = data.ip;
+        } else {
+            const errorMsg = 'Unable to fetch';
+            if (localIpDisplay) localIpDisplay.textContent = errorMsg;
+            if (localIp1) localIp1.textContent = errorMsg;
+            if (localIp2) localIp2.textContent = errorMsg;
+        }
+    } catch (error) {
+        console.error('Error fetching local IP:', error);
+        const errorMsg = 'Error loading IP';
+        if (localIpDisplay) localIpDisplay.textContent = errorMsg;
+        if (localIp1) localIp1.textContent = errorMsg;
+        if (localIp2) localIp2.textContent = errorMsg;
+    }
 }
 
 function hasUnsavedConfigChanges() {
