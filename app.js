@@ -439,7 +439,6 @@ const sendError = (response, statusCode, error) => {
 
 /* DDNS SETUP */
 if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key && ddns.aws_region && ddns.route53_hosted_zone_id) {
-  // setup ddns updater for aws route53
   const { Route53Client, ChangeResourceRecordSetsCommand } = require('@aws-sdk/client-route-53');
   const route53 = new Route53Client({
     region: ddns.aws_region,
@@ -448,10 +447,18 @@ if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key 
       secretAccessKey: ddns.aws_secret_access_key,
     },
   });
+  
+  let lastKnownIP = null;
+  
   const updateDNSRecord = async () => {
     try {
       const response = await got('https://checkip.amazonaws.com/', { timeout: { request: 5000 } });
       const publicIP = response.body.trim();
+      
+      if (publicIP === lastKnownIP) {
+        return;
+      }
+      
       const changes = [{
         Action: 'UPSERT',
         ResourceRecordSet: {
@@ -470,10 +477,13 @@ if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key 
           ResourceRecords: [{ Value: publicIP }],
         },
       }];
+      
       if (env === 'development') {
         console.log('DDNS update skipped in development mode:', changes);
+        lastKnownIP = publicIP;
         return;
       }
+      
       const params = {
         ChangeBatch: {
           Changes: changes,
@@ -483,6 +493,8 @@ if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key 
       };
       const command = new ChangeResourceRecordSetsCommand(params);
       await route53.send(command);
+      
+      lastKnownIP = publicIP;
       const now = new Date().toISOString();
       console.log(`${now}: DDNS updated to ${publicIP}`);
     } catch (error) {
