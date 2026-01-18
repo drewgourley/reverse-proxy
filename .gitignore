@@ -5,6 +5,7 @@ _graveyard
 advanced.json
 secrets.json
 ddns.json
+certs.json
 config.json
 web/global/services.json
 web/global/colors.json

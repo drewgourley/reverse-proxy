@@ -557,6 +557,23 @@ manrouter.get('/secrets', (request, response) => {
   }
 });
 
+manrouter.get('/certs', (request, response) => {
+  try {
+    const certsPath = path.join(__dirname, 'certs.json');
+    if (fs.existsSync(certsPath)) {
+      const certsData = fs.readFileSync(certsPath, 'utf8');
+      const certsObj = JSON.parse(certsData);
+      response.setHeader('Content-Type', 'application/json');
+      response.send(certsObj);
+    } else {
+      response.setHeader('Content-Type', 'application/json');
+      response.send({ services: [], provisionedAt: null });
+    }
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
 manrouter.get('/publicip', async (request, response) => {
   try {
     const ipResponse = await got('https://checkip.amazonaws.com/', { timeout: { request: 5000 } });
@@ -1200,6 +1217,22 @@ manrouter.post('/git/pull', (request, response) => {
   }
 });
 
+// declare helper to register provisioned certs
+const registerProvisionedCerts = (secureServices, crontab, permissions) => {
+  try {
+    const certsData = {
+      services: secureServices,
+      provisionedAt: new Date().toISOString(),
+      crontab,
+      permissions,
+    };
+    const certsPath = path.join(__dirname, 'certs.json');
+    fs.writeFileSync(certsPath, JSON.stringify(certsData, null, 2), 'utf8');
+  } catch (writeError) {
+    console.error('Failed to write certs.json:', writeError);
+  }
+};
+
 manrouter.put('/certs', (request, response) => {
   try {
     const email = request.body.email;
@@ -1208,7 +1241,6 @@ manrouter.put('/certs', (request, response) => {
       return response.status(400).send({ success: false, error: 'Email address is required' });
     }
     
-    // Validate email format and prevent shell metacharacters
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email)) {
       return response.status(400).send({ 
@@ -1217,7 +1249,6 @@ manrouter.put('/certs', (request, response) => {
       });
     }
     
-    // Additional check - reject emails with shell metacharacters
     const dangerousChars = /[;`$&|<>\\]/;
     if (dangerousChars.test(email)) {
       return response.status(400).send({ 
@@ -1227,71 +1258,82 @@ manrouter.put('/certs', (request, response) => {
     }
     
     const domains = [config.domain];
-    if (config.services) {
-      Object.keys(config.services).forEach(name => {
+    const secureServices = Object.keys(config.services || {}).filter(name => {
+      return config.services[name].subdomain?.protocol === 'secure';
+    });
+    if (secureServices.length > 0) {
+      secureServices.forEach(name => {
         domains.push(`${name}.${config.domain}`);
       });
-    }
     
-    const domainFlags = domains.map(d => `-d ${d}`).join(' ');
-    const deployHook = `sudo -u ${os.userInfo().username} bash -c '. ~/.bashrc; pm2 restart 0'`;
-    const baseCommand = `sudo certbot certonly --webroot --webroot-path ${path.join(__dirname, 'web', 'all')} --cert-name ${config.domain} ${domainFlags} --non-interactive --agree-tos --email ${email}`;
-    const cronCommandWithHook = `${baseCommand} --deploy-hook "${deployHook}"`;
+      const domainFlags = domains.map(d => `-d ${d}`).join(' ');
+      const deployHook = `sudo -u ${os.userInfo().username} bash -c '. ~/.bashrc; pm2 restart 0'`;
+      const baseCommand = `sudo certbot certonly --webroot --webroot-path ${path.join(__dirname, 'web', 'all')} --cert-name ${config.domain} ${domainFlags} --non-interactive --agree-tos --email ${email}`;
+      const cronCommandWithHook = `${baseCommand} --deploy-hook "${deployHook}"`;
 
-    if (env === 'development') {
-      console.log(`Executing certbot command: ${baseCommand}`);
-      response.status(200).send({ success: true, message: 'Development mode: Certificates sucessfully not provisioned.' });
-      setTimeout(() => {
-        process.exit(0);
-      }, 2000);
-    } else {
-      exec(baseCommand, (error, stdout, stderr) => {
-        if (error) {
-          return response.status(500).send({ success: false, error: error.message });
-        }
+      if (env === 'development') {
+        console.log(`Executing certbot command: ${baseCommand}`);
 
-        const cronCommand = `0 0 * * * ${cronCommandWithHook}`;
-        const setupCron = `(crontab -l 2>/dev/null | grep -v "certbot certonly --webroot"; echo "${cronCommand}") | crontab -`;
-        const certbotReport = { success: true };
-        exec(setupCron, (cronError, cronStdout, cronStderr) => {
-          if (cronError) {
-            certbotReport.message = 'Certificates provisioned successfully, but automatic renewal setup failed. You may need to set up cron manually.';
-          } else {
-            certbotReport.message = 'Certificates provisioned successfully and automatic renewal configured.';
+        registerProvisionedCerts(secureServices, true, true);
+
+        response.status(200).send({ success: true, message: 'Development mode: Certificates sucessfully not provisioned.' });
+        setTimeout(() => {
+          process.exit(0);
+        }, 2000);
+      } else {
+        exec(baseCommand, (error, stdout, stderr) => {
+          if (error) {
+            return response.status(500).send({ success: false, error: error.message });
           }
 
-          const chmodCommands = [
-            'sudo find /etc/letsencrypt/live -type d -exec sudo chmod 755 {} \\;',
-            'sudo find /etc/letsencrypt/archive -type d -exec sudo chmod 755 {} \\;',
-            'sudo find /etc/letsencrypt/live -type f -name "*.pem" -exec sudo chmod 644 {} \\;',
-            'sudo find /etc/letsencrypt/archive -type f -name "*.pem" -exec sudo chmod 644 {} \\;'
-          ];
-          
-          let chmodFailed = false;
-          const runChmodCommands = (index = 0) => {
-            if (index >= chmodCommands.length) {
-              if (chmodFailed) {
-                certbotReport.message += ' Permissions update on certificates failed, you may need to set up permissions manually.';
-              }
-              response.status(200).send(certbotReport);
-              
-              setTimeout(() => {
-                process.exit(0);
-              }, 2000);
-              return;
+          const cronCommand = `0 0 * * * ${cronCommandWithHook}`;
+          const setupCron = `(crontab -l 2>/dev/null | grep -v "certbot certonly --webroot"; echo "${cronCommand}") | crontab -`;
+          const certbotReport = { success: true };
+          exec(setupCron, (cronError, cronStdout, cronStderr) => {
+            if (cronError) {
+              certbotReport.message = 'Certificates provisioned successfully, but automatic renewal setup failed. You may need to set up cron manually.';
+            } else {
+              certbotReport.message = 'Certificates provisioned successfully and automatic renewal configured.';
             }
+
+            const chmodCommands = [
+              'sudo find /etc/letsencrypt/live -type d -exec sudo chmod 755 {} \\;',
+              'sudo find /etc/letsencrypt/archive -type d -exec sudo chmod 755 {} \\;',
+              'sudo find /etc/letsencrypt/live -type f -name "*.pem" -exec sudo chmod 644 {} \\;',
+              'sudo find /etc/letsencrypt/archive -type f -name "*.pem" -exec sudo chmod 644 {} \\;'
+            ];
             
-            exec(chmodCommands[index], (chmodError, chmodStdout, chmodStderr) => {
-              if (chmodError) {
-                chmodFailed = true;
+            let chmodFailed = false;
+            const runChmodCommands = (index = 0) => {
+              if (index >= chmodCommands.length) {
+                if (chmodFailed) {
+                  certbotReport.message += ' Permissions update on certificates failed, you may need to set up permissions manually.';
+                }
+
+                registerProvisionedCerts(secureServices, !cronError, !chmodFailed);
+
+                response.status(200).send(certbotReport);
+                
+                setTimeout(() => {
+                  process.exit(0);
+                }, 2000);
+                return;
               }
-              runChmodCommands(index + 1);
-            });
-          };
-          
-          runChmodCommands();
+              
+              exec(chmodCommands[index], (chmodError, chmodStdout, chmodStderr) => {
+                if (chmodError) {
+                  chmodFailed = true;
+                }
+                runChmodCommands(index + 1);
+              });
+            };
+            
+            runChmodCommands();
+          });
         });
-      });
+      }
+    } else {
+      response.status(200).send({ success: true });
     }
   } catch (error) {
     response.status(500).send({ success: false, error: error.message });

@@ -8,6 +8,8 @@ let ecosystem = {};
 let originalEcosystem = {};
 let advanced = {};
 let originalAdvanced = {};
+let certs = {};
+let originalCerts = {};
 let currentSelection = null;
 let secureServicesChangedThisSession = false;
 let firstConfigSave = true;
@@ -63,6 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadDdns(true);
     await loadEcosystem(true);
     await loadAdvanced(true);
+    await loadCerts(true);
     await loadGitStatus(true);
 
     renderServicesList();
@@ -354,6 +357,30 @@ async function loadAdvanced(suppressStatus = false) {
         advanced = getDefaultAdvanced();
         originalAdvanced = JSON.parse(JSON.stringify(advanced));
         if (!suppressStatus) showStatus('Could not load Advanced Config: ' + error.message, 'error');
+    }
+}
+
+async function loadCerts(suppressStatus = false) {
+    try {
+        const url = 'certs';
+        const response = await fetch(url);
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load certificate data`);
+        
+        const text = await response.text();
+        
+        if (!text) {
+            certs = { services: [], provisionedAt: null };
+        } else {
+            certs = JSON.parse(text);
+        }
+        
+        originalCerts = JSON.parse(JSON.stringify(certs));
+    } catch (error) {
+        console.error('Certs load error:', error);
+        certs = { services: [], provisionedAt: null };
+        originalCerts = JSON.parse(JSON.stringify(certs));
+        if (!suppressStatus) showStatus('Could not load certificate data: ' + error.message, 'error');
     }
 }
 
@@ -1636,7 +1663,8 @@ function renderServicesList() {
     list.innerHTML = '';
     
     const isFirstTimeSetup = ecosystem.default === true;
-    
+    const certStatus = getCertificateStatus();
+    const canProvision = certStatus.needDeprovisioning.length > 0 || certStatus.needProvisioning.length > 0;
     const hasAdminEmail = secrets.admin_email_address && secrets.admin_email_address.trim() !== '';
     const hasDomain = config.domain && config.domain.trim() !== '';
     const secretsEnabled = !isFirstTimeSetup;
@@ -1667,8 +1695,8 @@ function renderServicesList() {
     list.appendChild(secretsItem);
 
     const certsItem = document.createElement('div');
-    certsItem.className = 'service-item' + (currentSelection === 'management-certificates' ? ' active' : '');
-    certsItem.textContent = '🔒 Certificates';
+    certsItem.className = 'service-item' + (currentSelection === 'management-certificates' ? ' active' : '') + (canProvision ? ' insecure' : '');
+    certsItem.innerHTML = '🔒 Certificates' + (canProvision ? ' <span class="hint">Provisioning Needed</span>' : '');
     if (!certificatesEnabled) {
         certsItem.style.opacity = '0.5';
         certsItem.style.cursor = 'default';
@@ -1966,27 +1994,110 @@ function hasUnsavedConfigChanges() {
     return JSON.stringify(config) !== JSON.stringify(originalConfig);
 }
 
+function getCertificateStatus() {
+    const status = {
+        provisioned: [],
+        needProvisioning: [],
+        needDeprovisioning: []
+    };
+    
+    // Get current secure services
+    const currentSecureServices = new Set();
+    if (originalConfig.services) {
+        Object.keys(originalConfig.services).forEach(serviceName => {
+            if (originalConfig.services[serviceName].subdomain && 
+                originalConfig.services[serviceName].subdomain.protocol === 'secure') {
+                currentSecureServices.add(serviceName);
+            }
+        });
+    }
+    
+    // Get services that have provisioned certificates from certs.json
+    const provisionedServices = new Set(certs.services || []);
+    
+    // Determine status for each service
+    currentSecureServices.forEach(serviceName => {
+        if (provisionedServices.has(serviceName)) {
+            status.provisioned.push(serviceName);
+        } else {
+            status.needProvisioning.push(serviceName);
+        }
+    });
+    
+    provisionedServices.forEach(serviceName => {
+        if (!currentSecureServices.has(serviceName)) {
+            status.needDeprovisioning.push(serviceName);
+        }
+    });
+    
+    return status;
+}
+
 function renderCertificatesEditor() {
     const panel = document.getElementById('editorPanel');
     const hasChanges = hasUnsavedConfigChanges();
-    const canProvision = !hasChanges && secureServicesChangedThisSession;
-    const adminEmail = secrets.admin_email_address || '';
+    const certStatus = getCertificateStatus();
+    const canProvision = certStatus.needDeprovisioning.length > 0 || certStatus.needProvisioning.length > 0;
     
     let warningMessage = '';
     if (hasChanges) {
         warningMessage = '<div class="hint" style="color: #ed8936; margin-bottom: 10px;">⚠️ Please save your configuration before provisioning certificates</div>';
-    } else if (!secureServicesChangedThisSession) {
-        warningMessage = '<div class="hint" style="color: #718096; margin-bottom: 10px;">ℹ️ Save your configuration first to enable certificate provisioning</div>';
+    } else if (!canProvision) {
+        warningMessage = '<div class="hint" style="color: #718096; margin-bottom: 10px;">ℹ️ No certificate changes needed at this time</div>';
+    }
+    
+    // Build certificate status readout
+    let statusHtml = '';
+    
+    if (certStatus.provisioned.length > 0) {
+        statusHtml += `
+            <div class="cert-status-section">
+                <div class="cert-status-header cert-provisioned">✓ Provisioned Certificates</div>
+                <div class="cert-status-list">
+                    ${certStatus.provisioned.map(service => 
+                        `<div class="cert-status-item"><span class="cert-domain">${service}.${config.domain}</span></div>`
+                    ).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    if (certStatus.needProvisioning.length > 0) {
+        statusHtml += `
+            <div class="cert-status-section">
+                <div class="cert-status-header cert-need-provision">⏳ Need Provisioning</div>
+                <div class="cert-status-list">
+                    ${certStatus.needProvisioning.map(service => 
+                        `<div class="cert-status-item"><span class="cert-domain">${service}.${config.domain}</span></div>`
+                    ).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    if (certStatus.needDeprovisioning.length > 0) {
+        statusHtml += `
+            <div class="cert-status-section">
+                <div class="cert-status-header cert-need-deprovision">⚠ Need Deprovisioning</div>
+                <div class="cert-status-list">
+                    ${certStatus.needDeprovisioning.map(service => 
+                        `<div class="cert-status-item"><span class="cert-domain">${service}.${config.domain}</span></div>`
+                    ).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    if (certStatus.provisioned.length === 0 && certStatus.needProvisioning.length === 0 && certStatus.needDeprovisioning.length === 0) {
+        statusHtml = '<div class="hint" style="color: #718096; padding: 20px; text-align: center;">No secure services configured. Add services with secure protocol to provision certificates.</div>';
     }
     
     panel.innerHTML = `
         <div class="section">
             <div class="section-title">🔒 SSL Certificates</div>
             <div class="hint hint-section">Automatically provision SSL certificates for secure routes using Let's Encrypt.</div>
-            <div class="form-group">
-                <label for="certEmailInput">Email Address</label>
-                <input type="email" id="certEmailInput" value="${adminEmail}" placeholder="your-email@example.com" autocomplete="off" readonly>
-                <div class="hint">Email address for Let's Encrypt certificate provisioning</div>
+            <div class="cert-status-container">
+                ${statusHtml}
             </div>
             <div class="actions-row">
                 <button class="btn-save" onclick="provisionCertificates()" id="provisionBtn" ${canProvision ? '' : 'disabled'}>Provision Certificates</button>
@@ -1998,12 +2109,12 @@ function renderCertificatesEditor() {
 }
 
 async function provisionCertificates() {
-    const email = document.getElementById('certEmailInput').value;
+    const email = secrets.admin_email_address;
     const provisionBtn = document.getElementById('provisionBtn');
     const outputEl = document.getElementById('certOutput');
 
     if (!email) {
-        showStatus('Please enter an email address', 'error');
+        showStatus('Admin email address is not configured in secrets', 'error');
         return;
     }
 
@@ -2035,10 +2146,11 @@ async function provisionCertificates() {
         `;
         showStatus('Certificates provisioned successfully!', 'success');
         
-        secureServicesChangedThisSession = false;
-
         showLoadingOverlay('Server Restarting...', 'Certificates provisioned. Waiting for the server to restart...');
         await waitForServerRestart();
+        
+        // Reload certificate data after successful provisioning
+        await loadCerts(true);
 
         selectItem('management-certificates');
     } catch (error) {
