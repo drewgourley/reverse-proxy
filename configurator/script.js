@@ -602,6 +602,7 @@ function renderDdnsEditor() {
                 </label>
                 <div class="hint">Automatically update your domain's A record with your current public IP address every 5 minutes</div>
             </div>
+            <div class="secret-entry">
     `;
 
     const ddnsFields = [
@@ -616,33 +617,37 @@ function renderDdnsEditor() {
         const isSecret = key.includes('secret') || key.includes('key');
         
         html += `
-            <div class="secret-entry">
-                <label>${label}</label>
-                <div class="password-input-group">
-                    <input 
-                        type="text" 
-                        id="ddns_${key}" 
-                        value="${value}" 
-                        onchange="updateDdns('${key}', this.value)"
-                        style="${isSecret ? '-webkit-text-security: disc;' : ''}"
-                    />
+                <div class="entry-field">
+                    <label>${label}</label>
+                    <div class="password-input-group">
+                        <input 
+                            type="text" 
+                            id="ddns_${key}" 
+                            value="${value}" 
+                            onchange="updateDdns('${key}', this.value)"
+                            style="${isSecret ? '-webkit-text-security: disc;' : ''}"
+                        />
         `;
         
         if (isSecret) {
             html += `
-                    <button 
-                        class="btn-toggle-password" 
-                        onclick="togglePasswordVisibility('ddns_${key}', this)"
-                    >👁️ Show</button>
+                        <button 
+                            class="btn-toggle-password" 
+                            onclick="togglePasswordVisibility('ddns_${key}', this)"
+                        >👁️ Show</button>
             `;
         }
         
         html += `
+                    </div>
+                    <div class="hint">${hint}</div>
                 </div>
-                <div class="hint">${hint}</div>
-            </div>
         `;
     });
+
+    html += `
+            </div>
+    `;
 
     const zoneId = ddns.route53_hosted_zone_id || 'YOUR_HOSTED_ZONE_ID';
     const iamPolicy = {
@@ -1284,10 +1289,12 @@ function renderApplicationEditor() {
         <div class="section">
             <div class="section-title">⚙️ Application Settings</div>
             <div class="hint hint-section">Configure your application's display name used by PM2.</div>
-            <div class="form-group">
-                <label for="appNameInput">Application Name</label>
-                <input type="text" id="appNameInput" placeholder="Enter a nicename for the application (e.g., My Proxy Server)" value="${appName}" onchange="updateEcosystemName(this.value)">
-                <div class="hint">This name appears in PM2 process list</div>
+            <div class="app-entry">
+                <div class="form-group">
+                    <label for="appNameInput">Application Name</label>
+                    <input type="text" id="appNameInput" placeholder="Enter a nicename for the application (e.g., My Proxy Server)" value="${appName}" onchange="updateEcosystemName(this.value)">
+                    <div class="hint">This name appears in PM2 process list</div>
+                </div>
             </div>
             <div class="actions-row">
                 <button class="btn-reset" onclick="revertEcosystem()">Revert</button>
@@ -1812,11 +1819,12 @@ function renderDomainEditor() {
     panel.innerHTML = `
         <div class="section">
             <div class="section-title">🌐 Domain Settings</div>
+            <div class="hint hint-section">Configure your primary domain</div>
             <div class="domain-entry${isEmpty ? ' highlight-required' : ''}">
                 <div class="form-group form-group-no-margin">
                     <label for="domainInput">Domain Name</label>
                     <input type="text" id="domainInput" placeholder="example.com" value="${config.domain || ''}" onchange="updateConfig('domain', this.value)">
-                    <div class="hint">Primary domain name for your services</div>
+                    <div class="hint">Primary domain name for your services, without "www" or any subdomains</div>
                 </div>
             </div>
         </div>
