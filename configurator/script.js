@@ -644,6 +644,35 @@ function renderDdnsEditor() {
         `;
     });
 
+    const zoneId = ddns.route53_hosted_zone_id || 'YOUR_HOSTED_ZONE_ID';
+    const iamPolicy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "route53:ChangeResourceRecordSets"
+                ],
+                "Resource": `arn:aws:route53:::hostedzone/${zoneId}`
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "route53:GetChange"
+                ],
+                "Resource": "arn:aws:route53:::change/*"
+            }
+        ]
+    };
+
+    html += `
+            <div class="section-title" style="margin-top: 2rem;">📋 Required IAM Policy</div>
+            <div class="hint hint-section">Use this policy when creating your IAM user in AWS. This grants the minimum permissions needed for Dynamic DNS updates.</div>
+            <div class="setup-box route53">
+                <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(iamPolicy, null, 2)}</pre>
+            </div>
+    `;
+
     html += `
             <div class="actions-row">
                 <button class="btn-reset" onclick="revertDdns()">Revert Changes</button>

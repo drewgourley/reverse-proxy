@@ -4,12 +4,9 @@ A Node.js-based reverse proxy server with web-based configuration, SSL certifica
 
 ## Prerequisites
 
-- Amazon AWS Route53 Hosted Zone
-- Amazon AWS IAM User with proper roles to write to and update Hosted Zone
-- Raspberry Pi 5 (or similar Linux system)
-- Raspberry Pi OS Lite
-- Git (to clone this repository)
 - Port Forwarding: <your-pi-ip>:8080 and <you-pi-ip>:8443 forwarded to 80 and 443
+- Raspberry Pi with Rasperry OS Lite (or similar Linux system)
+- Git (to clone this repository)
 
 ## Installation
 
@@ -64,9 +61,54 @@ When you first access the configurator, it will automatically detect that PM2 ha
 
 #### Management
 - **Application** - Configure the PM2 process name
-- **Certificates** - Provision and manage SSL certificates
 - **Secrets** - Manage sensitive configuration values
+- **Certificates** - Provision and manage SSL certificates
 - **Dynamic DNS** - Set up Dynamic DNS with Amazon Route53
+- **Theme** - Dark Mode all the things!
+- **Advanced** - Set up body parsers and data extractors for custom healthchecks
+
+##### Setting Up AWS IAM User for Dynamic DNS
+
+To enable Dynamic DNS with Route53, you need to create an IAM user with the appropriate permissions:
+
+1. **Create an IAM User** in the AWS Console:
+   - Go to IAM → Users → Add User
+   - Create a user with programmatic access
+   - Save the Access Key ID and Secret Access Key
+
+2. **Attach the following IAM policy** to the user (replace `YOUR_HOSTED_ZONE_ID` with your actual hosted zone ID):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:ChangeResourceRecordSets"
+      ],
+      "Resource": "arn:aws:route53:::hostedzone/YOUR_HOSTED_ZONE_ID"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:GetChange"
+      ],
+      "Resource": "arn:aws:route53:::change/*"
+    }
+  ]
+}
+```
+
+3. **Configure in the Web Interface**:
+   - Navigate to the Dynamic DNS section
+   - Enter your AWS Access Key ID
+   - Enter your AWS Secret Access Key
+   - Enter your AWS Region (e.g., `us-east-1`)
+   - Enter your Route53 Hosted Zone ID
+   - Enable the Dynamic DNS feature
+
+This policy follows the principle of least privilege, granting only the permissions necessary to update DNS records in your specific hosted zone.
 
 #### Configuration
 - **Domain** - Set your primary domain
