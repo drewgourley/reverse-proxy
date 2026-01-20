@@ -277,6 +277,22 @@ const initApplication = () => {
       // create api routes
       config.services.api.subdomain.router.use(express.json());
 
+      // create webhook rate limiting
+      const hookLimiter = rateLimit({
+        windowMs: 1 * 60 * 1000, // 1 minute
+        max: 15, // limit each IP to 15 requests per windowMs
+        message: { status: 'Too Many Requests', error: 'Rate limit exceeded. Try again later.' },
+        standardHeaders: true,
+        legacyHeaders: false,
+      });
+
+      // create webhook route and handle for dynamic ids
+      config.services.api.subdomain.router.post('/webhook/:id', hookLimiter, (request, response) => {
+        const hookID = request.params.id;
+        console.log(`Webhook received for ID: ${hookID}`);
+        console.log(request.body);
+      });
+      
       // create health check routes
       Object.keys(config.services).forEach(name => {
         if (config.services[name].healthcheck) {
@@ -620,16 +636,17 @@ manrouter.get('/ecosystem', (request, response) => {
           script: "./app.js",
           watch: true,
           ignore_watch: [
-            "readme.md",
             "node_modules",
             "web",
-            "package-lock.json",
+            "advanced.json",
+            "certs.json",
             "config.json",
             "ddns.json",
-            "secrets.json",
-            "package.json",
-            "advanced.json",
             "ecosystem.config.js",
+            "secrets.json",
+            "package-lock.json",
+            "package.json",
+            "readme.md",
             ".*"
           ],
           env: {
