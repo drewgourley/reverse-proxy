@@ -48,6 +48,11 @@ echo ""
 echo "PM2 version:"
 pm2 --version
 
+# Install PM2 Logrotate module, automatically limits log file sizes to 10M
+echo ""
+echo "Installing PM2 Logrotate module..."
+pm2 install pm2-logrotate
+
 # Install Certbot
 echo ""
 echo "Installing Certbot..."

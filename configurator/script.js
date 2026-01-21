@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         const section = urlParams.get('section');
         if (section) {
+            const validMonitorSections = ['monitor-logs'];
             const validManagementSections = ['management-application', 'management-secrets', 'management-theme', 'management-advanced'];
             if (secrets.admin_email_address && secrets.admin_email_address.trim() !== '') {
                 validManagementSections.push('management-certificates');
@@ -101,12 +102,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 validManagementSections.push('management-ddns');
             }
             const validConfigSections = ['config-domain'];
+            const isValidMonitor = validMonitorSections.includes(section);
             const isValidManagement = validManagementSections.includes(section);
             const isValidConfig = validConfigSections.includes(section);
             const isService = section.startsWith('config-') && config.services && config.services[section.replace('config-', '')];
 
 
-            if (isValidManagement || isValidConfig || isService) {
+            if (isValidManagement || isValidConfig || isService || isValidMonitor) {
                 selectItem(section);
             } else {
                 const url = new URL(window.location);
@@ -394,6 +396,7 @@ function getDefaultAdvanced() {
 
 function renderSecretsEditor() {
     const panel = document.getElementById('editorPanel');
+    panel.classList.add('scrollable');
     let html = `
         <div class="section">
             <div class="section-title">🔑 Secrets Management</div>
@@ -615,6 +618,7 @@ function revertSecrets() {
 
 function renderDdnsEditor() {
     const panel = document.getElementById('editorPanel');
+    panel.classList.add('scrollable');
     const isActive = ddns.active || false;
     let html = `
         <div class="section">
@@ -701,7 +705,7 @@ function renderDdnsEditor() {
             <div class="section-title" style="margin-top: 2rem;">📋 Required IAM Policy</div>
             <div class="hint hint-section">Use this policy when creating your IAM user in AWS. This grants the minimum permissions needed for Dynamic DNS updates.</div>
             <div class="setup-box route53">
-                <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(iamPolicy, null, 2)}</pre>
+                <pre class="setup-record-content">${JSON.stringify(iamPolicy, null, 2)}</pre>
             </div>
     `;
 
@@ -1060,6 +1064,7 @@ async function saveTheme() {
 
 function renderThemeEditor() {
     const panel = document.getElementById('editorPanel');
+    panel.classList.add('scrollable');
     panel.innerHTML = `
         <div class="section">
             <div class="section-title">🎨 Theme Customization</div>
@@ -1153,8 +1158,7 @@ function renderThemeEditor() {
 
 async function loadEcosystem(suppressStatus = false) {
     try {
-        const url = 'ecosystem';
-        const response = await fetch(url);
+        const response = await fetch('ecosystem');
         
         if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load ecosystem config`);
         
@@ -1308,6 +1312,7 @@ async function pullUpdates() {
 
 function renderApplicationEditor() {
     const panel = document.getElementById('editorPanel');
+    panel.classList.add('scrollable');
     const appName = ecosystem.apps && ecosystem.apps[0] ? ecosystem.apps[0].name : 'Reverse Proxy';
     const isDefault = ecosystem.default === true;
     const buttonText = isDefault ? 'Generate Application Settings' : 'Save Application Settings';
@@ -1404,6 +1409,7 @@ function revertEcosystem() {
 
 function renderAdvancedEditor() {
     const panel = document.getElementById('editorPanel');
+    panel.classList.add('scrollable');
     
     // Build parsers list
     let parsersHtml = '';
@@ -1671,6 +1677,16 @@ function renderServicesList() {
     const certificatesEnabled = !isFirstTimeSetup && hasAdminEmail && hasDomain;
     const ddnsEnabled = !isFirstTimeSetup && hasDomain;
 
+    const monitorHeader = document.createElement('h2');
+    monitorHeader.textContent = 'Activity Monitor';
+    list.appendChild(monitorHeader);
+
+    const logsItem = document.createElement('div');
+    logsItem.className = 'service-item' + (currentSelection === 'monitor-logs' ? ' active' : '');
+    logsItem.textContent = '📝 Logs';
+    logsItem.onclick = () => selectItem('monitor-logs');
+    list.appendChild(logsItem);
+
     const managementHeader = document.createElement('h2');
     managementHeader.textContent = 'Management';
     list.appendChild(managementHeader);
@@ -1747,7 +1763,6 @@ function renderServicesList() {
     list.appendChild(advancedItem);
 
     const configHeader = document.createElement('h2');
-    configHeader.style.marginTop = '20px';
     configHeader.textContent = 'Configuration';
     list.appendChild(configHeader);
 
@@ -1835,13 +1850,83 @@ function selectItem(prefixedName) {
         renderThemeEditor();
     } else if (prefixedName === 'management-advanced') {
         renderAdvancedEditor();
+    } else if (prefixedName === 'monitor-logs') {
+        renderLogsViewer();
     } else if (prefixedName.startsWith('config-')) {
         renderServiceEditor(itemName);
     }
 }
 
+function renderLogsViewer() {
+    const panel = document.getElementById('editorPanel');
+    panel.classList.remove('scrollable');
+    panel.innerHTML = `
+        <div class="section logs-section">
+            <div class="section-title">📝 Activity Logs</div>
+            <div class="hint hint-section">View real-time logs of application activity and healthchecks.</div>
+            <div class="logs-container">
+                <div id="logsBox" class="logs-box">
+                    <pre id="logsContent" class="logs-content">Loading logs...</pre>
+                </div>
+            </div>
+        </div>
+    `;
+
+    startLogStream();
+}
+
+let logLines = [];
+
+function startLogStream() {
+    const appName = ecosystem?.apps?.[0]?.name ? (ecosystem.apps[0].name).replace(' ', '-') : 'Reverse-Proxy';
+    const maxLines = 10000;
+    const logsBox = document.getElementById('logsBox');
+    const logsContent = document.getElementById('logsContent');
+    let isAtBottom = Math.abs(logsBox.scrollTop + logsBox.clientHeight - logsBox.scrollHeight) < 5;
+    logLines.push('Connecting to log stream...');
+    logsContent.textContent = logLines.join('\n') + '\n';
+    if (isAtBottom) {
+        logsBox.scrollTop = logsBox.scrollHeight;
+    }
+    const eventSource = new EventSource(`logs/${appName}`);
+
+    eventSource.onmessage = function(event) {
+        // Only auto-scroll if user is already at the bottom
+        isAtBottom = Math.abs(logsBox.scrollTop + logsBox.clientHeight - logsBox.scrollHeight) < 5;
+        logLines.push(event.data);
+        const lastIndex = logLines.length - 1;
+        const zuluTimeMatch = logLines[lastIndex].match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z):\s(.*)$/);
+        if (zuluTimeMatch) {
+            const zuluTime = zuluTimeMatch[1];
+            const message = zuluTimeMatch[2];
+            const localDate = new Date(zuluTime);
+            const formattedDate = localDate.toLocaleString();
+            logLines[lastIndex] = `[${formattedDate}] ${message}`;
+        }
+        if (logLines.length > maxLines) {
+            logLines = logLines.slice(logLines.length - maxLines);
+        }
+        logsContent.textContent = logLines.join('\n') + '\n';
+        if (isAtBottom) {
+            logsBox.scrollTop = logsBox.scrollHeight;
+        }
+    };
+    eventSource.onerror = function() {
+        isAtBottom = Math.abs(logsBox.scrollTop + logsBox.clientHeight - logsBox.scrollHeight) < 5;
+        logLines.push('[Error] Connection lost. Attempting to reconnect...');
+        logsContent.textContent = logLines.join('\n') + '\n';
+        // Only auto-scroll if user is already at the bottom
+        if (isAtBottom) {
+            logsBox.scrollTop = logsBox.scrollHeight;
+        }
+        eventSource.close();
+        setTimeout(startLogStream, 5000);
+    }
+}
+
 function renderDomainEditor() {
     const panel = document.getElementById('editorPanel');
+    panel.classList.add('scrollable');
     const isEmpty = !config.domain || config.domain.trim() === '';
 
     panel.innerHTML = `
@@ -2035,6 +2120,7 @@ function getCertificateStatus() {
 
 function renderCertificatesEditor() {
     const panel = document.getElementById('editorPanel');
+    panel.classList.add('scrollable');
     const hasChanges = hasUnsavedConfigChanges();
     const certStatus = getCertificateStatus();
     const canProvision = certStatus.needDeprovisioning.length > 0 || certStatus.needProvisioning.length > 0;
@@ -2169,6 +2255,7 @@ async function provisionCertificates() {
 function renderServiceEditor(serviceName) {
     const service = config.services[serviceName];
     const panel = document.getElementById('editorPanel');
+    panel.classList.add('scrollable');
     const isDefaultService = serviceName === 'api' || serviceName === 'www';
     
     let html = `
@@ -2835,6 +2922,7 @@ function removeService(serviceName) {
                 
                 renderServicesList();
                 const panel = document.getElementById('editorPanel');
+                panel.classList.add('scrollable');
                 panel.innerHTML = `
                     <div class="placeholder-message">
                         <p>Service removed. Select another item to continue editing.</p>
@@ -3053,6 +3141,7 @@ function resetEditor() {
                 currentSelection = null;
                 renderServicesList();
                 const panel = document.getElementById('editorPanel');
+                panel.classList.add('scrollable');
                 panel.innerHTML = `
                     <div class="placeholder-message">
                         <p>Changes discarded. Select an item to edit.</p>

@@ -65,6 +65,14 @@ h1 {
     color: var(--color-primary);
 }
 
+#servicesList h2 {
+    margin-top: 20px;
+}
+
+#servicesList h2:first-child {
+    margin-top: 0;
+}
+
 .version-info {
     display: flex;
     flex-direction: column;
@@ -415,11 +423,14 @@ button {
     flex: 1;
 }
 
-.sidebar-scrollable, .editor-panel-scrollable {
+.sidebar-scrollable, .editor-panel-pane {
     flex: 1;
-    overflow-y: auto;
     margin: 0 -20px;
     padding: 0 20px 20px;
+}
+
+.sidebar-scrollable, .editor-panel-pane.scrollable {
+    overflow-y: auto;
 }
 
 .actions-row {
@@ -615,6 +626,13 @@ button {
 
 .section {
     margin-bottom: 25px;
+}
+
+.section.logs-section {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 282px);
+    min-height: 438px;
 }
 
 .section-title {
@@ -1135,7 +1153,7 @@ input[type="checkbox"] {
     background: #374151;
 }
 
-.setup-box {
+.setup-box, .logs-box {
     background: #2d3748;
     padding: 15px 15px 5px;
     border-radius: 6px;
@@ -1161,7 +1179,21 @@ input[type="checkbox"] {
     margin-bottom: 12px;
 }
 
-.setup-record-label {
+.logs-container {
+    position: relative;
+    flex-grow: 1;
+}
+
+.logs-box {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+}
+
+.setup-record-label, .logs-content {
     color: #a0aec0;
     font-size: 13px;
     margin-bottom: 4px;

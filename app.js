@@ -287,10 +287,9 @@ const initApplication = () => {
       });
 
       // create webhook route and handle for dynamic ids
-      config.services.api.subdomain.router.post('/webhook/:id', hookLimiter, (request, response) => {
-        const hookID = request.params.id;
-        console.log(`Webhook received for ID: ${hookID}`);
-        console.log(request.body);
+      config.services.api.subdomain.router.post('/webhook', hookLimiter, (request, response) => {
+        console.log('Webhook received:', request.body);
+        response.status(200).send({ status: 'Webhook received' });
       });
       
       // create health check routes
@@ -361,7 +360,7 @@ const initApplication = () => {
       let target = services.find((name) => {
         return `${name}.${config.domain}` === host;
       });
-      console.log(`${now}: ${request.secure} ${host}${request.url} by ${ip[ip.length - 1]}`);
+      console.log(`${now}: ${protocols[request.secure ? 'secure' : 'insecure']}${host}${request.url} by ${ip[ip.length - 1]}`);
       if (request.url.includes('.well-known')) {
         if (request.secure) {
           return response.redirect(`${protocols.insecure}${host}${request.url}`);
@@ -990,6 +989,109 @@ manrouter.get('/advanced', (request, response) => {
     response.send(advancedObj);
   } catch (error) {
     response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+// setup PM2 live logs route
+manrouter.get('/logs/:appName', (request, response) => {
+  const appName = request.params.appName;
+  if (env === 'development') {
+    response.setHeader('Content-Type', 'text/event-stream');
+    response.setHeader('Cache-Control', 'no-cache');
+    response.setHeader('Connection', 'keep-alive');
+    response.flushHeaders && response.flushHeaders();
+
+    // Trickle 100 lines of mocked log messages, one per second
+    let count = 1;
+    const interval = setInterval(() => {
+      response.write(`data: 2026-01-21T02:28:46.493Z: (${appName} Development Mode: Mocked test message) [${count}]\n\n`);
+      count++;
+      if (count > 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          response.end();
+        }, 60000);
+      }
+    }, 100);
+    // End response if client disconnects early
+    request.on('close', () => {
+      clearInterval(interval);
+      response.end();
+    });
+    return;
+  } else if (env === 'production') {
+    try {
+      const logPath = path.join(os.homedir(), '.pm2', 'logs', `${appName.replace(' ', '-')}-out.log`);
+      if (!fs.existsSync(logPath)) {
+        return response.status(404).send({ success: false, error: 'Log file not found' });
+      }
+      response.setHeader('Content-Type', 'text/event-stream');
+      response.setHeader('Cache-Control', 'no-cache');
+      response.setHeader('Connection', 'keep-alive');
+      response.flushHeaders && response.flushHeaders();
+
+      // Send a comment to keep the connection alive every 30 seconds
+      const keepAliveInterval = setInterval(() => {
+        response.write(': keep-alive\n\n');
+      }, 30000);
+
+      // Start reading from the end of the file
+      let fileSize = fs.statSync(logPath).size;
+      let fileDescriptor = fs.openSync(logPath, 'r');
+      let buffer = Buffer.alloc(4096);
+      let isClosed = false;
+
+      // Helper to send new log lines as SSE events
+      function sendLogLines(data) {
+        const lines = data.split(/\r?\n/);
+        for (const line of lines) {
+          if (line) {
+            response.write(`data: ${line}\n\n`);
+          }
+        }
+      }
+
+      // Watch for changes to the log file
+      const watcher = fs.watch(logPath, (eventType) => {
+        if (eventType === 'change') {
+          try {
+            const stats = fs.statSync(logPath);
+            if (stats.size > fileSize) {
+              const readLen = stats.size - fileSize;
+              const readBuffer = Buffer.alloc(readLen);
+              fs.readSync(fileDescriptor, readBuffer, 0, readLen, fileSize);
+              fileSize = stats.size;
+              sendLogLines(readBuffer.toString('utf8'));
+            }
+          } catch (err) {
+            // Ignore errors (file may be rotated)
+          }
+        }
+      });
+
+      // Send the last 100 lines on connect
+      const tail = require('child_process').spawn('tail', ['-n', '100', logPath]);
+      tail.stdout.on('data', (data) => {
+        sendLogLines(data.toString('utf8'));
+      });
+      tail.on('close', () => {
+        // Do nothing
+      });
+
+      // Clean up on client disconnect
+      request.on('close', () => {
+        if (isClosed) return;
+        isClosed = true;
+        clearInterval(keepAliveInterval);
+        watcher.close();
+        fs.closeSync(fileDescriptor);
+        tail.kill();
+      });
+    } catch (error) {
+      response.status(500).send({ success: false, error: error.message });
+    }
+  } else {
+    response.status(503).send({ success: false, error: 'Logs are not available in this environment' });
   }
 });
 
