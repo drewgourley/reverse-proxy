@@ -122,15 +122,14 @@ const defaultExtractors = {
   },
 };
 
-// Merge custom parsers/extractors from advanced config
+// merge custom parsers/extractors from advanced config
 const parsers = { ...defaultParsers };
 const extractors = { ...defaultExtractors };
 
-// Load custom parsers
+// load custom parsers
 if (advancedConfig.parsers) {
   Object.keys(advancedConfig.parsers).forEach(key => {
     try {
-      // Using Function constructor to evaluate the function string
       parsers[key] = eval(`(${advancedConfig.parsers[key]})`);
     } catch (error) {
       console.error(`Error loading custom parser "${key}":`, error);
@@ -138,11 +137,10 @@ if (advancedConfig.parsers) {
   });
 }
 
-// Load custom extractors
+// load custom extractors
 if (advancedConfig.extractors) {
   Object.keys(advancedConfig.extractors).forEach(key => {
     try {
-      // Using Function constructor to evaluate the function string
       extractors[key] = eval(`(${advancedConfig.extractors[key]})`);
     } catch (error) {
       console.error(`Error loading custom extractor "${key}":`, error);
@@ -252,12 +250,14 @@ const initApplication = () => {
     Object.keys(config.services).forEach(name => {
       if (config.services[name].subdomain) {
         config.services[name].subdomain.router = express.Router();
+        const secure = env === 'production' && config.services[name].subdomain.type === 'secure';
+        const agent = secure ? new https.Agent() : new http.Agent();
         if (config.services[name].subdomain.proxy) {
           config.services[name].subdomain.router.use('/.well-known', express.static(path.join(__dirname, 'web', 'all', '.well-known')));
           if (config.services[name].subdomain.type === 'proxy') {
-            config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}` });
+            config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, secure, agent, changeOrigin: true });
             if (config.services[name].subdomain.proxy.socket) {
-              config.services[name].subdomain.proxy.websocket = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, ws: true });
+              config.services[name].subdomain.proxy.websocket = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, secure, agent, changeOrigin: true, ws: true });
             }
             if (config.services[name].subdomain.proxy.path) {
               config.services[name].subdomain.router.use(config.services[name].subdomain.proxy.path, config.services[name].subdomain.proxy.middleware);
@@ -266,7 +266,7 @@ const initApplication = () => {
             }
           }
           if (config.services[name].subdomain.type !== 'proxy' && config.services[name].subdomain.proxy.path && config.services[name].subdomain.path) {
-            config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}` });
+            config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, secure, agent, changeOrigin: true });
             config.services[name].subdomain.router.use(config.services[name].subdomain.proxy.path, config.services[name].subdomain.proxy.middleware);
           }
         }
@@ -395,7 +395,6 @@ const initApplication = () => {
             response.status(404).sendFile(path.join(__dirname, 'web', 'public', '404.html'));
           });
         } else if (config.services[name].subdomain.type === 'dirlist') {
-          // Apply basic auth to /protected folder if configured
           if (config.services[name].subdomain.basicUser && config.services[name].subdomain.basicPass) {
             const authMiddleware = basicAuth({
               users: { [config.services[name].subdomain.basicUser]: config.services[name].subdomain.basicPass },
@@ -657,9 +656,7 @@ manrouter.get('/ecosystem', (request, response) => {
       return response.send(defaultEcosystem);
     }
     
-    // read and parse the existing file
     const fileContent = fs.readFileSync(ecosystemPath, 'utf8');
-    // extract the module.exports object
     const ecosystemConfig = require(ecosystemPath);
     
     response.setHeader('Content-Type', 'application/json');
@@ -673,7 +670,6 @@ manrouter.put('/config', (request, response) => {
   try {
     const updatedConfig = request.body;
     
-    // Validate config schema
     const configSchema = {
       type: 'object',
       required: ['domain'],
@@ -725,7 +721,6 @@ manrouter.put('/secrets', async (request, response) => {
   try {
     const updatedSecrets = request.body;
     
-    // Validate secrets schema
     const secretsSchema = {
       type: 'object',
       properties: {
@@ -739,7 +734,7 @@ manrouter.put('/secrets', async (request, response) => {
           pattern: '^$|^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$' 
         }
       },
-      additionalProperties: true // Allow custom secrets
+      additionalProperties: true
     };
     
     const validate = ajv.compile(secretsSchema);
@@ -747,14 +742,13 @@ manrouter.put('/secrets', async (request, response) => {
       return sendError(response, 400, { message: 'Invalid secrets format', details: validate.errors });
     }
     
-    // Read existing secrets to preserve password hash if not changed
     let existingSecrets = {};
     try {
       const secretsPath = path.join(__dirname, 'secrets.json');
       const secretsData = fs.readFileSync(secretsPath, 'utf8');
       existingSecrets = JSON.parse(secretsData);
     } catch (e) {
-      // No existing secrets file
+      // do nothing: no existing secrets
     }
     
     // If shock_password_hash is empty but existed before, restore the old hash
@@ -790,11 +784,9 @@ manrouter.put('/colors', (request, response) => {
   try {
     const updatedColors = request.body;
     
-    // Validate color values are valid hex colors
     const hexColorRegex = /^#([0-9A-Fa-f]{3}){1,2}$/;
     const colorFields = ['primary', 'secondary', 'accent', 'background', 'inverse'];
     
-    // Only allow the specific color fields - reject any extra properties
     const receivedFields = Object.keys(updatedColors);
     const extraFields = receivedFields.filter(f => !colorFields.includes(f));
     if (extraFields.length > 0) {
@@ -804,7 +796,6 @@ manrouter.put('/colors', (request, response) => {
       });
     }
     
-    // Validate each color field is present and has valid hex format
     for (const field of colorFields) {
       if (!updatedColors[field]) {
         return response.status(400).send({ 
@@ -873,7 +864,6 @@ manrouter.post('/favicon', faviconUpload.single('favicon'), async (request, resp
       return response.status(400).send({ success: false, error: 'No file uploaded' });
     }
 
-    // Validate MIME type - only accept image types
     const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/svg+xml'];
     if (!allowedMimeTypes.includes(request.file.mimetype)) {
       return response.status(400).send({ 
@@ -882,7 +872,6 @@ manrouter.post('/favicon', faviconUpload.single('favicon'), async (request, resp
       });
     }
 
-    // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB in bytes
     if (request.file.size > maxSize) {
       return response.status(400).send({ 
@@ -943,7 +932,6 @@ manrouter.put('/ddns', (request, response) => {
   try {
     const updatedDdns = request.body;
     
-    // Validate DDNS schema
     const ddnsSchema = {
       type: 'object',
       required: ['active', 'aws_access_key_id', 'aws_secret_access_key', 'aws_region', 'route53_hosted_zone_id'],
@@ -993,15 +981,14 @@ manrouter.get('/advanced', (request, response) => {
 });
 
 // setup PM2 live logs route
-manrouter.get('/logs/:appName', (request, response) => {
+manrouter.get('/logs/:appName/:type', (request, response) => {
   const appName = request.params.appName;
+  const type = request.params.type || 'out';
   if (env === 'development') {
     response.setHeader('Content-Type', 'text/event-stream');
     response.setHeader('Cache-Control', 'no-cache');
     response.setHeader('Connection', 'keep-alive');
     response.flushHeaders && response.flushHeaders();
-
-    // Trickle 100 lines of mocked log messages, one per second
     let count = 1;
     const interval = setInterval(() => {
       response.write(`data: 2026-01-21T02:28:46.493Z: (${appName} Development Mode: Mocked test message) [${count}]\n\n`);
@@ -1013,7 +1000,6 @@ manrouter.get('/logs/:appName', (request, response) => {
         }, 60000);
       }
     }, 100);
-    // End response if client disconnects early
     request.on('close', () => {
       clearInterval(interval);
       response.end();
@@ -1021,7 +1007,7 @@ manrouter.get('/logs/:appName', (request, response) => {
     return;
   } else if (env === 'production') {
     try {
-      const logPath = path.join(os.homedir(), '.pm2', 'logs', `${appName.replace(' ', '-')}-out.log`);
+      const logPath = path.join(os.homedir(), '.pm2', 'logs', `${appName.replace(' ', '-')}-${type}.log`);
       if (!fs.existsSync(logPath)) {
         return response.status(404).send({ success: false, error: 'Log file not found' });
       }
@@ -1030,18 +1016,15 @@ manrouter.get('/logs/:appName', (request, response) => {
       response.setHeader('Connection', 'keep-alive');
       response.flushHeaders && response.flushHeaders();
 
-      // Send a comment to keep the connection alive every 30 seconds
       const keepAliveInterval = setInterval(() => {
         response.write(': keep-alive\n\n');
       }, 30000);
 
-      // Start reading from the end of the file
       let fileSize = fs.statSync(logPath).size;
       let fileDescriptor = fs.openSync(logPath, 'r');
       let buffer = Buffer.alloc(4096);
       let isClosed = false;
 
-      // Helper to send new log lines as SSE events
       function sendLogLines(data) {
         const lines = data.split(/\r?\n/);
         for (const line of lines) {
@@ -1051,7 +1034,6 @@ manrouter.get('/logs/:appName', (request, response) => {
         }
       }
 
-      // Watch for changes to the log file
       const watcher = fs.watch(logPath, (eventType) => {
         if (eventType === 'change') {
           try {
@@ -1064,21 +1046,19 @@ manrouter.get('/logs/:appName', (request, response) => {
               sendLogLines(readBuffer.toString('utf8'));
             }
           } catch (err) {
-            // Ignore errors (file may be rotated)
+            // do nothing: file may be rotated
           }
         }
       });
 
-      // Send the last 100 lines on connect
       const tail = require('child_process').spawn('tail', ['-n', '100', logPath]);
       tail.stdout.on('data', (data) => {
         sendLogLines(data.toString('utf8'));
       });
       tail.on('close', () => {
-        // Do nothing
+        // do nothing
       });
 
-      // Clean up on client disconnect
       request.on('close', () => {
         if (isClosed) return;
         isClosed = true;
@@ -1099,7 +1079,6 @@ manrouter.put('/advanced', (request, response) => {
   try {
     const updatedAdvanced = request.body;
     
-    // Validate advanced schema
     const advancedSchema = {
       type: 'object',
       properties: {
@@ -1129,7 +1108,6 @@ manrouter.put('/ecosystem', (request, response) => {
   try {
     const updatedEcosystem = request.body;
     
-    // Validate ecosystem schema
     const ecosystemSchema = {
       type: 'object',
       properties: {
@@ -1303,9 +1281,41 @@ manrouter.get('/git/check', (request, response) => {
 manrouter.post('/git/pull', (request, response) => {
   try {
     if (env === 'development') {
+      response.status(500).send({
+        success: false,
+        error: 'Development mode: No actual git pull performed, showing as failed to test force update.',
+      });
+      return;
+    }
+    
+    exec('git pull origin', (error, stdout, stderr) => {
+      if (error) {
+        return response.status(500).send({ success: false, error: stderr || error.message });
+      }
+      
       response.status(200).send({
         success: true,
-        message: 'Update endpoint tested successfully',
+        message: 'Update successful',
+        output: stdout
+      });
+      
+      setTimeout(() => {
+        exec('pm2 restart 0', () => {
+          process.exit(0);
+        });
+      }, 2000);
+    });
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+manrouter.post('/git/force', (request, response) => {
+  try {
+    if (env === 'development') {
+      response.status(200).send({
+        success: true,
+        message: 'Force update endpoint tested successfully',
         output: 'Development mode: No actual git pull performed',
       });
       setTimeout(() => {
@@ -1314,7 +1324,7 @@ manrouter.post('/git/pull', (request, response) => {
       return;
     }
     
-    exec('git pull origin', (error, stdout, stderr) => {
+    exec('git reset --hard origin', (error, stdout, stderr) => {
       if (error) {
         return response.status(500).send({ success: false, error: stderr || error.message });
       }

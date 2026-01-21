@@ -92,6 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectItem('config-domain');
     } else {
         const section = urlParams.get('section');
+        const type = urlParams.get('type');
         if (section) {
             const validMonitorSections = ['monitor-logs'];
             const validManagementSections = ['management-application', 'management-secrets', 'management-theme', 'management-advanced'];
@@ -109,10 +110,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
             if (isValidManagement || isValidConfig || isService || isValidMonitor) {
-                selectItem(section);
+                selectItem(section, type);
             } else {
                 const url = new URL(window.location);
                 url.searchParams.delete('section');
+                url.searchParams.delete('type');
                 window.history.replaceState({}, '', url);
             }
         }
@@ -1175,7 +1177,7 @@ async function loadEcosystem(suppressStatus = false) {
     }
 }
 
-async function loadGitStatus(suppressStatus = false) {
+async function loadGitStatus(suppressStatus = false, showForceUpdate = false) {
     try {
         const response = await fetch('git/status');
         if (!response.ok) {
@@ -1186,8 +1188,8 @@ async function loadGitStatus(suppressStatus = false) {
         const data = await response.json();
         if (data.success) {
             gitStatus = data;
-            renderGitStatus(data);
-            checkForUpdates();
+            renderGitStatus(data, showForceUpdate);
+            if (!showForceUpdate) checkForUpdates();
         } else {
             renderGitStatus({ error: data.error });
         }
@@ -1197,7 +1199,7 @@ async function loadGitStatus(suppressStatus = false) {
     }
 }
 
-function renderGitStatus(status) {
+function renderGitStatus(status, showForceUpdate = false) {
     const versionInfo = document.getElementById('versionInfo');
     const isFirstTimeSetup = ecosystem.default === true;
 
@@ -1212,16 +1214,28 @@ function renderGitStatus(status) {
     
     const versionNumber = status.version || 'Unknown';
     
-    versionInfo.innerHTML = `
-        <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Check for updates'}" ${isFirstTimeSetup ? 'disabled' : ''}>
-            <span class="update-icon"${isFirstTimeSetup ? ' style="display:none"' : ''}>↻</span>
-            <span class="update-text">${isFirstTimeSetup ? 'Initial Setup' : 'Checking...'}</span>
-        </button>
+    if (showForceUpdate) {
+        versionInfo.innerHTML = `
+            <button class="btn-update must-force-update" id="updateBtn" onclick="handleUpdate(true)" title="Force Update">
+                <span class="update-icon">↻</span>
+                <span class="update-text">Force Update</span>
+            </button>
+        `;
+    } else {
+        versionInfo.innerHTML = `
+            <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Check for updates'}" ${isFirstTimeSetup ? 'disabled' : ''}>
+                <span class="update-icon"${isFirstTimeSetup ? ' style="display:none"' : ''}>↻</span>
+                <span class="update-text">${isFirstTimeSetup ? 'Initial Setup' : 'Checking...'}</span>
+            </button>
+        `;
+    }
+
+    versionInfo.innerHTML += `
         <span class="version-number">${versionNumber}</span>
     `;
 }
 
-async function checkForUpdates() {
+async function checkForUpdates(force = false) {
     const updateBtn = document.getElementById('updateBtn');
     const isFirstTimeSetup = ecosystem.default === true;
     if (!updateBtn || isFirstTimeSetup) return;
@@ -1262,11 +1276,17 @@ async function checkForUpdates() {
     }
 }
 
-function handleUpdate() {
+function handleUpdate(force = false) {
     const updateBtn = document.getElementById('updateBtn');
     const hasUpdates = updateBtn?.getAttribute('data-has-updates') === 'true';
     
-    if (hasUpdates) {
+    if (force) {
+        showConfirmModal(
+            'Force Update',
+            'Are you sure you want to force an update? This will discard any local changes and pull the latest version from the repository. The server will restart after updating. Continue?',
+            () => pullUpdates(true)
+        );
+    } else if (hasUpdates) {
         showConfirmModal(
             'Update Available',
             'A new version is available. The server will restart after updating. Continue?',
@@ -1277,7 +1297,7 @@ function handleUpdate() {
     }
 }
 
-async function pullUpdates() {
+async function pullUpdates(force) {
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingTitle = document.getElementById('loadingTitle');
     const loadingMessage = document.getElementById('loadingMessage');
@@ -1287,13 +1307,22 @@ async function pullUpdates() {
     loadingOverlay.classList.add('active');
     
     try {
-        const response = await fetch('git/pull', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
+        let response;
+        if (force) {
+            response = await fetch('git/force', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } else {
+            response = await fetch('git/pull', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
         
         if (!response.ok) {
             const data = await response.json();
+            loadGitStatus(true, true);
             throw new Error(data.error || 'Update failed');
         }
         
@@ -1824,13 +1853,14 @@ function renderServicesList() {
     });
 }
 
-function selectItem(prefixedName) {
+function selectItem(prefixedName, type) {
     currentSelection = prefixedName;
     
     const url = new URL(window.location);
     url.searchParams.set('section', prefixedName);
+    url.searchParams.delete('type');
     window.history.pushState({}, '', url);
-    
+
     renderServicesList();
     updateSidebarButtons();
     
@@ -1851,13 +1881,21 @@ function selectItem(prefixedName) {
     } else if (prefixedName === 'management-advanced') {
         renderAdvancedEditor();
     } else if (prefixedName === 'monitor-logs') {
-        renderLogsViewer();
+        renderLogsViewer(type);
     } else if (prefixedName.startsWith('config-')) {
         renderServiceEditor(itemName);
     }
+
+    if (prefixedName !== 'monitor-logs' && eventSource) {
+        eventSource.close();
+    }
 }
 
-function renderLogsViewer() {
+function renderLogsViewer(type = 'out') {
+    const url = new URL(window.location);
+    url.searchParams.set('type', type);
+    window.history.pushState({}, '', url);
+
     const panel = document.getElementById('editorPanel');
     panel.classList.remove('scrollable');
     panel.innerHTML = `
@@ -1865,6 +1903,10 @@ function renderLogsViewer() {
             <div class="section-title">📝 Activity Logs</div>
             <div class="hint hint-section">View real-time logs of application activity and healthchecks.</div>
             <div class="logs-container">
+                <div class="logs-tabs-row">
+                    <button class="tab-log-type${type === 'out' ? ' active' : ''}" id="btnLogOut" onclick="selectItem('monitor-logs', 'out')">Standard Output</button>
+                    <button class="tab-log-type${type === 'error' ? ' active' : ''}" id="btnLogErr" onclick="selectItem('monitor-logs', 'error')">Error Output</button>
+                </div>
                 <div id="logsBox" class="logs-box">
                     <pre id="logsContent" class="logs-content">Loading logs...</pre>
                 </div>
@@ -1872,24 +1914,29 @@ function renderLogsViewer() {
         </div>
     `;
 
-    startLogStream();
+    startLogStream(type);
 }
 
 let logLines = [];
+let logType;
+let eventSource;
 
-function startLogStream() {
+function startLogStream(type = 'out') {
     const appName = ecosystem?.apps?.[0]?.name ? (ecosystem.apps[0].name).replace(' ', '-') : 'Reverse-Proxy';
     const maxLines = 10000;
     const logsBox = document.getElementById('logsBox');
     const logsContent = document.getElementById('logsContent');
     let isAtBottom = Math.abs(logsBox.scrollTop + logsBox.clientHeight - logsBox.scrollHeight) < 5;
-    logLines.push('Connecting to log stream...');
-    logsContent.textContent = logLines.join('\n') + '\n';
-    if (isAtBottom) {
-        logsBox.scrollTop = logsBox.scrollHeight;
+    if (logType !== type) {
+        logLines = [];
+        logType = type;
+        logLines.push(`Connecting to ${type === 'out' ? 'standard output' : 'error output'} log stream...`);
+        logsContent.textContent = logLines.join('\n') + '\n';
     }
-    const eventSource = new EventSource(`logs/${appName}`);
-
+    if (eventSource) {
+        eventSource.close();
+    }
+    eventSource = new EventSource(`logs/${appName}/${type}`);
     eventSource.onmessage = function(event) {
         // Only auto-scroll if user is already at the bottom
         isAtBottom = Math.abs(logsBox.scrollTop + logsBox.clientHeight - logsBox.scrollHeight) < 5;
@@ -1920,7 +1967,11 @@ function startLogStream() {
             logsBox.scrollTop = logsBox.scrollHeight;
         }
         eventSource.close();
-        setTimeout(startLogStream, 5000);
+        setTimeout(() => { startLogStream(type) }, 5000);
+    }
+    logsContent.textContent = logLines.join('\n') + '\n';
+    if (isAtBottom) {
+        logsBox.scrollTop = logsBox.scrollHeight;
     }
 }
 

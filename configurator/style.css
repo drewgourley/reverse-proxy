@@ -169,6 +169,18 @@ h1 {
     border-color: #38a169;
 }
 
+.btn-update.must-force-update {
+    background: #f56565;
+    color: white;
+    border-color: #f56565;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.btn-update.must-force-update:hover {
+    background: #e53e3e;
+    border-color: #e53e3e;
+}
+
 .btn-update:disabled, .btn-update:disabled:hover {
     background: var(--color-gray-300);
     border-color: var(--color-gray-300);
@@ -756,11 +768,43 @@ input[type="checkbox"] {
     background: var(--color-primary);
     color: white;
     font-size: 12px;
+    margin-top: 10px
+}
+
+.btn-add-field {
     margin-top: 10px;
 }
 
 .btn-add-field:hover {
     background: var(--color-primary-hover);
+}
+
+.logs-tabs-row {
+    display: flex;
+    height: 40px;
+    align-items: flex-end;
+    padding:0 5px;
+}
+
+.logs-tabs-row button {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.tab-log-type {
+    background: var(--color-primary);
+    color: white;
+    font-size: 12px;
+}
+
+.tab-log-type:hover {
+    background: var(--color-primary-hover);
+    padding-top: 12px;
+}
+
+.tab-log-type.active, .tab-log-type.active:hover {
+    background: var(--color-secondary);
+    padding-top: 14px;
 }
 
 .password-input-group {
@@ -1153,20 +1197,16 @@ input[type="checkbox"] {
     background: #374151;
 }
 
-.setup-box, .logs-box {
+.setup-box {
     background: #2d3748;
     padding: 15px 15px 5px;
     border-radius: 6px;
-    border-left: 3px solid #4299e1;
+    border-left: 3px solid var(--color-primary);
     font-size: 13px;
 }
 
-.setup-box.route53 {
-    border-left-color: #4299e1;
-}
-
 .setup-box.router {
-    border-left-color: #9f7aea;
+    border-left-color: var(--color-secondary);
 }
 
 .setup-record {
@@ -1185,8 +1225,13 @@ input[type="checkbox"] {
 }
 
 .logs-box {
+    background: #2d3748;
+    padding: 15px 15px 5px;
+    border-radius: 6px;
+    border-top: 3px solid var(--color-secondary);
+    font-size: 13px;
     position: absolute;
-    top: 0;
+    top: 40px;
     left: 0;
     right: 0;
     bottom: 0;
