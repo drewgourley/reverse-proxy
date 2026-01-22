@@ -16,6 +16,7 @@ let firstConfigSave = true;
 let secretsSaved = false;
 let servicesWithSubdomainsAtLastSave = new Set();
 let gitStatus = {};
+let logRotateInstalled = false;
 
 function parseErrorMessage(error) {
     try {
@@ -67,6 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadAdvanced(true);
     await loadCerts(true);
     await loadGitStatus(true);
+    await loadLogRotateStatus(true);
 
     renderServicesList();
     updateSidebarButtons();
@@ -1199,6 +1201,59 @@ async function loadGitStatus(suppressStatus = false, showForceUpdate = false) {
     }
 }
 
+async function loadLogRotateStatus(suppressStatus = false) {
+    try {
+        const response = await fetch('checklogrotate');
+        if (!response.ok) {
+            throw new Error((await response.json()).error || 'Log rotate check failed');
+        }
+        logRotateInstalled = true;
+    } catch (error) {
+        if (!suppressStatus) console.error(error);
+        logRotateInstalled = false;
+    }
+}
+
+function installButtonTextLoop(installBtn) {
+    installBtn.textContent = 'Installing';
+    let dotCount = 0;
+    const interval = setInterval(() => {
+        if (!installBtn || !installBtn.disabled) {
+            clearInterval(interval);
+            return;
+        }
+        dotCount = (dotCount + 1) % 4;
+        installBtn.textContent = 'Installing' + '.'.repeat(dotCount);
+    }, 500);
+}
+
+async function installLogRotate() {
+    const installBtn = document.getElementById('installLogRotateBtn');
+    try {
+        installBtn.disabled = true;
+        installButtonTextLoop(installBtn);
+        
+        const response = await fetch('installlogrotate');
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error);
+        }
+
+        showStatus('✓ Log Rotate Module Installed!', 'success');
+
+        showLoadingOverlay('Server Restarting...', 'Log Rotate Module Installed. Waiting for the server to restart...');
+        await waitForServerRestart();
+
+        logRotateInstalled = true;
+        renderLogsViewer();
+    } catch (error) {
+        showStatus('✗ Error installing Log Rotate Module, you may have to do it manually: ' + parseErrorMessage(error), 'error');
+        installBtn.disabled = false;
+        installBtn.textContent = 'Install PM2 Log Rotate Module';
+    }
+}
+
 function renderGitStatus(status, showForceUpdate = false) {
     const versionInfo = document.getElementById('versionInfo');
     const isFirstTimeSetup = ecosystem.default === true;
@@ -1898,10 +1953,22 @@ function renderLogsViewer(type = 'out') {
 
     const panel = document.getElementById('editorPanel');
     panel.classList.remove('scrollable');
-    panel.innerHTML = `
+    let html = `
         <div class="section logs-section">
             <div class="section-title">📝 Activity Logs</div>
             <div class="hint hint-section">View real-time logs of application activity and healthchecks.</div>
+    `;
+
+    if (!logRotateInstalled) {
+        html += `
+            <div class="installation-trigger highlight-recommended">
+                <button class="btn-add-logrotate" id="installLogRotateBtn" onclick="installLogRotate()">Install PM2 Log Rotate Module</button>
+                <div class="hint hint-section">Log rotate module is highly recommended for managing log files efficiently.</div>
+            </div>
+        `;
+    }
+
+    html += `
             <div class="logs-container">
                 <div class="logs-tabs-row">
                     <button class="tab-log-type${type === 'out' ? ' active' : ''}" id="btnLogOut" onclick="selectItem('monitor-logs', 'out')">Standard Output</button>
@@ -1913,6 +1980,7 @@ function renderLogsViewer(type = 'out') {
             </div>
         </div>
     `;
+    panel.innerHTML = html;
 
     startLogStream(type);
 }

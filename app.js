@@ -980,24 +980,64 @@ manrouter.get('/advanced', (request, response) => {
   }
 });
 
+manrouter.get('/checklogrotate', (request, response) => {
+  if (env === 'development') {
+    return response.status(500).send({ success: false, error: 'Logrotate module is not installed. Please install it to enable live log streaming.' });
+  }
+  exec('pm2 describe pm2-logrotate', (err, out) => {
+    if ((err && err.toString().includes("doesn't exist")) || (out && out.includes("doesn't exist"))) {
+      return response.status(500).send({ success: false, error: 'Logrotate module is not installed. Please install it to enable live log streaming.' });
+    }
+    return response.status(200).send({ success: true, message: 'Logrotate module is installed.' });
+  });
+});
+
+manrouter.get('/installlogrotate', (request, response) => {
+  if (env === 'development') {
+    setTimeout(() => {
+      return response.status(500).send({ success: false, error: 'Logrotate module cannot be installed in development mode.' });
+    }, 5000);
+  } else {
+    exec('pm2 install pm2-logrotate', (err, out) => {
+      if (err) {
+        return response.status(500).send({ success: false, error: `Failed to install logrotate module: ${err.message}` });
+      }
+      response.status(200).send({ success: true, message: 'Logrotate module installed successfully.' });
+      setTimeout(() => {
+        process.exit(0);
+      }, 2000);
+    });
+  }
+});
+
 // setup PM2 live logs route
 manrouter.get('/logs/:appName/:type', (request, response) => {
   const appName = request.params.appName;
   const type = request.params.type || 'out';
+
+  function setSSEHeaders(res) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders && res.flushHeaders();
+  }
+
+  function sendLogLines(res, data) {
+    const lines = data.split(/\r?\n/);
+    for (const line of lines) {
+      if (line) res.write(`data: ${line}\n\n`);
+    }
+  }
+
   if (env === 'development') {
-    response.setHeader('Content-Type', 'text/event-stream');
-    response.setHeader('Cache-Control', 'no-cache');
-    response.setHeader('Connection', 'keep-alive');
-    response.flushHeaders && response.flushHeaders();
+    setSSEHeaders(response);
     let count = 1;
     const interval = setInterval(() => {
       response.write(`data: 2026-01-21T02:28:46.493Z: (${appName} Development Mode: Mocked test message) [${count}]\n\n`);
       count++;
       if (count > 100) {
         clearInterval(interval);
-        setTimeout(() => {
-          response.end();
-        }, 60000);
+        setTimeout(() => response.end(), 60000);
       }
     }, 100);
     request.on('close', () => {
@@ -1005,74 +1045,63 @@ manrouter.get('/logs/:appName/:type', (request, response) => {
       response.end();
     });
     return;
-  } else if (env === 'production') {
-    try {
-      const logPath = path.join(os.homedir(), '.pm2', 'logs', `${appName.replace(' ', '-')}-${type}.log`);
-      if (!fs.existsSync(logPath)) {
-        return response.status(404).send({ success: false, error: 'Log file not found' });
-      }
-      response.setHeader('Content-Type', 'text/event-stream');
-      response.setHeader('Cache-Control', 'no-cache');
-      response.setHeader('Connection', 'keep-alive');
-      response.flushHeaders && response.flushHeaders();
-
-      const keepAliveInterval = setInterval(() => {
-        response.write(': keep-alive\n\n');
-      }, 30000);
-
-      let fileSize = fs.statSync(logPath).size;
-      let fileDescriptor = fs.openSync(logPath, 'r');
-      let buffer = Buffer.alloc(4096);
-      let isClosed = false;
-
-      function sendLogLines(data) {
-        const lines = data.split(/\r?\n/);
-        for (const line of lines) {
-          if (line) {
-            response.write(`data: ${line}\n\n`);
-          }
-        }
-      }
-
-      const watcher = fs.watch(logPath, (eventType) => {
-        if (eventType === 'change') {
-          try {
-            const stats = fs.statSync(logPath);
-            if (stats.size > fileSize) {
-              const readLen = stats.size - fileSize;
-              const readBuffer = Buffer.alloc(readLen);
-              fs.readSync(fileDescriptor, readBuffer, 0, readLen, fileSize);
-              fileSize = stats.size;
-              sendLogLines(readBuffer.toString('utf8'));
-            }
-          } catch (err) {
-            // do nothing: file may be rotated
-          }
-        }
-      });
-
-      const tail = require('child_process').spawn('tail', ['-n', '100', logPath]);
-      tail.stdout.on('data', (data) => {
-        sendLogLines(data.toString('utf8'));
-      });
-      tail.on('close', () => {
-        // do nothing
-      });
-
-      request.on('close', () => {
-        if (isClosed) return;
-        isClosed = true;
-        clearInterval(keepAliveInterval);
-        watcher.close();
-        fs.closeSync(fileDescriptor);
-        tail.kill();
-      });
-    } catch (error) {
-      response.status(500).send({ success: false, error: error.message });
-    }
-  } else {
-    response.status(503).send({ success: false, error: 'Logs are not available in this environment' });
   }
+
+  if (env === 'production') {
+    setSSEHeaders(response);
+    const logPath = path.join(os.homedir(), '.pm2', 'logs', `${appName.replace(' ', '-')}-${type}.log`);
+    if (!fs.existsSync(logPath)) {
+      response.write(`data: Log file not found\n\n`);
+      response.end();
+      return;
+    }
+
+    const keepAliveInterval = setInterval(() => {
+      response.write(': keep-alive\n\n');
+    }, 30000);
+
+    let fileSize = fs.statSync(logPath).size;
+    let fileDescriptor = fs.openSync(logPath, 'r');
+    let isClosed = false;
+
+    // Initial tail of last 100 lines
+    const tail = require('child_process').spawn('tail', ['-n', '100', logPath]);
+    tail.stdout.on('data', (data) => sendLogLines(response, data.toString('utf8')));
+    tail.on('close', () => {});
+
+    // Watch for changes
+    const watcher = fs.watch(logPath, (eventType) => {
+      if (eventType === 'change') {
+        try {
+          const stats = fs.statSync(logPath);
+          if (stats.size > fileSize) {
+            const readLen = stats.size - fileSize;
+            const readBuffer = Buffer.alloc(readLen);
+            fs.readSync(fileDescriptor, readBuffer, 0, readLen, fileSize);
+            fileSize = stats.size;
+            sendLogLines(response, readBuffer.toString('utf8'));
+          }
+        } catch (err) {
+          // file may be rotated, ignore
+        }
+      }
+    });
+
+    request.on('close', () => {
+      if (isClosed) return;
+      isClosed = true;
+      clearInterval(keepAliveInterval);
+      watcher.close();
+      fs.closeSync(fileDescriptor);
+      tail.kill();
+    });
+    return;
+  }
+
+  // Fallback for other environments
+  setSSEHeaders(response);
+  response.write(`data: Logs are not available in this environment\n\n`);
+  response.end();
 });
 
 manrouter.put('/advanced', (request, response) => {

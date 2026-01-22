@@ -771,12 +771,33 @@ input[type="checkbox"] {
     margin-top: 10px
 }
 
-.btn-add-field {
-    margin-top: 10px;
-}
-
 .btn-add-field:hover {
     background: var(--color-primary-hover);
+}
+
+.logs-tabs-row {
+    display: flex;
+    height: 40px;
+    align-items: flex-end;
+    padding:0 5px;
+}
+
+.btn-add-logrotate {
+    background: var(--color-primary);
+    color: white;
+    font-size: 12px;
+    margin-top: 10px
+}
+
+.btn-add-logrotate:hover {
+    background: var(--color-primary-hover);
+}
+
+.btn-add-logrotate:disabled, .btn-add-logrotate:disabled:hover {
+    background: var(--color-gray-300);
+    border-color: var(--color-gray-300);
+    cursor: default;
+    transform: none;
 }
 
 .logs-tabs-row {
@@ -833,7 +854,7 @@ input[type="checkbox"] {
     background: var(--color-gray-300);
 }
 
-.secret-entry, .domain-entry, .app-entry {
+.secret-entry, .domain-entry, .app-entry, .installation-trigger {
     background: var(--color-gray-50);
     padding: 15px;
     border-radius: 6px;
@@ -849,7 +870,7 @@ input[type="checkbox"] {
     margin-bottom: 0;
 }
 
-.secret-entry.highlight-required, .domain-entry.highlight-required {
+.secret-entry.highlight-required, .domain-entry.highlight-required, .installation-trigger.highlight-recommended {
     background: linear-gradient(135deg, 
         rgba(255, 183, 77, 0.15) 0%, 
         rgba(255, 152, 0, 0.1) 100%);
