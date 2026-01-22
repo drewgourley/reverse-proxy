@@ -67,6 +67,15 @@ try {
   console.warn('Advanced Options not configured');
 }
 
+// retrieve blocklist
+let blocklist;
+try {
+  blocklist = require('./blocklist.json');
+} catch (e) {
+  blocklist = [];
+  console.warn('Blocklist not established');
+}
+
 // retrieve environment variables
 dotenv.config();
 
@@ -277,20 +286,25 @@ const initApplication = () => {
       // create api routes
       config.services.api.subdomain.router.use(express.json());
 
-      // create webhook rate limiting
-      const hookLimiter = rateLimit({
-        windowMs: 1 * 60 * 1000, // 1 minute
-        max: 15, // limit each IP to 15 requests per windowMs
-        message: { status: 'Too Many Requests', error: 'Rate limit exceeded. Try again later.' },
-        standardHeaders: true,
-        legacyHeaders: false,
-      });
+      // Todo: Add webhook management in configurator, then enable this code
+      // // create webhook rate limiting
+      // const hookLimiter = rateLimit({
+      //   windowMs: 1 * 60 * 1000, // 1 minute
+      //   max: 15, // limit each IP to 15 requests per windowMs
+      //   message: { status: 'Too Many Requests', error: 'Rate limit exceeded. Try again later.' },
+      //   standardHeaders: true,
+      //   legacyHeaders: false,
+      // });
 
-      // create webhook route and handle for dynamic ids
-      config.services.api.subdomain.router.post('/webhook', hookLimiter, (request, response) => {
-        console.log('Webhook received:', request.body);
-        response.status(200).send({ status: 'Webhook received' });
-      });
+      // // create webhook route and handle for dynamic ids
+      // config.services.api.subdomain.router.post('/webhook/:id', hookLimiter, (request, response) => {
+      //   const id = request.params.id;
+      //   if (!id) {
+      //     return response.status(400).send({ status: 'Bad Request', error: 'Missing webhook ID' });
+      //   }
+      //   console.log(`Webhook received for ID: ${id}`, request.body);
+      //   response.status(200).send({ status: 'Webhook received' });
+      // });
       
       // create health check routes
       Object.keys(config.services).forEach(name => {
@@ -345,13 +359,25 @@ const initApplication = () => {
     application.use((request, response, next) => {
       const services = Object.keys(config.services);
       const now = new Date().toISOString();
-      let ip = request.socket.remoteAddress.split(':');
-      response.set('x-forwarded-for', ip[ip.length - 1]);
-      let host = request.headers.host;
-      
+      const address = request.socket?.remoteAddress?.split(':');
+      const ip = address ? address[address.length - 1] : 'unknown';
+      const host = request.headers.host;
+
+      console.log(`${now}: ${protocols[request.secure ? 'secure' : 'insecure']}${host}${request.url} by ${ip}`);
+      if (ip !== 'unknown' && blocklist && blocklist.includes(ip)) {
+        console.log(`${now}: [blocklist] Blocking request from ${ip}`);
+        return response.status(403).send('Access Denied');
+      }
+      if (ip !== 'unknown' && request.url.match(/wp-admin|wp-login|wp-content|wp-includes|wp-atom.php/i)) {
+        console.log(`${now}: [bot-blocker] WordPress bot detected, blocking request from ${ip}`);
+        return response.status(403).send('Access Denied');
+      }
+
+      response.set('x-forwarded-for', ip);
+
       const isValidHost = host === config.domain || 
-                         host === `www.${config.domain}` ||
-                         services.some(name => host === `${name}.${config.domain}`);
+                          host === `www.${config.domain}` ||
+                          services.some(name => host === `${name}.${config.domain}`);
       
       if (!isValidHost) {
         return response.redirect(`${protocols.secure}${config.domain}`);
@@ -360,7 +386,7 @@ const initApplication = () => {
       let target = services.find((name) => {
         return `${name}.${config.domain}` === host;
       });
-      console.log(`${now}: ${protocols[request.secure ? 'secure' : 'insecure']}${host}${request.url} by ${ip[ip.length - 1]}`);
+      
       if (request.url.includes('.well-known')) {
         if (request.secure) {
           return response.redirect(`${protocols.insecure}${host}${request.url}`);
@@ -437,9 +463,11 @@ const handleWebSocketUpgrade = (req, socket, head) => {
 const saveConfigAndRestart = (filePath, data, message, response, delay = 2000) => {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
   response.status(200).send({ success: true, message });
-  setTimeout(() => {
-    process.exit(0);
-  }, delay);
+  if (delay >= 0) {
+    setTimeout(() => {
+      process.exit(0);
+    }, delay);
+  }
 };
 
 // helper function for error responses
@@ -527,6 +555,25 @@ if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key 
 
 /* CONFIGURATOR SETUP */
 // config editor app
+
+// declare default ignore watch files
+const defaultIgnoreWatch = [
+  "node_modules",
+  "web",
+  "advanced.json",
+  "blocklist.json",
+  "certs.json",
+  "config.json",
+  "ddns.json",
+  "ecosystem.config.js",
+  "secrets.json",
+  "package-lock.json",
+  "package.json",
+  "readme.md",
+  ".*"
+];
+
+// initialize configurator app
 const manapp = express();
 
 // config editor router
@@ -554,6 +601,18 @@ manrouter.get('/config', (request, response) => {
     const configObj = JSON.parse(configData);
     response.setHeader('Content-Type', 'application/json');
     response.send(configObj);
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+manrouter.get('/blocklist', (request, response) => {
+  try {
+    const blocklistPath = path.join(__dirname, 'blocklist.json');
+    const blocklistData = fs.readFileSync(blocklistPath, 'utf8');
+    const blocklistObj = JSON.parse(blocklistData);
+    response.setHeader('Content-Type', 'application/json');
+    response.send(blocklistObj);
   } catch (error) {
     response.status(500).send({ success: false, error: error.message });
   }
@@ -633,20 +692,7 @@ manrouter.get('/ecosystem', (request, response) => {
           name: "Reverse Proxy",
           script: "./app.js",
           watch: true,
-          ignore_watch: [
-            "node_modules",
-            "web",
-            "advanced.json",
-            "certs.json",
-            "config.json",
-            "ddns.json",
-            "ecosystem.config.js",
-            "secrets.json",
-            "package-lock.json",
-            "package.json",
-            "readme.md",
-            ".*"
-          ],
+          ignore_watch: defaultIgnoreWatch,
           env: {
             NODE_ENV: "production"
           }
@@ -659,6 +705,12 @@ manrouter.get('/ecosystem', (request, response) => {
     const fileContent = fs.readFileSync(ecosystemPath, 'utf8');
     const ecosystemConfig = require(ecosystemPath);
     
+    // if ecosystemConfig ignoreWatch is missing items from defaultIgnoreWatch, add a flag to the returned object
+    const ignoreWatch = ecosystemConfig.apps?.[0]?.ignore_watch || [];
+    const missingIgnores = defaultIgnoreWatch.filter(item => !ignoreWatch.includes(item));
+    if (missingIgnores.length > 0) {
+      ecosystemConfig.resave = true;
+    }
     response.setHeader('Content-Type', 'application/json');
     response.send(ecosystemConfig);
   } catch (error) {
@@ -712,6 +764,20 @@ manrouter.put('/checks', (request, response) => {
     fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2));
     
     response.status(200).send({ success: true, message: 'Healthcheck list updated successfully' });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+manrouter.put('/blocklist', (request, response) => {
+  try {
+    const updatedBlocklist = request.body;
+    if (!Array.isArray(updatedBlocklist)) {
+      return sendError(response, 400, 'Blocklist must be an array of IP addresses');
+    }
+    const blocklistPath = path.join(__dirname, 'blocklist.json');
+    blocklist = updatedBlocklist;
+    saveConfigAndRestart(blocklistPath, updatedBlocklist, 'Blocklist updated successfully', response, -1);
   } catch (error) {
     sendError(response, 500, error);
   }
@@ -982,7 +1048,7 @@ manrouter.get('/advanced', (request, response) => {
 
 manrouter.get('/checklogrotate', (request, response) => {
   if (env === 'development') {
-    return response.status(500).send({ success: false, error: 'Logrotate module is not installed. Please install it to enable live log streaming.' });
+    return response.status(200).send({ success: true, message: 'Logrotate success response faked.' });
   }
   exec('pm2 describe pm2-logrotate', (err, out) => {
     if ((err && err.toString().includes("doesn't exist")) || (out && out.includes("doesn't exist"))) {
@@ -1175,6 +1241,10 @@ manrouter.put('/ecosystem', (request, response) => {
       firstrun = false;
     }
 
+    if (updatedEcosystem.apps && updatedEcosystem.apps.length > 0) {
+      updatedEcosystem.apps[0].ignore_watch = Array.from(new Set([...(updatedEcosystem.apps[0].ignore_watch || []), ...defaultIgnoreWatch]));
+    }
+
     const fileContent = `module.exports = ${JSON.stringify(updatedEcosystem, null, 2)}\n`;
     fs.writeFileSync(ecosystemPath, fileContent);
     
@@ -1189,7 +1259,7 @@ manrouter.put('/ecosystem', (request, response) => {
           });
         } else {
           const safeName = (updatedEcosystem.apps[0].name || 'app').replace(/[^a-zA-Z0-9 _-]/g, '');
-          exec(`pm2 restart 0 ecosystem.config.js --name '${safeName}' --update-env`, () => {
+          exec(`pm2 restart '${ecosystem.apps[0].name}' ecosystem.config.js --name '${safeName}' --update-env`, () => {
             process.exit(0);
           });
         }

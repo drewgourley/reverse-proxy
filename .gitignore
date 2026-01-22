@@ -3,6 +3,7 @@ ecosystem.config.js
 node_modules
 _graveyard
 advanced.json
+blocklist.json
 secrets.json
 ddns.json
 certs.json

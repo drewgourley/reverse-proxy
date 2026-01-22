@@ -425,35 +425,46 @@ button {
     padding-bottom: 10px;
 }
 
-.sidebar-actions {
-    padding: 15px 0 0 0;
-    border-top: 2px solid var(--color-gray-200);
+.editor-actions {
     text-align: right;
 }
 
-.sidebar-actions button {
+.editor-actions, .sidebar-actions {
+    padding: 15px 0 0 0;
+    border-top: 2px solid var(--color-gray-200);
+}
+
+.editor-actions.hidden {
+    display: none;
+}
+
+.editor-actions button, .sidebar-actions button {
     flex: 1;
+}
+
+.editor-panel-pane {
+    padding: 0 20px;
+}
+
+.sidebar-scrollable {
+    padding: 0 20px 10px 20px;
 }
 
 .sidebar-scrollable, .editor-panel-pane {
     flex: 1;
     margin: 0 -20px;
-    padding: 0 20px 20px;
 }
 
 .sidebar-scrollable, .editor-panel-pane.scrollable {
     overflow-y: auto;
 }
 
-.actions-row {
-    padding-top: 15px;
-    border-top: 2px solid var(--color-gray-200);
-    margin-top: 20px;
-    text-align: right;
+.editor-actions .btn-save {
+    margin-left: 10px;
 }
 
-.actions-row .btn-save, .sidebar-actions .btn-save {
-    margin-left: 10px;
+.sidebar-actions .btn-add-field {
+    margin-top: 2px;
 }
 
 .hint-section {
@@ -771,6 +782,11 @@ input[type="checkbox"] {
     margin-top: 10px
 }
 
+.btn-add-field.on-top {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
 .btn-add-field:hover {
     background: var(--color-primary-hover);
 }
@@ -828,13 +844,13 @@ input[type="checkbox"] {
     padding-top: 14px;
 }
 
-.password-input-group {
+.password-input-group, .blocklist-input-group {
     display: flex;
     gap: 8px;
     align-items: flex-start;
 }
 
-.password-input-group input {
+.password-input-group input, .blocklist-input-group input {
     flex: 1;
 }
 
@@ -850,11 +866,15 @@ input[type="checkbox"] {
     white-space: nowrap;
 }
 
+.blocklist-input-group .btn-remove {
+    padding: 12px 15px;
+}
+
 .btn-toggle-password:hover {
     background: var(--color-gray-300);
 }
 
-.secret-entry, .domain-entry, .app-entry, .installation-trigger {
+.secret-entry, .domain-entry, .app-entry, .blocklist-entry, .installation-trigger {
     background: var(--color-gray-50);
     padding: 15px;
     border-radius: 6px;
@@ -1166,7 +1186,7 @@ input[type="checkbox"] {
 }
 
 /* Setup Instructions Styles */
-.setup-section, .setup-heading {
+.setup-heading {
     margin-bottom: 30px;
 }
 

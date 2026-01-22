@@ -1,121 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reverse Proxy Configurator</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔧</text></svg>">
-    <style>
-        html { background-color: #000; }
-        body { visibility: hidden; }
-        html.ready body { visibility: visible; }
-        
-        #initialLoadingOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            visibility: visible;
-            opacity: 1;
-            transition: opacity 0.5s ease, visibility 0.5s ease;
-        }
-        
-        html.ready #initialLoadingOverlay {
-            pointer-events: none;
-        }
-        
-        html.loaded #initialLoadingOverlay {
-            opacity: 0;
-            visibility: hidden;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reverse Proxy Configurator</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔧</text></svg>">
+  <style>
+    html { background-color: #000; }
+    body { visibility: hidden; }
+    html.ready body { visibility: visible; }
+    
+    #initialLoadingOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      visibility: visible;
+      opacity: 1;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+    
+    html.ready #initialLoadingOverlay {
+      pointer-events: none;
+    }
+    
+    html.loaded #initialLoadingOverlay {
+      opacity: 0;
+      visibility: hidden;
+    }
 
-        .initial-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
-    <link rel="stylesheet" href="style.css">
-    <noscript><style>body { visibility: visible; }</style></noscript>
+    .initial-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  <link rel="stylesheet" href="style.css">
+  <noscript><style>body { visibility: visible; }</style></noscript>
 </head>
 <body>
-    <div id="initialLoadingOverlay">
-        <div class="initial-spinner"></div>
+  <div id="initialLoadingOverlay">
+    <div class="initial-spinner"></div>
+  </div>
+  <div class="container">
+    <header>
+      <h1>🔧 Reverse Proxy Configurator</h1>
+      <div class="version-info" id="versionInfo">
+        <div class="version-details"></div>
+      </div>
+    </header>
+    <div id="statusContainer" class="status-container"></div>
+    <div class="main-content">
+      <div class="sidebar">
+        <div class="sidebar-scrollable">
+          <div id="servicesList"></div>
+        </div>
+        <div class="sidebar-actions">
+          <button id="addServiceBtn" class="btn-add-field" onclick="addNewService()">+ Add Service</button>
+        </div>
+      </div>
+      <div class="editor-panel">
+        <div class="editor-panel-pane scrollable" id="editorPanel">
+          <div class="placeholder-message">
+            <p>Select an item from the left panel to edit</p>
+          </div>
+        </div>
+        <div class="editor-actions" id="editorActions"></div>
+      </div>
     </div>
-    <div class="container">
-        <header>
-            <h1>🔧 Reverse Proxy Configurator</h1>
-            <div class="version-info" id="versionInfo">
-                <div class="version-details"></div>
-            </div>
-        </header>
-        <div id="statusContainer" class="status-container"></div>
-        <div class="main-content">
-            <div class="sidebar">
-                <div class="sidebar-scrollable">
-                    <div id="servicesList"></div>
-                    <button id="addServiceBtn" class="btn-add-field" onclick="addNewService()">+ Add Service</button>
-                </div>
-                <div class="sidebar-actions">
-                    <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
-                    <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
-                </div>
-            </div>
-            <div class="editor-panel">
-                <div class="editor-panel-pane scrollable" id="editorPanel">
-                    <div class="placeholder-message">
-                        <p>Select an item from the left panel to edit</p>
-                    </div>
-                </div>
-            </div>
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header" id="confirmTitle">Confirm</div>
+        <div class="modal-body" id="confirmMessage"></div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+          <button class="modal-btn modal-btn-danger" id="confirmBtn" onclick="confirmAction()">Confirm</button>
         </div>
-        <!-- Confirmation Modal -->
-        <div id="confirmModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header" id="confirmTitle">Confirm</div>
-                <div class="modal-body" id="confirmMessage"></div>
-                <div class="modal-footer">
-                    <button class="modal-btn modal-btn-secondary" onclick="closeConfirmModal()">Cancel</button>
-                    <button class="modal-btn modal-btn-danger" id="confirmBtn" onclick="confirmAction()">Confirm</button>
-                </div>
-            </div>
-        </div>
-        <!-- Prompt Modal -->
-        <div id="promptModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header" id="promptTitle">Enter value</div>
-                <div class="modal-body" id="promptMessage"></div>
-                <input type="text" id="promptInput" class="modal-input" placeholder="Enter text here">
-                <div id="promptHint" class="hint" style="color: #718096; margin-top: -10px; margin-bottom: 15px; display: none;"></div>
-                <div id="promptError" class="hint" style="color: #e53e3e; margin-top: -10px; margin-bottom: 15px; display: none;"></div>
-                <div class="modal-footer">
-                    <button class="modal-btn modal-btn-secondary" onclick="closePromptModal()">Cancel</button>
-                    <button class="modal-btn modal-btn-primary" onclick="submitPrompt()">Submit</button>
-                </div>
-            </div>
-        </div>
-        <!-- Loading Overlay -->
-        <div id="loadingOverlay" class="loading-overlay">
-            <div class="loading-content">
-                <div class="spinner"></div>
-                <div class="loading-title" id="loadingTitle">Server Restarting...</div>
-                <div class="loading-message" id="loadingMessage">Waiting for the server to come back online. This usually takes a few seconds.</div>
-            </div>
-        </div>
+      </div>
     </div>
-    <script src="script.js"></script>
+    <!-- Prompt Modal -->
+    <div id="promptModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header" id="promptTitle">Enter value</div>
+        <div class="modal-body" id="promptMessage"></div>
+        <input type="text" id="promptInput" class="modal-input" placeholder="Enter text here">
+        <div id="promptHint" class="hint" style="color: #718096; margin-top: -10px; margin-bottom: 15px; display: none;"></div>
+        <div id="promptError" class="hint" style="color: #e53e3e; margin-top: -10px; margin-bottom: 15px; display: none;"></div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-secondary" onclick="closePromptModal()">Cancel</button>
+          <button class="modal-btn modal-btn-primary" onclick="submitPrompt()">Submit</button>
+        </div>
+      </div>
+    </div>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <div class="loading-title" id="loadingTitle">Server Restarting...</div>
+        <div class="loading-message" id="loadingMessage">Waiting for the server to come back online. This usually takes a few seconds.</div>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
 </body>
 </html>
