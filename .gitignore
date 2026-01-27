@@ -14,8 +14,9 @@ web/global/favicon/*
 !web/global/favicon/favicon.md
 web/public/doom
 web/public/doom/*
-web/public/www/tpg2
-web/public/www/tpg2/*
+web/public/www/*
+!web/public/www/index.html
+!web/public/www/robots.txt
 
 .DS_Store
 .DS_Store?
