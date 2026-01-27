@@ -6,6 +6,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { exec } = require('child_process');
+const crypto = require('crypto');
 
 // retrieve extra dependencies
 const Ajv = require('ajv');
@@ -15,6 +16,7 @@ const cheerio = require('cheerio');
 const dotenv = require('dotenv');
 const express = require('express');
 const basicAuth = require('express-basic-auth');
+const session = require('express-session');
 const rateLimit = require('express-rate-limit');
 const subdomain = require('express-subdomain');
 const { GameDig } = require('gamedig');
@@ -254,19 +256,21 @@ const pingHealthcheck = async (name) => {
 const initApplication = () => {
   const application = express();
 
+  // API session TTL for login sessions (4 hours)
+  const API_SESSION_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
+
   if (config.services) {
     // apply routers and proxy routing
     Object.keys(config.services).forEach(name => {
       if (config.services[name].subdomain) {
         config.services[name].subdomain.router = express.Router();
-        const secure = env === 'production' && config.services[name].subdomain.type === 'secure';
-        const agent = secure ? new https.Agent() : new http.Agent();
+        const secure = env === 'production' && config.services[name].subdomain.protocol === 'secure';
+        if (secure) config.services[name].subdomain.router.use('/.well-known', express.static(path.join(__dirname, 'web', 'all', '.well-known')));
         if (config.services[name].subdomain.proxy) {
-          config.services[name].subdomain.router.use('/.well-known', express.static(path.join(__dirname, 'web', 'all', '.well-known')));
           if (config.services[name].subdomain.type === 'proxy') {
-            config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, secure, agent, changeOrigin: true });
+            config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}` });
             if (config.services[name].subdomain.proxy.socket) {
-              config.services[name].subdomain.proxy.websocket = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, secure, agent, changeOrigin: true, ws: true });
+              config.services[name].subdomain.proxy.websocket = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, ws: true });
             }
             if (config.services[name].subdomain.proxy.path) {
               config.services[name].subdomain.router.use(config.services[name].subdomain.proxy.path, config.services[name].subdomain.proxy.middleware);
@@ -275,84 +279,12 @@ const initApplication = () => {
             }
           }
           if (config.services[name].subdomain.type !== 'proxy' && config.services[name].subdomain.proxy.path && config.services[name].subdomain.path) {
-            config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, secure, agent, changeOrigin: true });
+            config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}` });
             config.services[name].subdomain.router.use(config.services[name].subdomain.proxy.path, config.services[name].subdomain.proxy.middleware);
           }
         }
       }
     });
-
-    if (config.services.api) {
-      // create api routes
-      config.services.api.subdomain.router.use(express.json());
-
-      // Todo: Add webhook management in configurator, then enable this code
-      // // create webhook rate limiting
-      // const hookLimiter = rateLimit({
-      //   windowMs: 1 * 60 * 1000, // 1 minute
-      //   max: 15, // limit each IP to 15 requests per windowMs
-      //   message: { status: 'Too Many Requests', error: 'Rate limit exceeded. Try again later.' },
-      //   standardHeaders: true,
-      //   legacyHeaders: false,
-      // });
-
-      // // create webhook route and handle for dynamic ids
-      // config.services.api.subdomain.router.post('/webhook/:id', hookLimiter, (request, response) => {
-      //   const id = request.params.id;
-      //   if (!id) {
-      //     return response.status(400).send({ status: 'Bad Request', error: 'Missing webhook ID' });
-      //   }
-      //   console.log(`Webhook received for ID: ${id}`, request.body);
-      //   response.status(200).send({ status: 'Webhook received' });
-      // });
-      
-      // create health check routes
-      Object.keys(config.services).forEach(name => {
-        if (config.services[name].healthcheck) {
-          config.services.api.subdomain.router.get(`/health/${name}`, (request, response) => {
-            response.setHeader('Content-Type', 'application/json');
-            checkService(name, response.send.bind(response));
-          });
-        }
-      });
-
-      if (secrets.shock_password_hash && secrets.shock_mac) {
-        // create wake-on-lan service with rate limiting
-        const shockLimiter = rateLimit({
-          windowMs: 15 * 60 * 1000, // 15 minutes
-          max: 5, // limit each IP to 5 requests per windowMs
-          message: { status: 'Too Many Requests', error: 'Rate limit exceeded. Try again later.' },
-          standardHeaders: true,
-          legacyHeaders: false,
-        });
-        
-        config.services.api.subdomain.router.post('/shock', shockLimiter, async (request, response) => {
-          response.setHeader('Content-Type', 'application/json');
-          
-          try {
-            let isValid = false;
-            
-            if (secrets.shock_password_hash) {
-              isValid = await bcrypt.compare(request.body.password, secrets.shock_password_hash);
-            }
-            
-            if (isValid) {
-              wol.wake(secrets.shock_mac, (error) => {
-                if (error) {
-                  response.send({status: 'Error', error});
-                } else {
-                  response.send({status: 'Shocked!'});
-                }
-              });
-            } else {
-              response.status(403).send({status: 'Access Denied'});
-            }
-          } catch (error) {
-            response.status(500).send({status: 'Error', error: error.message});
-          }
-        });
-      }
-    }
 
     // setup redirects for secure and insecure and remove www
     application.set('trust proxy', 'loopback')
@@ -411,12 +343,175 @@ const initApplication = () => {
     Object.keys(config.services).forEach(name => {
       if (config.services[name].subdomain) {
         if (config.services[name].subdomain.type === 'index') {
+          config.services[name].subdomain.router.use('/global', express.static(path.join(__dirname, 'web', 'global')));
+          config.services[name].subdomain.router.use('/static', express.static(path.join(__dirname, 'web', 'static', name)));
+
+          if (name === 'api') {
+            config.services[name].subdomain.router.use(express.json());
+            if (secrets.admin_email_address && secrets.api_password_hash) {
+              config.services[name].subdomain.router.get('/login', (req, res) => {
+                res.sendFile(path.join(__dirname, 'web', 'public', 'api', 'login', 'index.html'));
+              });
+              config.services[name].subdomain.router.use('/login', express.static(path.join(__dirname, 'web', 'public', 'api', 'login')));
+
+              let sessionSecret = secrets.api_session_secret || secrets.session_secret;
+              const secretsPath = path.join(__dirname, 'secrets.json');
+              if (!sessionSecret) {
+                sessionSecret = crypto.randomBytes(32).toString('hex');
+                try {
+                  let existing = {};
+                  if (fs.existsSync(secretsPath)) existing = JSON.parse(fs.readFileSync(secretsPath, 'utf8'));
+                  existing.api_session_secret = sessionSecret;
+                  fs.writeFileSync(secretsPath, JSON.stringify(existing, null, 2));
+                  secrets.api_session_secret = sessionSecret;
+                  console.log('Persisted API session secret to secrets.json');
+                } catch (e) {
+                  console.warn('Failed to persist API session secret:', e.message);
+                }
+              }
+
+              config.services[name].subdomain.router.use(session({
+                name: 'api_sid',
+                secret: sessionSecret,
+                resave: false,
+                saveUninitialized: false,
+                cookie: {
+                  httpOnly: true,
+                  secure: env === 'production',
+                  sameSite: 'lax',
+                  maxAge: API_SESSION_TTL,
+                  path: '/',
+                }
+              }));
+
+              config.services[name].subdomain.router.post('/login', async (req, res) => {
+                try {
+                  const { username, password } = req.body || {};
+                  if (!username || !password) return res.status(400).send({ success: false, error: 'Missing credentials' });
+                  if (username !== secrets.admin_email_address) return res.status(401).send({ success: false, error: 'Invalid credentials' });
+                  const valid = await bcrypt.compare(password, secrets.api_password_hash);
+                  if (!valid) return res.status(401).send({ success: false, error: 'Invalid credentials' });
+                  req.session.authenticated = true;
+                  req.session.username = username;
+                  req.session.cookie.maxAge = API_SESSION_TTL;
+                  res.send({ success: true });
+                } catch (error) {
+                  res.status(500).send({ success: false, error: error.message });
+                }
+              });
+
+              config.services[name].subdomain.router.post('/logout', (req, res) => {
+                try {
+                  req.session.destroy((err) => {
+                    const cookieOptions = { path: '/', httpOnly: true, sameSite: 'lax' };
+                    if (env === 'production') cookieOptions.secure = true;
+                    res.clearCookie('api_sid', cookieOptions);
+
+                    if (err) {
+                      return res.status(500).send({ success: false, error: 'Failed to destroy session' });
+                    }
+                    return res.send({ success: true });
+                  });
+                } catch (error) {
+                  const cookieOptions = { path: '/', httpOnly: true, sameSite: 'lax' };
+                  if (env === 'production') cookieOptions.secure = true;
+                  res.clearCookie('api_sid', cookieOptions);
+                  res.status(500).send({ success: false, error: error.message });
+                }
+              });
+
+              const apiAuth = (req, res, next) => {
+                try {
+                  if (req.session && req.session.authenticated) {
+                    req.session.cookie.maxAge = API_SESSION_TTL;
+                    return next();
+                  }
+
+                  const accept = req.headers.accept || '';
+                  if (req.method === 'GET' && accept.includes('text/html')) {
+                    const nextUrl = encodeURIComponent(req.originalUrl || req.url || '/');
+                    return res.redirect(`/login?next=${nextUrl}`);
+                  }
+
+                  return res.status(401).sendFile(path.join(__dirname, 'web', 'public', '401.html'));
+                } catch (error) {
+                  return res.status(401).sendFile(path.join(__dirname, 'web', 'public', '401.html'));
+                }
+              };
+              config.services[name].subdomain.router.use(apiAuth);
+            }
+            // Todo: Add webhook management in configurator, then enable this code
+            // // create webhook rate limiting
+            // const hookLimiter = rateLimit({
+            //   windowMs: 1 * 60 * 1000, // 1 minute
+            //   max: 15, // limit each IP to 15 requests per windowMs
+            //   message: { status: 'Too Many Requests', error: 'Rate limit exceeded. Try again later.' },
+            //   standardHeaders: true,
+            //   legacyHeaders: false,
+            // });
+
+            // // create webhook route and handle for dynamic ids
+            // config.services[name].subdomain.router.post('/webhook/:id', hookLimiter, (request, response) => {
+            //   const id = request.params.id;
+            //   if (!id) {
+            //     return response.status(400).send({ status: 'Bad Request', error: 'Missing webhook ID' });
+            //   }
+            //   console.log(`Webhook received for ID: ${id}`, request.body);
+            //   response.status(200).send({ status: 'Webhook received' });
+            // });
+            
+            // create health check routes
+            Object.keys(config.services).forEach(healthname => {
+              if (config.services[healthname].healthcheck) {
+                config.services[name].subdomain.router.get(`/health/${healthname}`, (request, response) => {
+                  response.setHeader('Content-Type', 'application/json');
+                  checkService(healthname, response.send.bind(response));
+                });
+              }
+            });
+
+            if (secrets.shock_password_hash && secrets.shock_mac) {
+              // create wake-on-lan service with rate limiting
+              const shockLimiter = rateLimit({
+                windowMs: 15 * 60 * 1000, // 15 minutes
+                max: 5, // limit each IP to 5 requests per windowMs
+                message: { status: 'Too Many Requests', error: 'Rate limit exceeded. Try again later.' },
+                standardHeaders: true,
+                legacyHeaders: false,
+              });
+              
+              config.services[name].subdomain.router.post('/shock', shockLimiter, async (request, response) => {
+                response.setHeader('Content-Type', 'application/json');
+                
+                try {
+                  let isValid = false;
+                  
+                  if (secrets.shock_password_hash) {
+                    isValid = await bcrypt.compare(request.body.password, secrets.shock_password_hash);
+                  }
+                  
+                  if (isValid) {
+                    wol.wake(secrets.shock_mac, (error) => {
+                      if (error) {
+                        response.send({status: 'Error', error});
+                      } else {
+                        response.send({status: 'Shocked!'});
+                      }
+                    });
+                  } else {
+                    response.status(403).send({status: 'Access Denied'});
+                  }
+                } catch (error) {
+                  response.status(500).send({status: 'Error', error: error.message});
+                }
+              });
+            }
+          }
+            
+          config.services[name].subdomain.router.use(express.static(path.join(__dirname, 'web', 'public', name)));
           config.services[name].subdomain.router.get('/', (request, response) => {
             response.sendFile(path.join(__dirname, 'web', 'public', name, 'index.html'));
           });
-          config.services[name].subdomain.router.use(express.static(path.join(__dirname, 'web', 'public', name)));
-          config.services[name].subdomain.router.use('/global', express.static(path.join(__dirname, 'web', 'global')));
-          config.services[name].subdomain.router.use('/static', express.static(path.join(__dirname, 'web', 'static', name)));
           config.services[name].subdomain.router.use((request, response) => {
             response.status(404).sendFile(path.join(__dirname, 'web', 'public', '404.html'));
           });
@@ -702,7 +797,6 @@ manrouter.get('/ecosystem', (request, response) => {
       return response.send(defaultEcosystem);
     }
     
-    const fileContent = fs.readFileSync(ecosystemPath, 'utf8');
     const ecosystemConfig = require(ecosystemPath);
     
     // if ecosystemConfig ignoreWatch is missing items from defaultIgnoreWatch, add a flag to the returned object
@@ -798,7 +892,8 @@ manrouter.put('/secrets', async (request, response) => {
         shock_mac: { 
           type: 'string', 
           pattern: '^$|^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$' 
-        }
+        },
+        api_password_hash: { type: 'string' }
       },
       additionalProperties: true
     };
@@ -826,7 +921,19 @@ manrouter.put('/secrets', async (request, response) => {
     if (updatedSecrets.shock_password_hash && !updatedSecrets.shock_password_hash.startsWith('$2b$')) {
       updatedSecrets.shock_password_hash = await bcrypt.hash(updatedSecrets.shock_password_hash, 10);
     }
-    
+
+    // If api_password_hash is empty but existed before, restore the old hash
+    if (!updatedSecrets.api_password_hash) {
+      // do nothing, leave it undefined
+    } else if ((updatedSecrets.api_password_hash.trim() === '') && existingSecrets.api_password_hash) {
+      updatedSecrets.api_password_hash = existingSecrets.api_password_hash;
+    }
+
+    // If api_password_hash is provided and looks like plaintext (not a hash), hash it
+    if (updatedSecrets.api_password_hash && !updatedSecrets.api_password_hash.startsWith('$2b$')) {
+      updatedSecrets.api_password_hash = await bcrypt.hash(updatedSecrets.api_password_hash, 10);
+    }
+
     const secretsPath = path.join(__dirname, 'secrets.json');
     saveConfigAndRestart(secretsPath, updatedSecrets, 'Secrets updated successfully', response);
   } catch (error) {
@@ -1235,10 +1342,12 @@ manrouter.put('/ecosystem', (request, response) => {
     }
     
     let firstrun = true;
+    let ecosystemConfig;
     const ecosystemPath = path.join(__dirname, 'ecosystem.config.js');
 
     if (fs.existsSync(ecosystemPath)) {
       firstrun = false;
+      ecosystemConfig = require(ecosystemPath);
     }
 
     if (updatedEcosystem.apps && updatedEcosystem.apps.length > 0) {
@@ -1259,7 +1368,7 @@ manrouter.put('/ecosystem', (request, response) => {
           });
         } else {
           const safeName = (updatedEcosystem.apps[0].name || 'app').replace(/[^a-zA-Z0-9 _-]/g, '');
-          exec(`pm2 restart '${ecosystem.apps[0].name}' ecosystem.config.js --name '${safeName}' --update-env`, () => {
+          exec(`pm2 restart '${ecosystemConfig.apps[0].name}' ecosystem.config.js --name '${safeName}'`, () => {
             process.exit(0);
           });
         }
@@ -1382,7 +1491,7 @@ manrouter.post('/git/pull', (request, response) => {
     if (env === 'development') {
       response.status(500).send({
         success: false,
-        error: 'Development mode: No actual git pull performed, showing as failed to test force update.',
+        error: 'Development mode: No actual update performed, showing as failed to test force update.',
       });
       return;
     }
@@ -1392,17 +1501,27 @@ manrouter.post('/git/pull', (request, response) => {
         return response.status(500).send({ success: false, error: stderr || error.message });
       }
       
-      response.status(200).send({
-        success: true,
-        message: 'Update successful',
-        output: stdout
-      });
-      
-      setTimeout(() => {
-        exec('pm2 restart 0', () => {
-          process.exit(0);
+      if (stdout.includes('package.json') || stdout.includes('package-lock.json')) {
+        exec('npm install', (npmError, npmStdout, npmStderr) => {
+          if (npmError) {
+            response.status(500).send({ success: false, error: `Update succeeded but dependency install failed: ${npmStderr || npmError.message}` });
+          } else {
+            response.status(200).send({ success: true, message: 'Update successful', output: stdout });
+          }
+          setTimeout(() => {
+            exec('pm2 restart 0', () => {
+              process.exit(0);
+            });
+          }, 2000);
         });
-      }, 2000);
+      } else {
+        response.status(200).send({ success: true, message: 'Update successful', output: stdout });
+        setTimeout(() => {
+          exec('pm2 restart 0', () => {
+            process.exit(0);
+          });
+        }, 2000);
+      }
     });
   } catch (error) {
     response.status(500).send({ success: false, error: error.message });
@@ -1428,17 +1547,18 @@ manrouter.post('/git/force', (request, response) => {
         return response.status(500).send({ success: false, error: stderr || error.message });
       }
       
-      response.status(200).send({
-        success: true,
-        message: 'Update successful',
-        output: stdout
+      exec('npm install', (npmError, npmStdout, npmStderr) => {
+        if (npmError) {
+          response.status(500).send({ success: false, error: `Update succeeded but dependency install failed: ${npmStderr || npmError.message}` });
+        } else {
+          response.status(200).send({ success: true, message: 'Update successful', output: stdout });
+        }
+        setTimeout(() => {
+          exec('pm2 restart 0', () => {
+            process.exit(0);
+          });
+        }, 2000);
       });
-      
-      setTimeout(() => {
-        exec('pm2 restart 0', () => {
-          process.exit(0);
-        });
-      }, 2000);
     });
   } catch (error) {
     response.status(500).send({ success: false, error: error.message });

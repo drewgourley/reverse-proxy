@@ -12,7 +12,22 @@ async function getData(service) {
   }
 };
 
-async function shockSystem (password) {
+async function redirectNext() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const nextParam = params.get('next') || '/';
+
+    const r = await fetch('/', { method: 'GET', credentials: 'same-origin' });
+    if (r.ok) {
+      window.location.href = nextParam;
+      return;
+    }
+  } catch (e) {
+    // do nothing
+  }
+};
+
+async function shockSystem(password) {
   try {
     const response = await fetch(
       `${window.location.origin}/shock`,
@@ -83,33 +98,97 @@ function parseData(service, data) {
 }
 
 async function init() {
-  const services = await getServices();
+  const $submit = document.getElementById('submit');
+  const $message = document.getElementById('message');
+  const $logout = document.getElementById('logout');
   const $pips = document.querySelector('.pips');
   const $pip = document.querySelector('.pip');
   const $shockButton = document.querySelector('#shock');
   const $shockPass = document.querySelector('#shockpass');
   const colors = await getColors();
-  $pip.remove();
-  $shockButton.addEventListener('click', async (event) => {
-    event.preventDefault();
-    const data = await shockSystem($shockPass.value);
-    if (data) notify(data.status)
-  });
-  services.checks.forEach(async (service) => {
-    const $service = $pip.cloneNode(true);
-    const $name = $service.querySelector('.name');
-    $name.textContent = service.nicename || service.name;
-    $service.classList.add(service.name);
-    $service.classList.add(service.platform);
-    $pips.appendChild($service);
-    const data = await getData(service.name);
-    parseData(service.name, data);
-    setInterval(async () => {
+  if ($submit && $message) {
+    await redirectNext();
+    $submit.addEventListener('click', async (event) => {
+      event.preventDefault();
+      $message.textContent = '';
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) {
+        $message.textContent = 'Please enter username and password';
+        $message.className = 'msg error';
+        return;
+      }
+      $submit.disabled = true;
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const nextParam = params.get('next') || '/';
+
+        const res = await fetch('/login' + (nextParam ? `?next=${encodeURIComponent(nextParam)}` : ''), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+          credentials: 'same-origin'
+        });
+        if (res.ok) {
+          $message.textContent = 'Signed in — redirecting...';
+          $message.className = 'success';
+          window.location.href = nextParam;
+          return;
+        }
+        if (res.status === 401) {
+          $message.textContent = 'Invalid username or password';
+          $message.className = 'error';
+        } else {
+          const text = await res.text();
+          $message.textContent = text || 'Login failed';
+          $message.className = 'error';
+        }
+      } catch (e) {
+        $message.textContent = 'Network error';
+        $message.className = 'error';
+      } finally {
+        $submit.disabled = false;
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $submit.click();
+    });
+  }
+  if ($logout) {
+    $logout.addEventListener('click', async () => {
+      try {
+        await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+      } catch (e) {
+      // do nothing
+      } finally {
+        window.location.href = '/login';
+      }
+    });
+  }
+  if ($pip && $pips && $shockButton && $shockPass) {
+    const services = await getServices();
+    $pip.remove();
+    $shockButton.addEventListener('click', async (event) => {
+      event.preventDefault();
+      const data = await shockSystem($shockPass.value);
+      if (data) notify(data.status)
+    });
+    services.checks.forEach(async (service) => {
+      const $service = $pip.cloneNode(true);
+      const $name = $service.querySelector('.name');
+      $name.textContent = service.nicename || service.name;
+      $service.classList.add(service.name);
+      $service.classList.add(service.platform);
+      $pips.appendChild($service);
       const data = await getData(service.name);
       parseData(service.name, data);
-    }, service.polltime);
-  });
-  setupTitles(services.titles);
+      setInterval(async () => {
+        const data = await getData(service.name);
+        parseData(service.name, data);
+      }, service.polltime);
+    });
+    setupTitles(services.titles);
+  }
   applyColors(colors);
   document.documentElement.classList.add('ready');
 };

@@ -104,8 +104,11 @@ async function setupTitles() {
   const serviceData = await getServiceData();
   const parts = window.location.hostname.split('.');
   const domain = parts.length > 1 ? parts.slice(-2).join('.') : window.location.hostname;
-  
-  document.getElementById('domain').textContent = domain;
+  const $domain = document.getElementById('domain');
+
+  if ($domain) {
+    $domain.textContent = domain;
+  };
   
   if (serviceData && serviceData.nicename) {
     document.title = serviceData.nicename;

@@ -260,7 +260,9 @@ function getDefaultSecrets() {
   return {
     admin_email_address: '',
     shock_password_hash: '',
-    shock_mac: ''
+    shock_mac: '',
+    api_password_hash: '',
+    api_session_secret: ''
   };
 }
 
@@ -476,12 +478,15 @@ function renderSecretsEditor() {
   
   if (secretKeys.includes('admin_email_address')) {
     orderedKeys.push('admin_email_address');
-  }
-  
+  }  
+  if (secretKeys.includes('api_password_hash')) {
+    orderedKeys.push('api_password_hash');
+  }  
   secretKeys.forEach(key => {
-    if (key !== 'admin_email_address') {
-      orderedKeys.push(key);
-    }
+    if (key === 'api_session_secret') return;
+    if (key === 'admin_email_address') return;
+    if (key === 'api_password_hash') return;
+    orderedKeys.push(key);
   });
   
   const defaultSecretKeys = Object.keys(getDefaultSecrets());
@@ -489,7 +494,7 @@ function renderSecretsEditor() {
     const value = secrets[key];
     const isDefaultSecret = defaultSecretKeys.includes(key);
     const isEmail = key === 'admin_email_address';
-    const isPasswordHash = key === 'shock_password_hash';
+    const isPasswordHash = key === 'shock_password_hash' || key === 'api_password_hash';
     const isExistingHash = isPasswordHash && value && value.startsWith('$2b$');
     const isEmpty = !value || value.trim() === '';
     const shouldHighlight = isEmail && isEmpty;
@@ -497,7 +502,8 @@ function renderSecretsEditor() {
     const labelMap = {
       'admin_email_address': 'Admin Email Address',
       'shock_password_hash': 'Wake-on-LAN Password',
-      'shock_mac': 'Wake-on-LAN MAC Address'
+      'shock_mac': 'Wake-on-LAN MAC Address',
+      'api_password_hash': `API Password - ${ isExistingHash ? '🔒 API page is secured behind a login' : '⚠️ Providing this will secure the API page behind a login'}`,
     };
     const displayLabel = labelMap[key] || key;
     
@@ -516,6 +522,7 @@ function renderSecretsEditor() {
     } else if (isPasswordHash) {
       const displayValue = isExistingHash ? '' : value;
       const placeholderText = isExistingHash ? 'Password already set - enter new password to change' : 'Enter new password to hash it automatically';
+      const hintText = isExistingHash ? 'Leave empty to keep current password, or enter new password to update' : 'Enter a password here - it will be automatically hashed when saved';
       html += `
           <div class="password-input-group">
             <input type="text" id="secret_${key}" value="${displayValue}"
@@ -525,7 +532,7 @@ function renderSecretsEditor() {
                 autocomplete="current-password">
             <button class="btn-toggle-password" onclick="togglePasswordVisibility('secret_${key}', this)">👁️ Show</button>
           </div>
-          <div class="hint">${isExistingHash ? 'Leave empty to keep current password, or enter new password to update' : 'Enter a plaintext password here - it will be automatically hashed when saved'}</div>`;
+          <div class="hint">${hintText}</div>`;
     } else {
       html += `
           <div class="password-input-group">
@@ -540,12 +547,18 @@ function renderSecretsEditor() {
     }
     
     html += `
+          ${!isDefaultSecret ? `
+          <div class="secret-actions">
+            <button class="btn-remove" onclick="removeSecret('${key}')">Remove Secret</button>
+          </div>
+          ` : ''}
+          ${isExistingHash && key === 'api_password_hash' ? `
+          <div class="secret-actions" style="display: flex;align-items: center;">
+            <button class="btn-remove" onclick="removeSecret('${key}')">Remove Password</button>
+            <div class="hint" style="margin-left: 10px;">⚠️ This will remove the login requirement to view the API page</div>
+          </div>
+          ` : ''}
         </div>
-        ${!isDefaultSecret ? `
-        <div class="secret-actions">
-          <button class="btn-remove" onclick="removeSecret('${key}')">Remove Secret</button>
-        </div>
-        ` : ''}
       </div>
     `;
   });
@@ -582,6 +595,17 @@ function updatePasswordHash(key, value, wasExistingHash) {
   }
 }
 
+function confirmClearApi() {
+  showConfirmModal(
+    'Clear API Credentials',
+    'Are you sure you want to remove the API Username and API Password? This will immediately disable API authentication and restart the server.',
+    async (confirmed) => {
+      if (!confirmed) return;
+      await clearApiCredentials();
+    }
+  );
+}
+
 function removeBlocklistEntry(index) {
   showConfirmModal(
     'Remove Blocklist Entry',
@@ -602,7 +626,11 @@ function removeSecret(key) {
     `Are you sure you want to remove the secret "${key}"?`,
     (confirmed) => {
       if (confirmed) {
-        delete secrets[key];
+        if (key === 'api_password_hash') {
+          secrets[key] = '';
+        } else {
+          delete secrets[key];
+        }
         renderSecretsEditor();
         showStatus(`Secret "${key}" removed`, 'success');
       }
@@ -734,7 +762,8 @@ async function saveSecrets() {
     if (isFirstSecretsSave) {
       selectItem('config-domain');
     } else {
-      renderSecretsEditor();
+      const url = new URL(window.location);
+      window.location.href = url.toString();
     }
 
     renderServicesList();

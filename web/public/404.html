@@ -5,8 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>404: File Not Found</title>
+    <!-- Critical CSS to prevent FOUC -->
+    <style>
+        html { background-color: #ffffff; }
+        body { visibility: hidden; }
+        html.ready body { visibility: visible; }
+    </style>
     <link rel="stylesheet" href="/global/style.css">
     <link rel="stylesheet" href="/static/style.css">
+    <noscript><style>body { visibility: visible; }</style></noscript>
     <link rel="apple-touch-icon" sizes="180x180" href="/global/favicon/apple-touch-icon.png">
     <link rel="icon" href="/global/favicon/favicon.ico" type="image/x-icon">
     <link rel="icon" type="image/png" sizes="32x32" href="/global/favicon/favicon-32x32.png">
@@ -29,6 +36,10 @@
               <h3>File Not Found</h3>
             </header>
           </div>
+          <div class="content">
+            <article>
+            </article>
+          </div>
           <div class="footing">
             <footer>
             </footer>
@@ -36,5 +47,7 @@
         </div>
       </section>
     </main>
+	  <script src="/global/script.js"></script>
+	  <script src="/static/script.js"></script>
   </body>
 </html>

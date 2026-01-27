@@ -110,6 +110,10 @@ To enable Dynamic DNS with Route53, you need to create an IAM user with the appr
 
 This policy follows the principle of least privilege, granting only the permissions necessary to update DNS records in your specific hosted zone.
 
+#### API Authentication
+
+You can protect the API web page (/web/public/api/) with authentication by setting the  **API Password** in the **Secrets** section of the web configurator. Passwords entered in the UI will be hashed on the server before they are saved.
+
 #### Configuration
 - **Domain** - Set your primary domain
 - **Services** - Add and configure reverse proxy services with:

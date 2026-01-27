@@ -7,9 +7,6 @@ section {
 button:focus, button:hover, button:active {
   background:#764ba2;
 }
-.pips {
-  padding:100px 0 0;
-}
 .pip {
   position:relative;
   font-size:24px;
@@ -53,21 +50,13 @@ button:focus, button:hover, button:active {
 }
 form {
   display:flex;
-  flex-direction:row-reverse;
-  justify-content:flex-end;
-  transition:opacity 300ms ease;
-}
-form.hide {
-  opacity:0;
+  flex-direction:column;
+  position:relative;
 }
 form input {
   height:30px;
-  width:200px;
-  position:relative;
-  top:-2px;
-  right:56px;
-  padding:12px 28px 12px 68px;
-  margin:0;
+  padding:12px 28px;
+  margin:0 0 10px;
   z-index:1;
   outline:none;
   line-height:30px;
@@ -79,9 +68,18 @@ form input {
   border-radius:28px;
   transition:background 300ms ease, border 300ms ease, color 300ms ease;
 }
+form input:last-of-type {
+  margin:0;
+  padding:12px 68px 12px 28px;
+}
 form button {
-  position:relative;
+  position:absolute;
+  bottom:2px;
+  right:2px;
   z-index:2;
+}
+form.hide {
+  opacity:0;
 }
 form:hover input, form:focus-within input {
   background:#fff;
@@ -91,4 +89,22 @@ form:hover input, form:focus-within input {
 form:hover button, form:focus-within button {
   background:#764ba2;
   color:#fff;
+}
+#logout {
+  position:fixed;
+  top:24px;
+  right:24px;
+  z-index:3;
+  transition:right 2s ease-in-out, background 300ms linear, color 300ms linear;
+}
+#message {
+  margin-top:8px;
+  font-size:13px;
+  padding:0 0 0 28px;
+}
+#message.error {
+  color:#e53e3e;
+}
+#message.success {
+  color:#48bb78;
 }
