@@ -1637,7 +1637,7 @@ manrouter.put('/certs', (request, response) => {
       } else {
         exec(baseCommand, (error, stdout, stderr) => {
           if (error) {
-            //return response.status(500).send({ success: false, error: error.message });
+            return response.status(500).send({ success: false, error: error.message });
           }
 
           const cronCommand = `0 0 * * * ${cronCommandWithHook}`;
