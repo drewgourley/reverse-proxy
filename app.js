@@ -78,6 +78,14 @@ try {
   console.warn('Blocklist not established');
 }
 
+let ecosystem;
+try {
+  ecosystem = require('./ecosystem.config.js');
+} catch (e) {
+  ecosystem = {};
+  console.warn('Ecosystem not established');
+}
+
 // retrieve environment variables
 dotenv.config();
 
@@ -1342,12 +1350,10 @@ manrouter.put('/ecosystem', (request, response) => {
     }
     
     let firstrun = true;
-    let ecosystemConfig;
     const ecosystemPath = path.join(__dirname, 'ecosystem.config.js');
 
     if (fs.existsSync(ecosystemPath)) {
       firstrun = false;
-      ecosystemConfig = require(ecosystemPath);
     }
 
     if (updatedEcosystem.apps && updatedEcosystem.apps.length > 0) {
@@ -1368,7 +1374,7 @@ manrouter.put('/ecosystem', (request, response) => {
           });
         } else {
           const safeName = (updatedEcosystem.apps[0].name || 'app').replace(/[^a-zA-Z0-9 _-]/g, '');
-          exec(`pm2 restart '${ecosystemConfig.apps[0].name}' ecosystem.config.js --name '${safeName}'`, () => {
+          exec(`pm2 restart '${ecosystem.apps[0].name}' ecosystem.config.js --name '${safeName}'`, () => {
             process.exit(0);
           });
         }
@@ -1509,7 +1515,7 @@ manrouter.post('/git/pull', (request, response) => {
             response.status(200).send({ success: true, message: 'Update successful', output: stdout });
           }
           setTimeout(() => {
-            exec('pm2 restart 0', () => {
+            exec(`pm2 restart '${ecosystem.apps[0].name}'`, () => {
               process.exit(0);
             });
           }, 2000);
@@ -1517,7 +1523,7 @@ manrouter.post('/git/pull', (request, response) => {
       } else {
         response.status(200).send({ success: true, message: 'Update successful', output: stdout });
         setTimeout(() => {
-          exec('pm2 restart 0', () => {
+          exec(`pm2 restart '${ecosystem.apps[0].name}'`, () => {
             process.exit(0);
           });
         }, 2000);
@@ -1554,7 +1560,7 @@ manrouter.post('/git/force', (request, response) => {
           response.status(200).send({ success: true, message: 'Update successful', output: stdout });
         }
         setTimeout(() => {
-          exec('pm2 restart 0', () => {
+          exec(`pm2 restart '${ecosystem.apps[0].name}'`, () => {
             process.exit(0);
           });
         }, 2000);
@@ -1615,7 +1621,7 @@ manrouter.put('/certs', (request, response) => {
       });
     
       const domainFlags = domains.map(d => `-d ${d}`).join(' ');
-      const deployHook = `sudo -u ${os.userInfo().username} bash -c '. ~/.bashrc; pm2 restart 0'`;
+      const deployHook = `sudo -u ${os.userInfo().username} bash -c '. ~/.bashrc; pm2 restart all'`;
       const baseCommand = `sudo certbot certonly --webroot --webroot-path ${path.join(__dirname, 'web', 'all')} --cert-name ${config.domain} ${domainFlags} --non-interactive --agree-tos --email ${email}`;
       const cronCommandWithHook = `${baseCommand} --deploy-hook "${deployHook}"`;
 
