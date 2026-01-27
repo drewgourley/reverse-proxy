@@ -16,11 +16,7 @@ web/public/doom
 web/public/doom/*
 web/public/www/tpg2
 web/public/www/tpg2/*
-web/public/radio
-web/public/radio/*
 
-# OS generated files #
-######################
 .DS_Store
 .DS_Store?
 ._*
