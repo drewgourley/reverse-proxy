@@ -1641,7 +1641,7 @@ manrouter.put('/certs', (request, response) => {
           }
 
           const cronCommand = `0 0 * * * ${cronCommandWithHook}`;
-          const setupCron = `(crontab -l 2>/dev/null | grep -v "certbot certonly --webroot"; echo "${cronCommand}") | crontab -`;
+          const setupCron = `(crontab -l 2>/dev/null | grep -v "certbot certonly --webroot"; printf '%s\n' "${cronCommand}") | crontab -`;
           const certbotReport = { success: true };
           exec(setupCron, (cronError, cronStdout, cronStderr) => {
             if (cronError) {
