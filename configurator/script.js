@@ -3277,7 +3277,7 @@ function removeService(serviceName) {
         const actions = document.getElementById('editorActions');
         const panel = document.getElementById('editorPanel');
         
-        actions.classList.add('hidden');
+        actions.classList.remove('hidden');
         panel.classList.remove('scrollable');
         
         panel.innerHTML = `
@@ -3285,6 +3285,12 @@ function removeService(serviceName) {
             <p>Service removed. Select another item to continue editing.</p>
           </div>
         `;
+
+        actions.innerHTML = `
+          <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
+          <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
+        `;
+
         showStatus(`Service "${serviceName}" removed`, 'success');
       }
     }
