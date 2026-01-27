@@ -1641,14 +1641,20 @@ manrouter.put('/certs', (request, response) => {
           }
 
           const cronCommand = `0 0 * * * ${cronCommandWithHook}`;
-          const setupCron = `(crontab -l 2>/dev/null | grep -v "certbot certonly --webroot"; printf '%s\n' "${cronCommand}") | crontab -`;
           const certbotReport = { success: true };
-          exec(setupCron, (cronError, cronStdout, cronStderr) => {
-            if (cronError) {
-              certbotReport.message = 'Certificates provisioned successfully, but automatic renewal setup failed. You may need to set up cron manually.';
-            } else {
-              certbotReport.message = 'Certificates provisioned successfully and automatic renewal configured.';
-            }
+          const tmpCronFile = path.join(os.tmpdir(), `reverseproxy-cron-${Date.now()}.txt`);
+          try {
+            const existingCron = require('child_process').execSync('crontab -l 2>/dev/null || true', { encoding: 'utf8' });
+            const filtered = existingCron.split(/\r?\n/).filter(line => !line.includes('certbot certonly --webroot') && line.trim() !== '').join('\n');
+            const newCron = (filtered ? filtered + '\n' : '') + cronCommand + '\n';
+            fs.writeFileSync(tmpCronFile, newCron, { encoding: 'utf8', mode: 0o600 });
+            exec(`crontab "${tmpCronFile}"`, (cronError, cronStdout, cronStderr) => {
+              try { fs.unlinkSync(tmpCronFile); } catch (e) {}
+              if (cronError) {
+                certbotReport.message = 'Certificates provisioned successfully, but automatic renewal setup failed. You may need to set up cron manually.';
+              } else {
+                certbotReport.message = 'Certificates provisioned successfully and automatic renewal configured.';
+              }
 
             const chmodCommands = [
               'sudo find /etc/letsencrypt/live -type d -exec sudo chmod 755 {} \\;',
@@ -1684,6 +1690,12 @@ manrouter.put('/certs', (request, response) => {
             
             runChmodCommands();
           });
+          } catch (err) {
+            try { fs.unlinkSync(tmpCronFile); } catch (e) {}
+            certbotReport.message = 'Certificates provisioned successfully, but automatic renewal setup failed: ' + err.message;
+            response.status(500).send({ success: false, error: err.message });
+            return;
+          }
         });
       }
     } else {
