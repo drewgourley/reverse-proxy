@@ -31,13 +31,13 @@ const requestNewColors = () => {
   document.head.insertAdjacentHTML('beforeend', 
 `<style id="style" type="text/css">
   .stripes {
-    background:${colors[2]};
+    background:${colors[2]}!important;
   }
   .stripes:before {
-    background:${colors[3]};
+    background:${colors[3]}!important;
   }
   .stripes:after {
-    background:${colors[4]};
+    background:${colors[4]}!important;
   }
   .notification p,.tooltip p {
     background:${colors[0]};
@@ -661,11 +661,8 @@ const init = async () => {
   $player.addEventListener('ended', handleStreamEnd);
   $player.addEventListener('pause', handleStreamEnd);
   
-  await loadThemeColors();
   requestNewColors();
   runIntroAnimations();
-  setupTitles();
-  document.documentElement.classList.add('ready');
 };
 
 // const requestPalettes = (callback = (data) => {console.log(data)}) => {
@@ -708,106 +705,6 @@ let forceAnimation;
 let lockColor = false;
 let colors = [];
 let themeColors = null;
-
-// Load theme colors and inject as first palette
-async function loadThemeColors() {
-  try {
-    const response = await fetch('/global/colors.json');
-    if (!response.ok) throw new Error('Failed to load theme colors');
-    themeColors = await response.json();
-    
-    // Create palette from theme colors in order: primary, secondary, accent, inverse, background
-    const themePalette = {
-      palette: [
-        themeColors.primary || '#667eea',
-        themeColors.secondary || '#764ba2',
-        themeColors.accent || '#48bb78',
-        themeColors.inverse || '#b84878',
-        themeColors.background || '#ffffff'
-      ],
-      score: -1000 // High priority score to keep it at the top
-    };
-    
-    // Inject theme palette at the beginning of colorbank
-    colorbank.unshift(themePalette);
-    
-    // Apply initial theme colors
-    applyColors(themeColors);
-  } catch (error) {
-    console.error('Error loading theme colors:', error);
-  }
-}
-
-function hexToRgb(hex) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return { r, g, b };
-}
-
-function getLuminance(hex) {
-  const rgb = hexToRgb(hex);
-  const r = rgb.r / 255;
-  const g = rgb.g / 255;
-  const b = rgb.b / 255;
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-function getTextColor(bgColor) {
-  const luminance = getLuminance(bgColor);
-  return luminance > 0.5 ? '#111827' : '#ffffff';
-}
-
-function applyColors(colors) {
-  // Calculate text color based on background
-  const textColor = getTextColor(colors.background);
-  
-  // Apply background color to both html and body
-  document.documentElement.style.background = colors.background;
-  document.body.style.background = colors.background;
-  document.body.style.color = textColor;
-  
-  // Get RGB values for gradients
-  const textRgb = hexToRgb(textColor);
-  
-  // Apply radial gradient to main element
-  const main = document.querySelector('main');
-  if (main) {
-    main.style.background = `radial-gradient(circle, rgba(${textRgb.r},${textRgb.g},${textRgb.b},0) 50%, rgba(${textRgb.r},${textRgb.g},${textRgb.b},0.05) 100%)`;
-  }
-  
-  // Create style element for dynamic theming
-  const styleId = 'dynamic-theme-colors';
-  let styleElement = document.getElementById(styleId);
-  
-  if (!styleElement) {
-    styleElement = document.createElement('style');
-    styleElement.id = styleId;
-    document.head.appendChild(styleElement);
-  }
-  
-  styleElement.textContent = `
-    body {
-      color: ${textColor} !important;
-    }
-    body * {
-      color: ${textColor};
-    }
-    a, a.link {
-      color: ${colors.primary} !important;
-    }
-    a:hover, a.link:hover {
-      color: ${colors.secondary} !important;
-    }
-    #palette .icon,
-    #trash .icon,
-    #lock .icon,
-    #transition .icon {
-      color: ${textColor} !important;
-    }
-  `;
-}
-
 let colorbank = [
   {
       "palette": [
@@ -1810,35 +1707,6 @@ let colorbank = [
       "score": -5.334968090057373
   }
 ];
-
-async function getServiceData() {
-  try {
-    const response = await fetch(`/global/services.json`);
-    if (!response.ok) {
-      throw new Error(response.statusText);
-    }
-    const data = await response.json();
-    return data.find(service => service.name === 'radio');
-  } catch (error) {
-    console.error('Error fetching JSON:', error);
-  }
-}
-
-async function setupTitles() {
-  const serviceData = await getServiceData();
-  const parts = window.location.hostname.split('.');
-  const domain = parts.length > 1 ? parts.slice(-2).join('.') : window.location.hostname;
-  
-  let displayText = serviceData && serviceData.nicename ? serviceData.nicename : domain;
-  if (displayText.toLowerCase().endsWith('radio')) {
-    displayText = displayText.slice(0, -5).trim();
-  }
-  document.getElementById('domain').textContent = displayText || 'Radio';
-  
-  if (serviceData && serviceData.nicename) {
-    document.title = serviceData.nicename;
-  }
-}
 
 // requestPalettes((palettes) => {
 //   if ( palettes && palettes.results && palettes.results.length ) {
