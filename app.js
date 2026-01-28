@@ -265,6 +265,7 @@ const initApplication = () => {
   const application = express();
 
   // API session TTL for login sessions (4 hours)
+  // Todo: Implement connect-redis or similar for production use
   const API_SESSION_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
 
   if (config.services) {
@@ -336,10 +337,10 @@ const initApplication = () => {
           return response.redirect(`${protocols.secure}${config.domain}${request.url}`);
         } else if (!target && host !== config.domain) {
           return response.redirect(`${protocols.insecure}${config.domain}${request.url}`);
-        } else if (target && target.type === 'insecure' && request.secure) {
+        } else if (target && config.services[target].subdomain.protocol === 'insecure' && request.secure) {
           return response.redirect(`${protocols.insecure}${host}${request.url}`);
         } else if (env !== 'development') {
-          if ((host === config.domain || target.type === 'secure') && !request.secure) {
+          if ((host === config.domain || config.services[target].subdomain.protocol === 'secure') && !request.secure) {
             return response.redirect(`${protocols.secure}${host}${request.url}`);
           }
         }
