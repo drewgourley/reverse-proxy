@@ -107,3 +107,5 @@ echo ""
 
 # Start the configurator
 npm start
+
+git reset --hard HEAD
