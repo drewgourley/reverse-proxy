@@ -108,4 +108,5 @@ echo ""
 # Start the configurator
 npm start
 
+# Reset the git repository
 git reset --hard HEAD
