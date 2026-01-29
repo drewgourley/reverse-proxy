@@ -1163,8 +1163,8 @@ async function handleFaviconPreview(event) {
   
   reader.onload = async (e) => {
     img.onload = async () => {
-      if (img.width > 256 || img.height > 256) {
-        showStatus('Image must be 256x256 or smaller', 'error');
+      if (img.width > 512 || img.height > 512) {
+        showStatus('Image must be 512x512 or smaller', 'error');
         pendingFaviconFile = null;
         return;
       }
@@ -1295,7 +1295,7 @@ function renderThemeEditor() {
             <input type="file" id="faviconUpload" accept="image/png" style="display: none;">
             <button class="btn-primary" onclick="document.getElementById('faviconUpload').click()">Choose File</button>
             <span id="faviconFileName" style="margin-left: 10px; color: var(--color-text-secondary);"></span>
-            <div class="hint">PNG format only, up to 256x256 pixels</div>
+            <div class="hint">PNG format only, up to 512x512 pixels</div>
           </div>
           <div style="margin-top: 15px;">
             <label style="display: block; margin-bottom: 8px; color: var(--color-text-primary); font-weight: 500;">Current Favicon</label>
@@ -1563,7 +1563,7 @@ async function pullUpdates(force) {
       throw new Error(data.error || 'Update failed');
     }
     
-    await waitForServerRestart();
+    await waitForServerRestart(10000);
     
     const url = new URL(window.location);
     url.searchParams.set('updated', 'true');
@@ -3649,12 +3649,12 @@ function hideLoadingOverlay() {
   }, 300);
 }
 
-async function waitForServerRestart() {
+async function waitForServerRestart(delay = 2000) {
   const maxAttempts = 12;
   const pollInterval = 5000;
   let attempts = 0;
   
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, delay));
   
   while (attempts < maxAttempts) {
     try {

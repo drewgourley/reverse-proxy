@@ -271,8 +271,8 @@ const initApplication = async () => {
     redisClient = createClient({ url: 'redis://127.0.0.1:6379', socket: { connectTimeout: 1000 } });
     await redisClient.connect();
     redisStore = new RedisStore({ client: redisClient, prefix: 'api-sessions:' });
-  } catch (e) {
-    console.warn('Redis unavailable, proceeding with in-memory session store:', e && e.message ? e.message : e);
+  } catch (error) {
+    console.warn('Redis unavailable, proceeding with in-memory session store.');
   }
 
   const application = express();
