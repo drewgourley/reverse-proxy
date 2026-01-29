@@ -247,7 +247,6 @@ async function loadConfig(suppressStatus = false) {
     }
 
     originalConfig = JSON.parse(JSON.stringify(config));
-    showStatus('Config loaded successfully', 'success');
   } catch (error) {
     console.error('Config load error:', error);
     config = getDefaultConfig();
@@ -394,8 +393,7 @@ async function loadAdvanced(suppressStatus = false) {
 
 async function loadCerts(suppressStatus = false) {
   try {
-    const url = 'certs';
-    const response = await fetch(url);
+    const response = await fetch('certs');
     
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load certificate data`);
     
@@ -3421,6 +3419,8 @@ async function saveConfig() {
       throw new Error(error);
     }
 
+    const domainHasChanged = originalConfig.domain !== config.domain;
+
     originalConfig = JSON.parse(JSON.stringify(config));
     
     const currentServicesWithSubdomains = new Set();
@@ -3447,9 +3447,12 @@ async function saveConfig() {
     showLoadingOverlay('Server Restarting...', 'Configuration saved. Waiting for the server to restart...');
     await waitForServerRestart();
     
-    if (secureServicesChangedThisSession) {
+    if (domainHasChanged) {
       selectItem('management-certificates');
-      showStatus('⚠ Secure services changed, please provision new certificates!', 'warning');
+      const url = new URL(window.location);
+      window.location.href = url.toString();
+    } else if (secureServicesChangedThisSession) {
+      selectItem('management-certificates');
     } else if (currentSelection) {
       selectItem(currentSelection);
     }

@@ -15,6 +15,22 @@ echo "Updating system packages..."
 sudo apt update
 sudo apt upgrade -y
 
+# Install redis server
+echo ""
+echo "Installing Redis server..."
+sudo apt install -y redis-server
+
+# Start and Daemonize Redis
+echo ""
+echo "Starting and enabling Redis server..."
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+
+# Verify Redis installation
+echo ""
+echo "Redis status:"
+sudo systemctl status redis-server --no-pager
+
 # Install Node.js (using NodeSource repository for latest LTS)
 echo ""
 echo "Installing Node.js..."

@@ -29,6 +29,8 @@ const multer = require('multer');
 const faviconUpload = multer({ storage: multer.memoryStorage() });
 const sharp = require('sharp');
 const toIco = require('to-ico');
+const { createClient } = require('redis');
+const { RedisStore } = require('connect-redis');
 
 // retrieve local dependencies
 const { OdalPapiService } = require('./odalpapi.js')
@@ -78,6 +80,7 @@ try {
   console.warn('Blocklist not established');
 }
 
+// retrieve ecosystem
 let ecosystem;
 try {
   ecosystem = require('./ecosystem.config.js');
@@ -97,7 +100,7 @@ const protocols = {
   insecure: 'http://',
   secure: 'https://',
 };
-if (env === 'development') protocols.secure = 'http://';
+if (env === 'development' || env === 'test') protocols.secure = 'http://';
 
 // declare default parsers
 const defaultParsers = {
@@ -261,7 +264,17 @@ const pingHealthcheck = async (name) => {
 };
 
 // delcare application initializer
-const initApplication = () => {
+const initApplication = async () => {
+  let redisClient;
+  let redisStore;
+  try {
+    redisClient = createClient({ url: 'redis://127.0.0.1:6379', socket: { connectTimeout: 1000 } });
+    await redisClient.connect();
+    redisStore = new RedisStore({ client: redisClient, prefix: 'api-sessions:' });
+  } catch (e) {
+    console.warn('Redis unavailable, proceeding with in-memory session store:', e && e.message ? e.message : e);
+  }
+
   const application = express();
 
   // API session TTL for login sessions (4 hours)
@@ -273,7 +286,7 @@ const initApplication = () => {
     Object.keys(config.services).forEach(name => {
       if (config.services[name].subdomain) {
         config.services[name].subdomain.router = express.Router();
-        const secure = env === 'production' && config.services[name].subdomain.protocol === 'secure';
+        const secure = (env === 'production') && config.services[name].subdomain.protocol === 'secure';
         if (secure) config.services[name].subdomain.router.use('/.well-known', express.static(path.join(__dirname, 'web', 'all', '.well-known')));
         if (config.services[name].subdomain.proxy) {
           if (config.services[name].subdomain.type === 'proxy') {
@@ -339,7 +352,7 @@ const initApplication = () => {
           return response.redirect(`${protocols.insecure}${config.domain}${request.url}`);
         } else if (target && config.services[target].subdomain.protocol === 'insecure' && request.secure) {
           return response.redirect(`${protocols.insecure}${host}${request.url}`);
-        } else if (env !== 'development') {
+        } else if (env !== 'development' && env !== 'test') {
           if ((host === config.domain || config.services[target].subdomain.protocol === 'secure') && !request.secure) {
             return response.redirect(`${protocols.secure}${host}${request.url}`);
           }
@@ -363,11 +376,11 @@ const initApplication = () => {
               });
               config.services[name].subdomain.router.use('/login', express.static(path.join(__dirname, 'web', 'public', 'api', 'login')));
 
-              let sessionSecret = secrets.api_session_secret || secrets.session_secret;
-              const secretsPath = path.join(__dirname, 'secrets.json');
+              let sessionSecret = secrets.api_session_secret;
               if (!sessionSecret) {
                 sessionSecret = crypto.randomBytes(32).toString('hex');
                 try {
+                  const secretsPath = path.join(__dirname, 'secrets.json');
                   let existing = {};
                   if (fs.existsSync(secretsPath)) existing = JSON.parse(fs.readFileSync(secretsPath, 'utf8'));
                   existing.api_session_secret = sessionSecret;
@@ -380,13 +393,14 @@ const initApplication = () => {
               }
 
               config.services[name].subdomain.router.use(session({
+                store: redisStore || undefined,
                 name: 'api_sid',
                 secret: sessionSecret,
                 resave: false,
                 saveUninitialized: false,
                 cookie: {
                   httpOnly: true,
-                  secure: env === 'production',
+                  secure: (env === 'production'),
                   sameSite: 'lax',
                   maxAge: API_SESSION_TTL,
                   path: '/',
@@ -852,6 +866,11 @@ manrouter.put('/config', (request, response) => {
       return sendError(response, 400, { message: 'Invalid config format', details: validate.errors });
     }
     
+    if (updatedConfig.domain !== config.domain) {
+      console.log('Domain change detected, clearing provisioned certificates');
+      registerProvisionedCerts([], false, false);
+    }
+
     const configPath = path.join(__dirname, 'config.json');
     saveConfigAndRestart(configPath, updatedConfig, 'Config updated successfully', response);
   } catch (error) {
@@ -1164,7 +1183,7 @@ manrouter.get('/advanced', (request, response) => {
 
 manrouter.get('/checklogrotate', (request, response) => {
   if (env === 'development') {
-    return response.status(200).send({ success: true, message: 'Logrotate success response faked.' });
+    return response.status(200).send({ success: true, message: 'Logrotate success response faked in development mode.' });
   }
   exec('pm2 describe pm2-logrotate', (err, out) => {
     if ((err && err.toString().includes("doesn't exist")) || (out && out.includes("doesn't exist"))) {
@@ -1229,7 +1248,7 @@ manrouter.get('/logs/:appName/:type', (request, response) => {
     return;
   }
 
-  if (env === 'production') {
+  if (env === 'production' || env === 'test') {
     setSSEHeaders(response);
     const logPath = path.join(os.homedir(), '.pm2', 'logs', `${appName.replace(' ', '-')}-${type}.log`);
     if (!fs.existsSync(logPath)) {
@@ -1579,7 +1598,7 @@ const registerProvisionedCerts = (secureServices, crontab, permissions) => {
       services: secureServices,
       provisionedAt: new Date().toISOString(),
       crontab,
-      permissions,
+      permissions
     };
     const certsPath = path.join(__dirname, 'certs.json');
     fs.writeFileSync(certsPath, JSON.stringify(certsData, null, 2), 'utf8');
@@ -1627,10 +1646,7 @@ manrouter.put('/certs', (request, response) => {
       const cronCommandWithHook = `${baseCommand} --deploy-hook "${deployHook}"`;
 
       if (env === 'development') {
-        console.log(`Executing certbot command: ${baseCommand}`);
-
         registerProvisionedCerts(secureServices, true, true);
-
         response.status(200).send({ success: true, message: 'Development mode: Certificates sucessfully not provisioned.' });
         setTimeout(() => {
           process.exit(0);
@@ -1751,21 +1767,24 @@ if (env === 'development') {
 /* SERVER SETUP */
 if (config.domain) {
   // initialize application
-  let app = initApplication();
+  initApplication().then((app) => {
+    const port_http = (env === 'development' || env === 'test') ? 80 : 8080;
+    const httpServer = http.createServer(app);
+    const httpsServer = cert ? https.createServer(cert, app) : null;
 
-  const port_http = env === 'development' ? 80 : 8080;
-  const port_https = 8443;
-  const httpServer = http.createServer(app);
-  const httpsServer = cert ? https.createServer(cert, app) : null;
-
-  httpServer.listen(port_http, () => {
-    console.log(`HTTP Server running on port ${port_http}`);
-    httpServer.on('upgrade', handleWebSocketUpgrade);
-  });
-  if (httpsServer) {
-    httpsServer.listen(port_https, () => {
-      console.log(`HTTPS Server running on port ${port_https}`);
-      httpsServer.on('upgrade', handleWebSocketUpgrade);
+    httpServer.listen(port_http, () => {
+      console.log(`HTTP Server running on port ${port_http}`);
+      httpServer.on('upgrade', handleWebSocketUpgrade);
     });
-  }
+    if (httpsServer) {
+      const port_https = 8443;
+      httpsServer.listen(port_https, () => {
+        console.log(`HTTPS Server running on port ${port_https}`);
+        httpsServer.on('upgrade', handleWebSocketUpgrade);
+      });
+    }
+  }).catch((err) => {
+    console.error('Failed to initialize application:', err);
+    process.exit(1);
+  });
 }
