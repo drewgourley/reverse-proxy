@@ -463,25 +463,6 @@ const initApplication = async () => {
               };
               config.services[name].subdomain.router.use(apiAuth);
             }
-            // Todo: Add webhook management in configurator, then enable this code
-            // // create webhook rate limiting
-            // const hookLimiter = rateLimit({
-            //   windowMs: 1 * 60 * 1000, // 1 minute
-            //   max: 15, // limit each IP to 15 requests per windowMs
-            //   message: { status: 'Too Many Requests', error: 'Rate limit exceeded. Try again later.' },
-            //   standardHeaders: true,
-            //   legacyHeaders: false,
-            // });
-
-            // // create webhook route and handle for dynamic ids
-            // config.services[name].subdomain.router.post('/webhook/:id', hookLimiter, (request, response) => {
-            //   const id = request.params.id;
-            //   if (!id) {
-            //     return response.status(400).send({ status: 'Bad Request', error: 'Missing webhook ID' });
-            //   }
-            //   console.log(`Webhook received for ID: ${id}`, request.body);
-            //   response.status(200).send({ status: 'Webhook received' });
-            // });
             
             // create health check routes
             Object.keys(config.services).forEach(healthname => {
