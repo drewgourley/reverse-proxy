@@ -671,7 +671,7 @@ button {
     margin-bottom: 15px;
 }
 
-label {
+label, p.label {
     display: block;
     font-weight: 500;
     margin-bottom: 5px;

@@ -2800,7 +2800,7 @@ function renderNestedObjectFields(serviceName, sectionName, obj, fullPath, depth
 }
 
 function renderArrayField(serviceName, fullPath, arr, fieldId, label, depth) {
-  let html = `<div class="form-group"><label>${label}</label><div class="nested-object">`;
+  let html = `<div class="form-group"><p class="label">${label}</p><div class="nested-object">`;
   
   arr.forEach((item, index) => {
     const newPath = `${fullPath}[${index}]`;
@@ -2900,7 +2900,7 @@ function renderSubdomainSection(serviceName, subdomain) {
           <div class="hint">Used for /protected folder in dirlist services</div>
         </div>
         <div class="form-group form-group-no-margin proxy-field" data-service="${serviceName}">
-          <label>Proxy Options</label>
+          <p class="label">Proxy Options</p>
           <div class="nested-object">
             <div class="checkbox-item">
               <input type="checkbox" id="proxy_socket_${serviceName}" ${(subdomain.proxy && subdomain.proxy.socket) ? 'checked' : ''} 
@@ -3060,7 +3060,7 @@ function renderHealthcheckSection(serviceName, healthcheck) {
 }
 
 function renderMetaSection(serviceName, meta) {
-  let html = '<div class="form-group form-group-no-margin"><label>Meta Data Defaults</label><div class="nested-object">';
+  let html = '<div class="form-group form-group-no-margin"><p class="label">Meta Data Defaults</p><div class="nested-object">';
   
   const allMetaFields = [
     {key: 'tag', type: 'text', extractorDependent: true},
