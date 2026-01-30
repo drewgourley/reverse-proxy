@@ -338,7 +338,7 @@ const initApplication = async () => {
       }
       
       let target = services.find((name) => {
-        return `${name}.${config.domain}` === host;
+        return `${name}.${config.domain}` === host && config.services[name].subdomain;
       });
       
       if (request.url.includes('.well-known')) {
