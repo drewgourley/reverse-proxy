@@ -908,7 +908,7 @@ input[type="checkbox"] {
     }
 }
 
-.secret-entry label, .domain-entry label {
+.secret-entry label, .domain-entry label, .app-entry label, .blocklist-entry label {
     font-weight: 600;
     color: var(--color-text-primary);
 }
