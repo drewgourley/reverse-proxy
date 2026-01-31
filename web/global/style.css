@@ -50,6 +50,7 @@ table {
   --color-inverse: #b84878;
   --color-text: #000000;
   --color-muted: rgba(17,24,39,0.4);
+  --pip-happy: #48bb78;
   --pip-danger: #e53e3e;
   --pip-loading: #ed8936;
   --focus-border: rgba(117, 19, 248, 0.6);

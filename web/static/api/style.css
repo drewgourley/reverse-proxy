@@ -40,7 +40,7 @@ button:focus, button:hover, button:active {
 .pip.loading:before {
   background:var(--pip-loading);
 }.pip.healthy:before {
-  background:var(--color-accent);
+  background:var(--pip-happy);
 } 
 .pip .name {
   font-weight:800;
