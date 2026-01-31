@@ -207,7 +207,6 @@ async function applyColors() {
   root.style.setProperty('--color-text-alternate', getTextColor(colors.primary));
 
   // Compute inverted vignette color based on background luminance
-  // Use a dark vignette for light backgrounds and a light vignette for dark backgrounds
   const bgLuminance = getLuminance(colors.background);
   const invRgb = bgLuminance > 0.5 ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
   root.style.setProperty('--color-background-vignette', `rgb(${invRgb.r},${invRgb.g},${invRgb.b})`);
