@@ -59,7 +59,6 @@ table {
   --color-notification-text: #000000;
   --color-background-vignette: #000000;
   --color-background-vignette-rgb: 0,0,0;
-  /* contrast colors for text placed on vibrant backgrounds */
   --color-text-alternate: #ffffff;
   --color-text-alternate-rgb: 255,255,255;
 } 

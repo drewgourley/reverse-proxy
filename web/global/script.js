@@ -191,6 +191,11 @@ async function applyColors() {
   root.style.setProperty('--color-text', textColor);
   root.style.setProperty('--bg-rgb', `${bgRgb.r},${bgRgb.g},${bgRgb.b}`);
   root.style.setProperty('--color-text-rgb', `${textRgb.r},${textRgb.g},${textRgb.b}`);
+  root.style.setProperty('--radio-color-1', colors.primary);
+  root.style.setProperty('--radio-color-2', colors.secondary);
+  root.style.setProperty('--radio-color-3', colors.accent);
+  root.style.setProperty('--radio-color-4', colors.secondary);
+  root.style.setProperty('--radio-color-5', colors.primary);
 
   // Muted color based on text luminance for inputs/secondary elements
   const muted = getLuminance(textColor) > 0.5 ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.6)';
@@ -200,11 +205,11 @@ async function applyColors() {
   const notificationText = getTextColor(colors.primary);
   root.style.setProperty('--color-notification-text', notificationText);
 
-  // Text contrast colors for vibrant backgrounds
-  root.style.setProperty('--color-text-on-primary', getTextColor(colors.primary));
-  root.style.setProperty('--color-text-on-secondary', getTextColor(colors.secondary));
-  // Default alternate text color — use primary contrast by default
-  root.style.setProperty('--color-text-alternate', getTextColor(colors.primary));
+  // Text contrast color for vibrant backgrounds
+  const textOnPrimary = getTextColor(colors.primary);
+  const textOnPrimaryRgb = hexToRgb(textOnPrimary);
+  root.style.setProperty('--color-text-alternate', textOnPrimary);
+  root.style.setProperty('--color-text-alternate-rgb', `${textOnPrimaryRgb.r},${textOnPrimaryRgb.g},${textOnPrimaryRgb.b}`);
 
   // Compute inverted vignette color based on background luminance
   const bgLuminance = getLuminance(colors.background);

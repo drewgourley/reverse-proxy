@@ -28,43 +28,13 @@ const requestNewColors = () => {
   if ($style) $style.remove();
   pointers.palette = randomIndex(colorbank, pointers.palette);
   colors = colorbank[pointers.palette].palette;
-  document.head.insertAdjacentHTML('beforeend', 
-`<style id="style" type="text/css">
-  .stripes {
-    background:${colors[2]}!important;
+  const root = document.documentElement;
+  root.style.setProperty('--color-primary', colors[3]);
+  root.style.setProperty('--color-secondary', colors[1]);
+  root.style.setProperty('--color-accent', colors[2]);
+  for (let i = 1; i <= 5; i++) {
+    root.style.setProperty(`--radio-color-${i}`, colors[i - 1]);
   }
-  .stripes:before {
-    background:${colors[3]}!important;
-  }
-  .stripes:after {
-    background:${colors[4]}!important;
-  }
-  .notification p,.tooltip p {
-    background:${colors[0]};
-  }  
-  .heading h1:hover .color-review.color-1 {
-    color:${colors[0]};
-  }
-  .heading h1:hover .color-review.color-2 {
-    color:${colors[1]};
-  }
-  .heading h1:hover .color-review.color-3 {
-    color:${colors[2]};
-  }
-  .heading h1:hover .color-review.color-4 {
-    color:${colors[3]};
-  }
-  .heading h1:hover .color-review.color-5 {
-    color:${colors[4]};
-  }
-  button:focus, button:hover, button:active {
-    background:${colors[0]};
-  }
-  audio::-webkit-media-controls-panel {
-    background:${colors[0]};
-  }
-</style>`
-  );
   setupAnimations();
 };
 
@@ -561,8 +531,10 @@ const trashColors = () => {
     $lock.disabled = true;
     lockColors();
   }
-  colorbank.splice(pointers.palette, 1);
-  pointers.palette = -1;
+  if (pointers.palette > -1) {
+    colorbank.splice(pointers.palette, 1);
+    pointers.palette = -1;
+  }
   requestNewColors();
   notify('Color palette removed.', 'info')
 };
@@ -661,7 +633,7 @@ const init = async () => {
   $player.addEventListener('ended', handleStreamEnd);
   $player.addEventListener('pause', handleStreamEnd);
   
-  requestNewColors();
+  setupAnimations();
   runIntroAnimations();
 };
 

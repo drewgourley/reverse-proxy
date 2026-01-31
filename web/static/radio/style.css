@@ -1,23 +1,24 @@
-button:focus, button:hover, button:active {
-  background:var(--color-background);
-} 
+:root {
+  --radio-color-1: #ff6b6b;
+  --radio-color-2: #f7d794;
+  --radio-color-3: #1dd1a1;
+  --radio-color-4: #54a0ff;
+  --radio-color-5: #5f27cd;
+}
 audio {
   margin:0 25px 20px 0;
 }
 audio::-webkit-media-controls-panel {
-  background:var(--color-background);
+  background:var(--color-secondary);
   transition:background 300ms linear;
-} 
+}
 .stripes {
-  background:var(--color-background);
   transition:right 2s ease-in-out, background 300ms linear;
 }
 .stripes:before {
-  background: rgba(var(--color-text-rgb),0.4);
   transition:background 300ms linear;
 }
 .stripes:after {
-  background: rgba(var(--color-text-rgb),0.2);
   transition:background 300ms linear;
 } 
 .background {
@@ -29,8 +30,8 @@ audio::-webkit-media-controls-panel {
   z-index:1;
 }
 .notification p,.tooltip p {
-  background:var(--color-background);
-  color:var(--color-notification-text);
+  background:var(--color-primary);
+  color:var(--color-text-alternate);
 } 
 .heading, .content {
   position:relative;
@@ -45,19 +46,19 @@ audio::-webkit-media-controls-panel {
   margin:0 0 -0.4em;
 }
 .heading h1:hover .color-review.color-1 {
-  color:var(--color-background);
+  color:var(--radio-color-1);
 }
 .heading h1:hover .color-review.color-2 {
-  color:var(--color-background);
+  color:var(--radio-color-2);
 }
 .heading h1:hover .color-review.color-3 {
-  color:var(--color-background);
+  color:var(--radio-color-3);
 }
 .heading h1:hover .color-review.color-4 {
-  color:var(--color-background);
+  color:var(--radio-color-4);
 }
 .heading h1:hover .color-review.color-5 {
-  color:var(--color-background);
+  color:var(--radio-color-5);
 } 
 .content article {
   display:flex;
