@@ -1,3 +1,8 @@
+:root {
+  --pip-happy: #48bb78;
+  --pip-danger: #e53e3e;
+  --pip-loading: #ed8936;
+}
 section {
   align-items:flex-start;
 }
@@ -35,7 +40,7 @@ button:focus, button:hover, button:active {
   top:0;
   left:0;
   z-index:2;
-  background:linear-gradient(180deg, rgba(var(--bg-rgb),0) 0%, rgba(var(--bg-rgb),0.4) 100%);
+  background:linear-gradient(180deg, rgba(var(--color-bg-rgb),0) 0%, rgba(var(--color-bg-rgb),0.4) 100%);
 } 
 .pip.loading:before {
   background:var(--pip-loading);
@@ -88,7 +93,7 @@ form:hover input, form:focus-within input {
   color:var(--color-text);
 }
 form input:focus {
-  border:2px solid var(--focus-border);
+  border:2px solid var(--color-focus-border);
 }
 form:hover button, form:focus-within button {
   background:var(--color-secondary);

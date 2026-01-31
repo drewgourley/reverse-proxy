@@ -178,6 +178,7 @@ async function applyColors() {
   const textColor = getTextColor(colors.background);
 
   // Get RGB values for gradients
+  const primaryRgb = hexToRgb(colors.primary);
   const bgRgb = hexToRgb(colors.background);
   const textRgb = hexToRgb(textColor);
 
@@ -187,10 +188,11 @@ async function applyColors() {
   root.style.setProperty('--color-secondary', colors.secondary);
   root.style.setProperty('--color-accent', colors.accent);
   root.style.setProperty('--color-background', colors.background);
+  root.style.setProperty('--color-bg-rgb', `${bgRgb.r},${bgRgb.g},${bgRgb.b}`);
   root.style.setProperty('--color-inverse', colors.inverse || '');
   root.style.setProperty('--color-text', textColor);
-  root.style.setProperty('--bg-rgb', `${bgRgb.r},${bgRgb.g},${bgRgb.b}`);
   root.style.setProperty('--color-text-rgb', `${textRgb.r},${textRgb.g},${textRgb.b}`);
+  root.style.setProperty('--color-focus-border', `rgba(${primaryRgb.r},${primaryRgb.g},${primaryRgb.b},0.6)`);
   root.style.setProperty('--radio-color-1', colors.primary);
   root.style.setProperty('--radio-color-2', colors.secondary);
   root.style.setProperty('--radio-color-3', colors.accent);
@@ -214,8 +216,8 @@ async function applyColors() {
   // Compute inverted vignette color based on background luminance
   const bgLuminance = getLuminance(colors.background);
   const invRgb = bgLuminance > 0.5 ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
-  root.style.setProperty('--color-background-vignette', `rgb(${invRgb.r},${invRgb.g},${invRgb.b})`);
-  root.style.setProperty('--color-background-vignette-rgb', `${invRgb.r},${invRgb.g},${invRgb.b}`);
+  root.style.setProperty('--color-bg-vignette', `rgb(${invRgb.r},${invRgb.g},${invRgb.b})`);
+  root.style.setProperty('--color-bg-vignette-rgb', `${invRgb.r},${invRgb.g},${invRgb.b}`);
 }
 
 async function setupTitles() {
