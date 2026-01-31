@@ -1,25 +1,25 @@
 button:focus, button:hover, button:active {
-  background:#fff;
-}
+  background:var(--color-background);
+} 
 audio {
   margin:0 25px 20px 0;
 }
 audio::-webkit-media-controls-panel {
-  background:#fff;
+  background:var(--color-background);
   transition:background 300ms linear;
-}
+} 
 .stripes {
-  background:#fff;
+  background:var(--color-background);
   transition:right 2s ease-in-out, background 300ms linear;
 }
 .stripes:before {
-  background:#666;
+  background: rgba(var(--color-text-rgb),0.4);
   transition:background 300ms linear;
 }
 .stripes:after {
-  background:#aaa;
+  background: rgba(var(--color-text-rgb),0.2);
   transition:background 300ms linear;
-}
+} 
 .background {
   position:absolute;
   bottom:0;
@@ -29,8 +29,9 @@ audio::-webkit-media-controls-panel {
   z-index:1;
 }
 .notification p,.tooltip p {
-  background:#fff;
-}
+  background:var(--color-background);
+  color:var(--color-notification-text);
+} 
 .heading, .content {
   position:relative;
   transition:left 2s ease-in-out;
@@ -44,20 +45,20 @@ audio::-webkit-media-controls-panel {
   margin:0 0 -0.4em;
 }
 .heading h1:hover .color-review.color-1 {
-  color:#fff;
+  color:var(--color-background);
 }
 .heading h1:hover .color-review.color-2 {
-  color:#fff;
+  color:var(--color-background);
 }
 .heading h1:hover .color-review.color-3 {
-  color:#fff;
+  color:var(--color-background);
 }
 .heading h1:hover .color-review.color-4 {
-  color:#fff;
+  color:var(--color-background);
 }
 .heading h1:hover .color-review.color-5 {
-  color:#fff;
-}
+  color:var(--color-background);
+} 
 .content article {
   display:flex;
   justify-content:flex-start;
@@ -72,11 +73,15 @@ audio::-webkit-media-controls-panel {
   right:24px;
   z-index:3;
   transition:right 2s ease-in-out, background 300ms linear, color 300ms linear;
+  color:rgba(var(--color-text-alternate-rgb),0.4);
+}
+#fullscreen:hover {
+  color:var(--color-text-alternate);
 }
 #palette, #lock, #trash, #transition {
   margin:0 25px 20px 0;
-  color:#111827;
-}
+  color:var(--color-text);
+} 
 #palette .icon, #lock .icon, #trash .icon, #transition .icon {
   color:inherit;
 }

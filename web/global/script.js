@@ -29,13 +29,7 @@ async function getColors() {
   } catch (error) {
     console.error('Error fetching colors:', error);
     // Return defaults if fetch fails
-    return {
-      primary: '#667eea',
-      secondary: '#764ba2',
-      accent: '#48bb78',
-      background: '#ffffff',
-      inverse: '#b84878'
-    };
+    return;
   }
 }
 
@@ -150,11 +144,16 @@ if ($tooltips && !isMobile) {
 }
 
 function hexToRgb(hex) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  if (!hex) return { r: 0, g: 0, b: 0 };
+  let h = hex.replace('#', '');
+  if (h.length === 3) {
+    h = h.split('').map(ch => ch + ch).join('');
+  }
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
   return { r, g, b };
-}
+} 
 
 function getLuminance(hex) {
   const rgb = hexToRgb(hex);
@@ -174,69 +173,45 @@ function getTextColor(bgColor) {
 async function applyColors() {
   const colors = await getColors();
 
+  if (!colors) return;
   // Calculate text color based on background
   const textColor = getTextColor(colors.background);
-  
-  // Apply background color to both html and body
-  document.documentElement.style.background = colors.background;
-  document.body.style.background = colors.background;
-  document.body.style.color = textColor;
-  
-  // Get RGB values for contrasting gradient
+
+  // Get RGB values for gradients
   const bgRgb = hexToRgb(colors.background);
   const textRgb = hexToRgb(textColor);
 
-  // Apply radial gradient to main element
-  const main = document.querySelector('main');
-  if (main) {
-    main.style.background = `radial-gradient(circle, rgba(${textRgb.r},${textRgb.g},${textRgb.b},0) 50%, rgba(${textRgb.r},${textRgb.g},${textRgb.b},0.05) 100%)`;
-  }
-  
-  // Apply colors to stripes
-  const stripes = document.querySelector('.stripes');
-  if (stripes) {
-    const styleId = 'dynamic-stripe-colors';
-    let styleElement = document.getElementById(styleId);
-    
-    if (!styleElement) {
-      styleElement = document.createElement('style');
-      styleElement.id = styleId;
-      document.head.appendChild(styleElement);
-    }
-    
-    styleElement.textContent = `
-      body {
-        color: ${textColor} !important;
-      }
-      body * {
-        color: ${textColor};
-      }
-      .stripes {
-        background: ${colors.primary};
-      }
-      .stripes:before {
-        background: ${colors.accent};
-      }
-      .stripes:after {
-        background: ${colors.secondary};
-      }
-      a, a.link, a.link .name {
-        color: ${colors.primary} !important;
-      }
-      a:hover, a.link:hover, a.link:hover .name {
-        color: ${colors.secondary} !important;
-      }
-      .pip:after {
-        background: linear-gradient(180deg, rgba(${bgRgb.r},${bgRgb.g},${bgRgb.b},0) 0%, rgba(${bgRgb.r},${bgRgb.g},${bgRgb.b},0.4) 100%) !important;
-      }
-      #palette .icon,
-      #trash .icon,
-      #lock .icon,
-      #transition .icon {
-        color: ${textColor};
-      }
-    `;
-  }
+  // Update CSS variables on :root so styles react automatically
+  const root = document.documentElement;
+  root.style.setProperty('--color-primary', colors.primary);
+  root.style.setProperty('--color-secondary', colors.secondary);
+  root.style.setProperty('--color-accent', colors.accent);
+  root.style.setProperty('--color-background', colors.background);
+  root.style.setProperty('--color-inverse', colors.inverse || '');
+  root.style.setProperty('--color-text', textColor);
+  root.style.setProperty('--bg-rgb', `${bgRgb.r},${bgRgb.g},${bgRgb.b}`);
+  root.style.setProperty('--color-text-rgb', `${textRgb.r},${textRgb.g},${textRgb.b}`);
+
+  // Muted color based on text luminance for inputs/secondary elements
+  const muted = getLuminance(textColor) > 0.5 ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.6)';
+  root.style.setProperty('--color-muted', muted);
+
+  // Notification text should contrast with primary color
+  const notificationText = getTextColor(colors.primary);
+  root.style.setProperty('--color-notification-text', notificationText);
+
+  // Text contrast colors for vibrant backgrounds
+  root.style.setProperty('--color-text-on-primary', getTextColor(colors.primary));
+  root.style.setProperty('--color-text-on-secondary', getTextColor(colors.secondary));
+  // Default alternate text color — use primary contrast by default
+  root.style.setProperty('--color-text-alternate', getTextColor(colors.primary));
+
+  // Compute inverted vignette color based on background luminance
+  // Use a dark vignette for light backgrounds and a light vignette for dark backgrounds
+  const bgLuminance = getLuminance(colors.background);
+  const invRgb = bgLuminance > 0.5 ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
+  root.style.setProperty('--color-background-vignette', `rgb(${invRgb.r},${invRgb.g},${invRgb.b})`);
+  root.style.setProperty('--color-background-vignette-rgb', `${invRgb.r},${invRgb.g},${invRgb.b}`);
 }
 
 async function setupTitles() {
