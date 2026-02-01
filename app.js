@@ -277,8 +277,7 @@ const initApplication = async () => {
 
   const application = express();
 
-  // API session TTL for login sessions (4 hours)
-  // Todo: Implement connect-redis or similar for production use
+  // API session TTL for login sessions
   const API_SESSION_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
 
   if (config.services) {
