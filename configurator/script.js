@@ -3339,29 +3339,6 @@ function addNewService() {
   );
 }
 
-function mapChecklist(config) {
-  const checklist = [];
-  if (config.services) {
-    Object.entries(config.services).forEach(([name, service]) => {
-      if (service.healthcheck && service.healthcheck.platform) {
-        const item = { 
-          name, 
-          polltime: service.healthcheck.pollrate ? service.healthcheck.pollrate*1000 : 30000, 
-          platform: service.healthcheck.platform
-        };
-        if (service.nicename) {
-          item.nicename = service.nicename;
-        }
-        checklist.push(item);
-      } else if (service.nicename) {
-        const item = { name, nicename: service.nicename };
-        checklist.push(item);
-      }
-    });
-  }
-  return checklist;
-}          
-
 async function saveConfig() {
   const saveBtn = document.getElementById('saveBtn');
   saveBtn.disabled = true;
@@ -3397,21 +3374,6 @@ async function saveConfig() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(cleanedConfig)
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error);
-    }
-
-    const checklist = mapChecklist(configToSave);
-    
-    response = await fetch('checks', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(checklist)
     });
 
     if (!response.ok) {

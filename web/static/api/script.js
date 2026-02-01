@@ -99,7 +99,7 @@ function parseData(service, data) {
 
 async function getServices() {
   try {
-    const response = await fetch(`/global/services.json`);
+    const response = await fetch(`/checklist`);
     if (!response.ok) {
       throw new Error(response.statusText);
     }

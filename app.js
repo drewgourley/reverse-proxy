@@ -370,6 +370,19 @@ const initApplication = async () => {
 
           if (name === 'api') {
             config.services[name].subdomain.router.use(express.json());
+            // create open service data route
+            config.services[name].subdomain.router.get('/service/:id', (req, res) => {
+              const origin = req.headers.origin;
+              if (origin && origin.match(new RegExp(`^https?://([a-zA-Z0-9-]+\\.)?${config.domain.replace('.', '\\.')}$`))) {
+                res.setHeader('Access-Control-Allow-Origin', origin);
+                res.setHeader('Access-Control-Allow-Methods', 'GET');
+                res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+              }
+              const id = req.params?.id;
+              let serviceData = { name: id, nicename: config.services[id]?.nicename || '' };
+              res.json(serviceData);
+            });
+            // create login/logout routes if configured
             if (secrets.admin_email_address && secrets.api_password_hash) {
               config.services[name].subdomain.router.get('/login', (req, res) => {
                 res.sendFile(path.join(__dirname, 'web', 'public', 'api', 'login', 'index.html'));
@@ -463,7 +476,29 @@ const initApplication = async () => {
               };
               config.services[name].subdomain.router.use(apiAuth);
             }
-            
+
+            // create checklist route
+            config.services[name].subdomain.router.get('/checklist', (req, res) => {
+              const checklist = [];
+              Object.entries(config.services).forEach(([serviceID, service]) => {
+                if (service.healthcheck && service.healthcheck.platform) {
+                  const item = { 
+                    name: serviceID, 
+                    polltime: service.healthcheck.pollrate ? service.healthcheck.pollrate*1000 : 30000, 
+                    platform: service.healthcheck.platform
+                  };
+                  if (service.nicename) {
+                    item.nicename = service.nicename;
+                  }
+                  checklist.push(item);
+                } else if (service.nicename) {
+                  const item = { name: serviceID, nicename: service.nicename };
+                  checklist.push(item);
+                }
+              });
+              res.json(checklist);
+            });
+
             // create health check routes
             Object.keys(config.services).forEach(healthname => {
               if (config.services[healthname].healthcheck) {
@@ -854,19 +889,6 @@ manrouter.put('/config', (request, response) => {
 
     const configPath = path.join(__dirname, 'config.json');
     saveConfigAndRestart(configPath, updatedConfig, 'Config updated successfully', response);
-  } catch (error) {
-    sendError(response, 500, error);
-  }
-});
-
-manrouter.put('/checks', (request, response) => {
-  try {
-    const updatedConfig = request.body;
-    
-    const configPath = path.join(__dirname, 'web', 'global', 'services.json');
-    fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2));
-    
-    response.status(200).send({ success: true, message: 'Healthcheck list updated successfully' });
   } catch (error) {
     sendError(response, 500, error);
   }

@@ -6,14 +6,43 @@ const tipdelay = 1000;
 const debdelay = 100;
 const bigdelay = 5000;
 
+const globalColors = {
+  _data: null,
+  _subscribers: [],
+  
+  get data() {
+    return this._data;
+  },
+  
+  set data(value) {
+    this._data = value;
+    this._notify();
+  },
+  
+  subscribe(callback) {
+    this._subscribers.push(callback);
+    if (this._data) {
+      callback(this._data);
+    }
+    return () => {
+      this._subscribers = this._subscribers.filter(cb => cb !== callback);
+    };
+  },
+  
+  _notify() {
+    this._subscribers.forEach(callback => callback(this._data));
+  }
+};
+
 async function getServiceData(name = 'www') {
+  const domain = window.location.hostname.split('.').slice(-2).join('.');
   try {
-    const response = await fetch(`/global/services.json`);
+    const response = await fetch(`//api.${domain}/service/${name}`);
     if (!response.ok) {
       throw new Error(response.statusText);
     }
     const data = await response.json();
-    return data.find(service => service.name === name);
+    return data;
   } catch (error) {
     console.error('Error fetching JSON:', error);
   }
@@ -174,6 +203,10 @@ async function applyColors() {
   const colors = await getColors();
 
   if (!colors) return;
+  
+  // Update subscribable globalColors
+  globalColors.data = colors;
+  
   // Calculate text color based on background
   const textColor = getTextColor(colors.background);
 
