@@ -2838,10 +2838,11 @@ function renderDefaultSubdomainSection(serviceName, subdomain) {
           <label for="subdomain_type_${serviceName}">Type</label>
           <select id="subdomain_type_${serviceName}" disabled>
             <option value="index" ${subdomain.type === 'index' ? 'selected' : ''}>Index</option>
+            <option value="spa" ${subdomain.type === 'spa' ? 'selected' : ''}>Single-Page Webapp</option>
             <option value="dirlist" ${subdomain.type === 'dirlist' ? 'selected' : ''}>Directory List</option>
             <option value="proxy" ${subdomain.type === 'proxy' ? 'selected' : ''}>Proxy</option>
           </select>
-          <div class="hint">Type of service (index = static files, dirlist = directory listing, proxy = reverse proxy)</div>
+          <div class="hint">Type of service (index = static files, spa = single-page webapp, dirlist = directory listing, proxy = reverse proxy)</div>
         </div>
         <div class="form-group">
           <label for="subdomain_protocol_${serviceName}">Protocol</label>
@@ -2866,10 +2867,11 @@ function renderSubdomainSection(serviceName, subdomain) {
           <label for="subdomain_type_${serviceName}">Type</label>
           <select id="subdomain_type_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'subdomain.type', this.value); toggleFieldVisibility('${serviceName}')">
             <option value="index" ${subdomain.type === 'index' ? 'selected' : ''}>Index</option>
+            <option value="spa" ${subdomain.type === 'spa' ? 'selected' : ''}>Single-Page Webapp</option>
             <option value="dirlist" ${subdomain.type === 'dirlist' ? 'selected' : ''}>Directory List</option>
             <option value="proxy" ${subdomain.type === 'proxy' ? 'selected' : ''}>Proxy</option>
           </select>
-          <div class="hint">Type of service (index = static files, dirlist = directory listing, proxy = reverse proxy)</div>
+          <div class="hint">Type of service (index = static files, spa = single-page webapp, dirlist = directory listing, proxy = reverse proxy)</div>
         </div>
         <div class="form-group">
           <label for="subdomain_protocol_${serviceName}">Protocol</label>
@@ -3194,9 +3196,9 @@ function toggleFieldVisibility(serviceName) {
     }
   });
   
-  // Proxy fields: hide for dirlist, show for index and proxy
+  // Proxy fields: hide for dirlist and spa, show for index and proxy
   proxyFields.forEach(field => {
-    if (selectedType === 'dirlist') {
+    if (selectedType === 'dirlist' || selectedType === 'spa') {
       field.classList.add('form-group-hidden');
     } else {
       field.classList.remove('form-group-hidden');

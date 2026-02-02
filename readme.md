@@ -121,3 +121,31 @@ You can protect the API web page (/web/public/api/) with authentication by setti
   - Protocol (HTTP/HTTPS)
   - Proxy targets
   - Health checks
+### Service Types
+
+The reverse proxy supports different service types for different use cases:
+
+#### `proxy`
+Proxies requests to another service running on a different port or server.
+- Use for: Backend APIs, other web services
+- Example: Proxying to a service running on `192.168.1.100:3000`
+
+#### `index`
+Serves static files with an `index.html` file.
+- Use for: Traditional static websites
+- Serves files from `web/public/{servicename}/`
+- Returns `404.html` for non-existent routes
+
+#### `spa` (Single-Page Webapp)
+Optimized for modern JavaScript frameworks like React, Angular, Vue.js, etc.
+- Use for: Single Page Applications with client-side routing
+- Serves files from `web/public/{servicename}/`
+- All non-file routes return `index.html` to support client-side routing
+- Optimized caching:
+  - HTML files: No caching (always fetch fresh)
+  - Static assets (JS, CSS, images): Cached for 1 year with immutable flag
+
+#### `dirlist`
+Serves a directory listing with optional basic authentication.
+- Use for: File browsers, download directories
+- Supports basic authentication for protected directories

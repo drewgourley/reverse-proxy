@@ -1,23 +1,58 @@
-.env
+# Ignore generated/runtime files from configurator
 ecosystem.config.js
-node_modules
-_graveyard
 advanced.json
 blocklist.json
 secrets.json
 ddns.json
 certs.json
 config.json
-web/global/services.json
-web/global/colors.json
-web/global/favicon/*
-!web/global/favicon/favicon.md
-web/public/doom
-web/public/doom/*
+
+# Ignore everything in web/public by default (user-specific content)
+web/public/*
+
+# Allow the template/example files that are part of the repo
+!web/public/401.html
+!web/public/404.html
+!web/public/api/
+!web/public/radio/
+!web/public/www/
+
+# Ignore subfolders in api directory
+web/public/api/*
+!web/public/api/index.html
+
+# Ignore subfolders in radio directory
+web/public/radio/*
+!web/public/radio/index.html
+
+# Ignore subfolders in www directory
 web/public/www/*
 !web/public/www/index.html
 !web/public/www/robots.txt
 
+# Ignore everything in web/global by default
+web/global/*
+
+# Allow specific files/folders in web/global
+!web/global/script.js
+!web/global/style.css
+!web/global/fonts/
+!web/global/favicon/
+
+# Ignore generated/runtime files in web/global
+web/global/colors.json
+web/global/favicon/*
+!web/global/favicon/favicon.md
+
+# Ignore everything in web/static by default
+web/static/*
+
+# Allow specific folders in web/static
+!web/static/api/
+!web/static/radio/
+!web/static/www/
+
+.env
 .DS_Store
 .DS_Store?
 ._*
@@ -25,3 +60,5 @@ web/public/www/*
 .Trashes
 ehthumbs.db
 Thumbs.db
+node_modules
+_graveyard

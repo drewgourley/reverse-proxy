@@ -562,6 +562,27 @@ const initApplication = async () => {
             config.services[name].subdomain.router.use('/protected', authMiddleware);
           }
           config.services[name].subdomain.router.use('/', express.static(path.join(__dirname, 'web', 'public', name)), serveIndex(path.join(__dirname, 'web', 'public', name)));
+        } else if (config.services[name].subdomain.type === 'spa') {
+          // Serve static files from the public directory
+          config.services[name].subdomain.router.use(express.static(path.join(__dirname, 'web', 'public', name), {
+            maxAge: '1y', // Cache static assets for 1 year
+            etag: true,
+            lastModified: true,
+            setHeaders: (res, filepath) => {
+              // Set appropriate cache control headers
+              if (filepath.endsWith('.html')) {
+                // Don't cache HTML files (especially index.html)
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+              } else if (filepath.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+                // Cache other static assets
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+              }
+            }
+          }));
+          // SPA fallback - all non-file routes return index.html for client-side routing
+          config.services[name].subdomain.router.get('*', (request, response) => {
+            response.sendFile(path.join(__dirname, 'web', 'public', name, 'index.html'));
+          });
         }
         application.use(subdomain(name, config.services[name].subdomain.router));
       }
