@@ -441,6 +441,7 @@ const initApplication = async () => {
             config.services[name].subdomain.router.get('/login', (req, res) => {
               res.sendFile(path.join(__dirname, 'web', 'global', 'login', 'index.html'));
             });
+            config.services[name].subdomain.router.use('/login', express.static(path.join(__dirname, 'web', 'global', 'login')));
 
             config.services[name].subdomain.router.use(session({
               store: getRedisStore(serviceName),
@@ -466,7 +467,10 @@ const initApplication = async () => {
                 req.session.authenticated = true;
                 req.session.username = result.username;
                 req.session.cookie.maxAge = API_SESSION_TTL;
-                res.send({ success: true });
+                req.session.save((err) => {
+                  if (err) return res.status(500).send({ success: false, error: 'Session save failed' });
+                  res.send({ success: true });
+                });
               } catch (error) {
                 res.status(500).send({ success: false, error: error.message });
               }
@@ -760,7 +764,10 @@ const initApplication = async () => {
                 req.session.authenticated = true;
                 req.session.username = result.username;
                 req.session.cookie.maxAge = API_SESSION_TTL;
-                res.send({ success: true });
+                req.session.save((err) => {
+                  if (err) return res.status(500).send({ success: false, error: 'Session save failed' });
+                  res.send({ success: true });
+                });
               } catch (error) {
                 res.status(500).send({ success: false, error: error.message });
               }
