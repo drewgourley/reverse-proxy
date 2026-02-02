@@ -298,10 +298,14 @@ const initApplication = async () => {
     // Admin always has access to all services
     if (username === secrets.admin_email_address) return true;
     // Check users.json for service access
-    const user = users.users?.find(u => u.username === username);
-    if (!user) return false;
-    if (user.services?.includes('*')) return true;
-    return user.services?.includes(serviceName) || false;
+    if (serviceName !== 'api') {
+      const user = users.users?.find(u => u.username === username);
+      if (!user) return false;
+      if (user.services?.includes('*')) return true;
+      return user.services?.includes(serviceName) || false;
+    } else {
+      return false;
+    }
   };
 
   // Helper to validate user credentials
