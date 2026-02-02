@@ -358,7 +358,7 @@ const initApplication = async () => {
     });
 
     // setup redirects for secure and insecure and remove www
-    application.set('trust proxy', true)
+    application.set('trust proxy', 'loopback')
     application.use((request, response, next) => {
       const services = Object.keys(config.services);
       const now = new Date().toISOString();
@@ -437,6 +437,7 @@ const initApplication = async () => {
             }
 
             const serviceName = name; // Capture for closure
+            const isSecure = config.services[name].subdomain.protocol === 'secure';
             config.services[name].subdomain.router.use(express.json());
             config.services[name].subdomain.router.get('/login', (req, res) => {
               res.sendFile(path.join(__dirname, 'web', 'global', 'login', 'index.html'));
@@ -449,10 +450,9 @@ const initApplication = async () => {
               secret: sessionSecret,
               resave: false,
               saveUninitialized: false,
-              proxy: (env === 'production'),
               cookie: {
-                httpOnly: true,
-                secure: (env === 'production'),
+                httpOnly: isSecure,
+                secure: isSecure,
                 sameSite: 'lax',
                 maxAge: API_SESSION_TTL,
                 path: '/',
@@ -735,6 +735,7 @@ const initApplication = async () => {
             }
 
             const serviceName = name; // Capture for closure
+            const isSecure = config.services[name].subdomain.protocol === 'secure';
             config.services[name].subdomain.router.use(express.json());
             config.services[name].subdomain.router.get('/login', (req, res) => {
               res.sendFile(path.join(__dirname, 'web', 'global', 'login', 'index.html'));
@@ -747,10 +748,9 @@ const initApplication = async () => {
               secret: sessionSecret,
               resave: false,
               saveUninitialized: false,
-              proxy: (env === 'production'),
               cookie: {
-                httpOnly: true,
-                secure: (env === 'production'),
+                httpOnly: isSecure,
+                secure: isSecure,
                 sameSite: 'lax',
                 maxAge: API_SESSION_TTL,
                 path: '/',
