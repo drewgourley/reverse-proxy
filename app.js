@@ -358,7 +358,7 @@ const initApplication = async () => {
     });
 
     // setup redirects for secure and insecure and remove www
-    application.set('trust proxy', 'loopback')
+    application.set('trust proxy', true)
     application.use((request, response, next) => {
       const services = Object.keys(config.services);
       const now = new Date().toISOString();
@@ -449,6 +449,7 @@ const initApplication = async () => {
               secret: sessionSecret,
               resave: false,
               saveUninitialized: false,
+              proxy: (env === 'production'),
               cookie: {
                 httpOnly: true,
                 secure: (env === 'production'),
@@ -746,6 +747,7 @@ const initApplication = async () => {
               secret: sessionSecret,
               resave: false,
               saveUninitialized: false,
+              proxy: (env === 'production'),
               cookie: {
                 httpOnly: true,
                 secure: (env === 'production'),
