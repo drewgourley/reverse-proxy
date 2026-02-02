@@ -352,7 +352,9 @@ const initApplication = async () => {
         } else if (target && config.services[target].subdomain.protocol === 'insecure' && request.secure) {
           return response.redirect(`${protocols.insecure}${host}${request.url}`);
         } else if (env !== 'development' && env !== 'test') {
-          if ((host === config.domain || config.services[target].subdomain.protocol === 'secure') && !request.secure) {
+          // Exempt CORS-enabled API endpoints from HTTPS redirect
+          const isCorsEndpoint = target === 'api' && request.url.startsWith('/service/');
+          if ((host === config.domain || config.services[target].subdomain.protocol === 'secure') && !request.secure && !isCorsEndpoint) {
             return response.redirect(`${protocols.secure}${host}${request.url}`);
           }
         }
