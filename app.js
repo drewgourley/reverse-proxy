@@ -442,7 +442,6 @@ const initApplication = async () => {
             config.services[name].subdomain.router.get('/login', (req, res) => {
               res.sendFile(path.join(__dirname, 'web', 'global', 'login', 'index.html'));
             });
-            config.services[name].subdomain.router.use('/login', express.static(path.join(__dirname, 'web', 'global', 'login')));
 
             config.services[name].subdomain.router.use(session({
               store: getRedisStore(serviceName),
@@ -740,7 +739,6 @@ const initApplication = async () => {
             config.services[name].subdomain.router.get('/login', (req, res) => {
               res.sendFile(path.join(__dirname, 'web', 'global', 'login', 'index.html'));
             });
-            config.services[name].subdomain.router.use('/login', express.static(path.join(__dirname, 'web', 'global', 'login')));
 
             config.services[name].subdomain.router.use(session({
               store: getRedisStore(serviceName),
