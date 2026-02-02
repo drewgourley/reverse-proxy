@@ -369,12 +369,22 @@ const initApplication = async () => {
 
           if (name === 'api') {
             config.services[name].subdomain.router.use(express.json());
-            // create open service data route
+            // create open service data route with CORS support
+            config.services[name].subdomain.router.options('/service/:id', (req, res) => {
+              const origin = req.headers.origin;
+              if (origin && origin.match(new RegExp(`^https?://([a-zA-Z0-9-]+\\.)?${config.domain.replace('.', '\\.')}$`))) {
+                res.setHeader('Access-Control-Allow-Origin', origin);
+                res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+                res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+                res.setHeader('Access-Control-Max-Age', '86400');
+              }
+              res.status(204).end();
+            });
             config.services[name].subdomain.router.get('/service/:id', (req, res) => {
               const origin = req.headers.origin;
               if (origin && origin.match(new RegExp(`^https?://([a-zA-Z0-9-]+\\.)?${config.domain.replace('.', '\\.')}$`))) {
                 res.setHeader('Access-Control-Allow-Origin', origin);
-                res.setHeader('Access-Control-Allow-Methods', 'GET');
+                res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
                 res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
               }
               const id = req.params?.id;
