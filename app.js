@@ -749,7 +749,7 @@ const initApplication = async () => {
               resave: false,
               saveUninitialized: false,
               cookie: {
-                httpOnly: isSecure,
+                httpOnly: true,
                 secure: isSecure,
                 sameSite: 'lax',
                 maxAge: API_SESSION_TTL,
