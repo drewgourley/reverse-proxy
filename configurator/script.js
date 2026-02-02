@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   renderServicesList();
   updateSidebarButtons();
+  renderPlaceholderEditor();
 
   const urlParams = new URLSearchParams(window.location.search);
   const justUpdated = urlParams.get('updated') === 'true';
@@ -135,6 +136,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.key === 'Escape') {
       closeConfirmModal();
       closePromptModal();
+    }
+  });
+  
+  // Listen for browser history navigation (back/forward buttons)
+  window.addEventListener('popstate', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const section = urlParams.get('section');
+    const type = urlParams.get('type');
+    
+    if (section) {
+      // Validate section and navigate to it
+      const validMonitorSections = ['monitor-logs', 'monitor-blocklist'];
+      const validManagementSections = ['management-application', 'management-secrets', 'management-users', 'management-theme', 'management-advanced'];
+      if (secrets.admin_email_address && secrets.admin_email_address.trim() !== '') {
+        validManagementSections.push('management-certificates');
+      }
+      if (config.domain && config.domain.trim() !== '') {
+        validManagementSections.push('management-ddns');
+      }
+      const validConfigSections = ['config-domain'];
+      const isValidMonitor = validMonitorSections.includes(section);
+      const isValidManagement = validManagementSections.includes(section);
+      const isValidConfig = validConfigSections.includes(section);
+      const isService = section.startsWith('config-') && config.services && config.services[section.replace('config-', '')];
+      
+      if (isValidManagement || isValidConfig || isService || isValidMonitor) {
+        selectItem(section, type, false);
+      }
+    } else {
+      // No section in URL, show default view
+      currentSelection = null;
+      renderPlaceholderEditor();
+      renderServicesList();
+      updateSidebarButtons();
     }
   });
   
@@ -2447,13 +2482,15 @@ function renderServicesList() {
   });
 }
 
-function selectItem(prefixedName, type) {
+function selectItem(prefixedName, type, pushState = true) {
   currentSelection = prefixedName;
   
-  const url = new URL(window.location);
-  url.searchParams.set('section', prefixedName);
-  url.searchParams.delete('type');
-  window.history.pushState({}, '', url);
+  if (pushState) {
+    const url = new URL(window.location);
+    url.searchParams.set('section', prefixedName);
+    url.searchParams.delete('type');
+    window.history.pushState({}, '', url);
+  }
 
   renderServicesList();
   updateSidebarButtons();
@@ -2477,11 +2514,13 @@ function selectItem(prefixedName, type) {
   } else if (prefixedName === 'management-advanced') {
     renderAdvancedEditor();
   } else if (prefixedName === 'monitor-logs') {
-    renderLogsViewer(type);
+    renderLogsViewer(type, pushState);
   } else if (prefixedName === 'monitor-blocklist') {
     renderBlocklistEditor();
   } else if (prefixedName.startsWith('config-')) {
     renderServiceEditor(itemName);
+  } else {
+    renderPlaceholderEditor();
   }
 
   if (prefixedName !== 'monitor-logs' && eventSource) {
@@ -2489,13 +2528,34 @@ function selectItem(prefixedName, type) {
   }
 }
 
-function renderLogsViewer(type = 'out') {
+function renderPlaceholderEditor(message = 'Select an item from the sidebar to view or edit its settings.', actionsHtml = '') {
+  const actions = document.getElementById('editorActions');
+  const panel = document.getElementById('editorPanel');
+  panel.classList.remove('scrollable');
+  panel.innerHTML = `
+    <div class="placeholder-message">
+      <p>${message}</p>
+    </div>
+  `;
+  if (!actionsHtml || actionsHtml.trim() === '') {
+    actions.classList.add('hidden');
+  } else {
+    actions.classList.remove('hidden');
+  }
+
+  actions.innerHTML = actionsHtml;
+}
+
+
+function renderLogsViewer(type = 'out', pushState = true) {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
   const url = new URL(window.location);
 
-  url.searchParams.set('type', type);
-  window.history.pushState({}, '', url);
+  if (pushState) {
+    url.searchParams.set('type', type);
+    window.history.pushState({}, '', url);
+  }
 
   actions.classList.add('hidden');
   panel.classList.remove('scrollable');
@@ -3634,24 +3694,13 @@ function removeService(serviceName) {
         url.searchParams.delete('section');
         window.history.pushState({}, '', url);
         
-        renderServicesList();
-        const actions = document.getElementById('editorActions');
-        const panel = document.getElementById('editorPanel');
-        
-        actions.classList.remove('hidden');
-        panel.classList.remove('scrollable');
-        
-        panel.innerHTML = `
-          <div class="placeholder-message">
-            <p>Service removed. Select another item to continue editing.</p>
-          </div>
-        `;
-
-        actions.innerHTML = `
+        const message = 'Service removed. Select another item to continue editing.';
+        const actions = `
           <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
           <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
-        `;
-
+        `
+        renderServicesList();
+        renderPlaceholderEditor(message, actions);
         showStatus(`Service "${serviceName}" removed`, 'success');
       }
     }
@@ -3831,18 +3880,8 @@ function resetEditor() {
       if (confirmed) {
         config = JSON.parse(JSON.stringify(originalConfig));
         currentSelection = null;
+        renderPlaceholderEditor('Changes discarded. Select an item to edit.');
         renderServicesList();
-        const actions = document.getElementById('editorActions');
-        const panel = document.getElementById('editorPanel');
-      
-        actions.classList.add('hidden');
-        panel.classList.remove('scrollable');
-
-        panel.innerHTML = `
-          <div class="placeholder-message">
-            <p>Changes discarded. Select an item to edit.</p>
-          </div>
-        `;
         showStatus('Changes discarded', 'success');
       }
     }
