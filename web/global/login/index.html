@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Login</title>
+    <!-- Critical CSS to prevent FOUC -->
+    <style>
+        html { background-color: #ffffff; }
+        body { visibility: hidden; }
+        html.ready body { visibility: visible; }
+    </style>
+    <link rel="stylesheet" href="/global/style.css">
+    <noscript><style>body { visibility: visible; }</style></noscript>
+    <link rel="apple-touch-icon" sizes="180x180" href="/global/favicon/apple-touch-icon.png">
+    <link rel="icon" href="/global/favicon/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="/global/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/global/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/global/favicon/site.webmanifest">
+    <link rel="mask-icon" href="/global/favicon/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#000000">  </head>
+  </head>
+  <body>
+    <main>
+      <div class="stripes"><div class="overlay"></div></div>
+      <section>
+        <div class="wrapper">
+          <div class="heading">
+            <header>
+              <h1 class="smallest"><em>Login</em></h1>
+              <h3>Required to View</h3>
+            </header>
+          </div>
+          <div class="content">
+            <article>
+              <form id="login">
+                <input id="username" placeholder="Username" autocomplete="username" />
+                <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+                <button id="submit">
+                  <span class="icon material-symbols-outlined">login</span>
+                </button>
+              </form>
+              <div id="message"></div>
+            </article>
+          </div>
+          <div class="footing">
+            <footer></footer>
+          </div>
+        </div>
+      </section>
+    </main>
+	  <script src="/global/script.js"></script>
+  </body>
+</html>

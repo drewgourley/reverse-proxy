@@ -54,69 +54,10 @@ button:focus, button:hover, button:active {
   font-size:16px;
   text-transform:lowercase;
 }
-form {
-  display:flex;
-  flex-direction:column;
-  position:relative;
-}
-form input {
-  height:30px;
-  padding:12px 28px;
-  margin:0 0 10px;
-  z-index:1;
-  outline:none;
-  line-height:30px;
-  font-size:24px;
-  display:block;
-  background:transparent;
-  border:2px solid rgba(var(--color-text-rgb),0.2);
-  color:var(--color-muted);
-  border-radius:28px;
-  transition:background 300ms ease, border 300ms ease, color 300ms ease;
-} 
-form input:last-of-type {
-  margin:0;
-  padding:12px 68px 12px 28px;
-}
-form button {
-  position:absolute;
-  bottom:2px;
-  right:2px;
-  z-index:2;
-}
-form.hide {
-  opacity:0;
-}
-form:hover input, form:focus-within input {
-  background:var(--color-background);
-  border:2px solid rgba(var(--color-text-rgb),0.1);
-  color:var(--color-text);
-}
-form input:focus {
-  border:2px solid var(--color-focus-border);
-}
-form:hover button, form:focus-within button {
-  background:var(--color-secondary);
-  color:#fff;
-}
-form button:hover {
-  background:var(--color-secondary);
-} 
 #logout {
   position:fixed;
   top:24px;
   right:24px;
   z-index:3;
   transition:right 2s ease-in-out, background 300ms linear, color 300ms linear;
-}
-#message {
-  margin-top:8px;
-  font-size:13px;
-  padding:0 0 0 28px;
-}
-#message.error {
-  color:var(--pip-danger);
-}
-#message.success {
-  color:var(--color-accent);
 }

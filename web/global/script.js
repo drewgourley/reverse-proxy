@@ -76,6 +76,74 @@ const debounce = (func, time = debdelay) => {
   };
 };
 
+async function redirectNext() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const nextParam = params.get('next') || '/';
+
+    const r = await fetch('/', { method: 'GET', credentials: 'same-origin' });
+    if (r.ok) {
+      window.location.href = nextParam;
+      return;
+    }
+  } catch (e) {
+    // do nothing
+  }
+};
+
+const initLogin = async () => {
+  const $submit = document.getElementById('submit');
+  const $message = document.getElementById('message');
+  if ($submit && $message) {
+    await redirectNext();
+    $submit.addEventListener('click', async (event) => {
+      event.preventDefault();
+      $message.textContent = '';
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) {
+        $message.textContent = 'Please enter username and password';
+        $message.className = 'msg error';
+        return;
+      }
+      $submit.disabled = true;
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const nextParam = params.get('next') || '/';
+
+        const res = await fetch('/login' + (nextParam ? `?next=${encodeURIComponent(nextParam)}` : ''), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+          credentials: 'same-origin'
+        });
+        if (res.ok) {
+          $message.textContent = 'Signed in — redirecting...';
+          $message.className = 'success';
+          window.location.href = nextParam;
+          return;
+        }
+        if (res.status === 401) {
+          $message.textContent = 'Invalid username or password';
+          $message.className = 'error';
+        } else {
+          const text = await res.text();
+          $message.textContent = text || 'Login failed';
+          $message.className = 'error';
+        }
+      } catch (e) {
+        $message.textContent = 'Network error';
+        $message.className = 'error';
+      } finally {
+        $submit.disabled = false;
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $submit.click();
+    });
+  }  
+}
+
 const initTooltips = () => {
   const $tippables = document.querySelectorAll('[title],[data-title]');
   $tippables.forEach(($tippable) => {
@@ -278,6 +346,7 @@ async function setupTitles() {
 async function globalInit() {
   await setupTitles();
   await applyColors();
+  await initLogin();
   document.documentElement.classList.add('ready');
 }
 

@@ -6,6 +6,7 @@ secrets.json
 ddns.json
 certs.json
 config.json
+users.json
 
 # Ignore everything in web/public by default (user-specific content)
 web/public/*
@@ -38,6 +39,7 @@ web/global/*
 !web/global/style.css
 !web/global/fonts/
 !web/global/favicon/
+!web/global/login/
 
 # Ignore generated/runtime files in web/global
 web/global/colors.json

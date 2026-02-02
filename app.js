@@ -53,6 +53,15 @@ try {
   console.warn('Secrets not configured');
 }
 
+// retrieve users
+let users;
+try {
+  users = require('./users.json');
+} catch (e) {
+  users = { users: [] };
+  console.warn('Users not configured');
+}
+
 // retrieve ddns
 let ddns;
 try {
@@ -266,14 +275,55 @@ const pingHealthcheck = async (name) => {
 // delcare application initializer
 const initApplication = async () => {
   let redisClient;
-  let redisStore;
+  const redisStores = {};
   try {
     redisClient = createClient({ url: 'redis://127.0.0.1:6379', socket: { connectTimeout: 1000 } });
     await redisClient.connect();
-    redisStore = new RedisStore({ client: redisClient, prefix: 'api-sessions:' });
   } catch (error) {
     console.warn('Redis unavailable, proceeding with in-memory session store.');
+    redisClient = null;
   }
+
+  // Helper to get or create a Redis store for a specific service
+  const getRedisStore = (serviceName) => {
+    if (!redisClient) return undefined;
+    if (!redisStores[serviceName]) {
+      redisStores[serviceName] = new RedisStore({ client: redisClient, prefix: `${serviceName}-sessions:` });
+    }
+    return redisStores[serviceName];
+  };
+
+  // Helper to check if a user has access to a service
+  const userHasServiceAccess = (username, serviceName) => {
+    // Admin always has access to all services
+    if (username === secrets.admin_email_address) return true;
+    // Check users.json for service access
+    const user = users.users?.find(u => u.username === username);
+    if (!user) return false;
+    if (user.services?.includes('*')) return true;
+    return user.services?.includes(serviceName) || false;
+  };
+
+  // Helper to validate user credentials
+  const validateUserCredentials = async (username, password, serviceName) => {
+    // Check admin credentials first
+    if (username === secrets.admin_email_address && secrets.api_password_hash) {
+      const valid = await bcrypt.compare(password, secrets.api_password_hash);
+      if (valid) return { valid: true, username };
+    }
+    // Check users.json
+    const user = users.users?.find(u => u.username === username);
+    if (user && user.password_hash) {
+      const valid = await bcrypt.compare(password, user.password_hash);
+      if (valid && userHasServiceAccess(username, serviceName)) {
+        return { valid: true, username };
+      }
+      if (valid) {
+        return { valid: false, error: 'Access denied to this service' };
+      }
+    }
+    return { valid: false, error: 'Invalid credentials' };
+  };
 
   const application = express();
 
@@ -369,6 +419,91 @@ const initApplication = async () => {
           config.services[name].subdomain.router.use('/global', express.static(path.join(__dirname, 'web', 'global')));
           config.services[name].subdomain.router.use('/static', express.static(path.join(__dirname, 'web', 'static', name)));
 
+          // Handle requireAuth for non-api, non-www index services
+          if (name !== 'api' && name !== 'www' && config.services[name].subdomain.requireAuth && (secrets.admin_email_address || users.users?.length > 0)) {
+            let sessionSecret = secrets.api_session_secret;
+            if (!sessionSecret) {
+              sessionSecret = crypto.randomBytes(32).toString('hex');
+              try {
+                const secretsPath = path.join(__dirname, 'secrets.json');
+                let existing = {};
+                if (fs.existsSync(secretsPath)) existing = JSON.parse(fs.readFileSync(secretsPath, 'utf8'));
+                existing.api_session_secret = sessionSecret;
+                fs.writeFileSync(secretsPath, JSON.stringify(existing, null, 2));
+                secrets.api_session_secret = sessionSecret;
+              } catch (e) {
+                console.warn('Failed to persist API session secret:', e.message);
+              }
+            }
+
+            const serviceName = name; // Capture for closure
+            config.services[name].subdomain.router.use(express.json());
+            config.services[name].subdomain.router.get('/login', (req, res) => {
+              res.sendFile(path.join(__dirname, 'web', 'global', 'login', 'index.html'));
+            });
+
+            config.services[name].subdomain.router.use(session({
+              store: getRedisStore(serviceName),
+              name: `${serviceName}_sid`,
+              secret: sessionSecret,
+              resave: false,
+              saveUninitialized: false,
+              cookie: {
+                httpOnly: true,
+                secure: (env === 'production'),
+                sameSite: 'lax',
+                maxAge: API_SESSION_TTL,
+                path: '/',
+              }
+            }));
+
+            config.services[name].subdomain.router.post('/login', async (req, res) => {
+              try {
+                const { username, password } = req.body || {};
+                if (!username || !password) return res.status(400).send({ success: false, error: 'Missing credentials' });
+                const result = await validateUserCredentials(username, password, serviceName);
+                if (!result.valid) return res.status(401).send({ success: false, error: result.error });
+                req.session.authenticated = true;
+                req.session.username = result.username;
+                req.session.cookie.maxAge = API_SESSION_TTL;
+                res.send({ success: true });
+              } catch (error) {
+                res.status(500).send({ success: false, error: error.message });
+              }
+            });
+
+            config.services[name].subdomain.router.post('/logout', (req, res) => {
+              try {
+                req.session.destroy((err) => {
+                  const cookieOptions = { path: '/', httpOnly: true, sameSite: 'lax' };
+                  if (env === 'production') cookieOptions.secure = true;
+                  res.clearCookie(`${serviceName}_sid`, cookieOptions);
+                  if (err) return res.status(500).send({ success: false, error: 'Failed to destroy session' });
+                  return res.send({ success: true });
+                });
+              } catch (error) {
+                const cookieOptions = { path: '/', httpOnly: true, sameSite: 'lax' };
+                if (env === 'production') cookieOptions.secure = true;
+                res.clearCookie(`${serviceName}_sid`, cookieOptions);
+                res.status(500).send({ success: false, error: error.message });
+              }
+            });
+
+            const serviceAuth = (req, res, next) => {
+              if (req.session && req.session.authenticated && userHasServiceAccess(req.session.username, serviceName)) {
+                req.session.cookie.maxAge = API_SESSION_TTL;
+                return next();
+              }
+              const accept = req.headers.accept || '';
+              if (req.method === 'GET' && accept.includes('text/html')) {
+                const nextUrl = encodeURIComponent(req.originalUrl || req.url || '/');
+                return res.redirect(`/login?next=${nextUrl}`);
+              }
+              return res.status(401).sendFile(path.join(__dirname, 'web', 'public', '401.html'));
+            };
+            config.services[name].subdomain.router.use(serviceAuth);
+          }
+
           if (name === 'api') {
             config.services[name].subdomain.router.use(express.json());
             // create open service data route with CORS support
@@ -417,7 +552,7 @@ const initApplication = async () => {
               }
 
               config.services[name].subdomain.router.use(session({
-                store: redisStore || undefined,
+                store: getRedisStore('api'),
                 name: 'api_sid',
                 secret: sessionSecret,
                 resave: false,
@@ -435,11 +570,10 @@ const initApplication = async () => {
                 try {
                   const { username, password } = req.body || {};
                   if (!username || !password) return res.status(400).send({ success: false, error: 'Missing credentials' });
-                  if (username !== secrets.admin_email_address) return res.status(401).send({ success: false, error: 'Invalid credentials' });
-                  const valid = await bcrypt.compare(password, secrets.api_password_hash);
-                  if (!valid) return res.status(401).send({ success: false, error: 'Invalid credentials' });
+                  const result = await validateUserCredentials(username, password, 'api');
+                  if (!result.valid) return res.status(401).send({ success: false, error: result.error });
                   req.session.authenticated = true;
-                  req.session.username = username;
+                  req.session.username = result.username;
                   req.session.cookie.maxAge = API_SESSION_TTL;
                   res.send({ success: true });
                 } catch (error) {
@@ -469,7 +603,7 @@ const initApplication = async () => {
 
               const apiAuth = (req, res, next) => {
                 try {
-                  if (req.session && req.session.authenticated) {
+                  if (req.session && req.session.authenticated && userHasServiceAccess(req.session.username, 'api')) {
                     req.session.cookie.maxAge = API_SESSION_TTL;
                     return next();
                   }
@@ -575,6 +709,95 @@ const initApplication = async () => {
           }
           config.services[name].subdomain.router.use('/', express.static(path.join(__dirname, 'web', 'public', name)), serveIndex(path.join(__dirname, 'web', 'public', name)));
         } else if (config.services[name].subdomain.type === 'spa') {
+          // Serve global assets for spa services (needed for login page)
+          config.services[name].subdomain.router.use('/global', express.static(path.join(__dirname, 'web', 'global')));
+
+          // Handle requireAuth for spa services (except www and api which shouldn't be spa anyway)
+          if (name !== 'api' && name !== 'www' && config.services[name].subdomain.requireAuth && (secrets.admin_email_address || users.users?.length > 0)) {
+            let sessionSecret = secrets.api_session_secret;
+            if (!sessionSecret) {
+              sessionSecret = crypto.randomBytes(32).toString('hex');
+              try {
+                const secretsPath = path.join(__dirname, 'secrets.json');
+                let existing = {};
+                if (fs.existsSync(secretsPath)) existing = JSON.parse(fs.readFileSync(secretsPath, 'utf8'));
+                existing.api_session_secret = sessionSecret;
+                fs.writeFileSync(secretsPath, JSON.stringify(existing, null, 2));
+                secrets.api_session_secret = sessionSecret;
+              } catch (e) {
+                console.warn('Failed to persist API session secret:', e.message);
+              }
+            }
+
+            const serviceName = name; // Capture for closure
+            config.services[name].subdomain.router.use(express.json());
+            config.services[name].subdomain.router.get('/login', (req, res) => {
+              res.sendFile(path.join(__dirname, 'web', 'global', 'login', 'index.html'));
+            });
+            config.services[name].subdomain.router.use('/login', express.static(path.join(__dirname, 'web', 'global', 'login')));
+
+            config.services[name].subdomain.router.use(session({
+              store: getRedisStore(serviceName),
+              name: `${serviceName}_sid`,
+              secret: sessionSecret,
+              resave: false,
+              saveUninitialized: false,
+              cookie: {
+                httpOnly: true,
+                secure: (env === 'production'),
+                sameSite: 'lax',
+                maxAge: API_SESSION_TTL,
+                path: '/',
+              }
+            }));
+
+            config.services[name].subdomain.router.post('/login', async (req, res) => {
+              try {
+                const { username, password } = req.body || {};
+                if (!username || !password) return res.status(400).send({ success: false, error: 'Missing credentials' });
+                const result = await validateUserCredentials(username, password, serviceName);
+                if (!result.valid) return res.status(401).send({ success: false, error: result.error });
+                req.session.authenticated = true;
+                req.session.username = result.username;
+                req.session.cookie.maxAge = API_SESSION_TTL;
+                res.send({ success: true });
+              } catch (error) {
+                res.status(500).send({ success: false, error: error.message });
+              }
+            });
+
+            config.services[name].subdomain.router.post('/logout', (req, res) => {
+              try {
+                req.session.destroy((err) => {
+                  const cookieOptions = { path: '/', httpOnly: true, sameSite: 'lax' };
+                  if (env === 'production') cookieOptions.secure = true;
+                  res.clearCookie(`${serviceName}_sid`, cookieOptions);
+                  if (err) return res.status(500).send({ success: false, error: 'Failed to destroy session' });
+                  return res.send({ success: true });
+                });
+              } catch (error) {
+                const cookieOptions = { path: '/', httpOnly: true, sameSite: 'lax' };
+                if (env === 'production') cookieOptions.secure = true;
+                res.clearCookie(`${serviceName}_sid`, cookieOptions);
+                res.status(500).send({ success: false, error: error.message });
+              }
+            });
+
+            const serviceAuth = (req, res, next) => {
+              if (req.session && req.session.authenticated && userHasServiceAccess(req.session.username, serviceName)) {
+                req.session.cookie.maxAge = API_SESSION_TTL;
+                return next();
+              }
+              const accept = req.headers.accept || '';
+              if (req.method === 'GET' && accept.includes('text/html')) {
+                const nextUrl = encodeURIComponent(req.originalUrl || req.url || '/');
+                return res.redirect(`/login?next=${nextUrl}`);
+              }
+              return res.status(401).sendFile(path.join(__dirname, 'web', 'public', '401.html'));
+            };
+            config.services[name].subdomain.router.use(serviceAuth);
+          }
+
           // Serve static files from the public directory
           config.services[name].subdomain.router.use(express.static(path.join(__dirname, 'web', 'public', name), {
             maxAge: '1y', // Cache static assets for 1 year
@@ -733,6 +956,7 @@ const defaultIgnoreWatch = [
   "ddns.json",
   "ecosystem.config.js",
   "secrets.json",
+  "users.json",
   "package-lock.json",
   "package.json",
   "readme.md",
@@ -793,6 +1017,92 @@ manrouter.get('/secrets', (request, response) => {
     response.send(secretsObj);
   } catch (error) {
     response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+manrouter.get('/users', (request, response) => {
+  try {
+    const usersPath = path.join(__dirname, 'users.json');
+    if (fs.existsSync(usersPath)) {
+      const usersData = fs.readFileSync(usersPath, 'utf8');
+      const usersObj = JSON.parse(usersData);
+      response.setHeader('Content-Type', 'application/json');
+      response.send(usersObj);
+    } else {
+      response.setHeader('Content-Type', 'application/json');
+      response.send({ users: [] });
+    }
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+manrouter.put('/users', async (request, response) => {
+  try {
+    const updatedUsers = request.body;
+    
+    const usersSchema = {
+      type: 'object',
+      required: ['users'],
+      properties: {
+        users: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['uuid', 'username', 'services'],
+            properties: {
+              uuid: { type: 'string', minLength: 1 },
+              username: { type: 'string', minLength: 1 },
+              password_hash: { type: 'string' },
+              services: { 
+                type: 'array',
+                items: { type: 'string' }
+              }
+            }
+          }
+        }
+      },
+      additionalProperties: false
+    };
+    
+    const validate = ajv.compile(usersSchema);
+    if (!validate(updatedUsers)) {
+      return sendError(response, 400, { message: 'Invalid users format', details: validate.errors });
+    }
+    
+    // Load existing users to preserve password hashes
+    let existingUsers = { users: [] };
+    try {
+      const usersPath = path.join(__dirname, 'users.json');
+      if (fs.existsSync(usersPath)) {
+        const usersData = fs.readFileSync(usersPath, 'utf8');
+        existingUsers = JSON.parse(usersData);
+      }
+    } catch (e) {
+      // do nothing: no existing users
+    }
+    
+    // Process each user
+    for (let i = 0; i < updatedUsers.users.length; i++) {
+      const user = updatedUsers.users[i];
+      const existingUser = existingUsers.users?.find(u => u.uuid === user.uuid);
+      
+      // If password_hash is empty but existed before, restore the old hash
+      if ((!user.password_hash || user.password_hash.trim() === '') && existingUser?.password_hash) {
+        user.password_hash = existingUser.password_hash;
+      }
+      
+      // If password_hash is provided and looks like plaintext (not a hash), hash it
+      if (user.password_hash && !user.password_hash.startsWith('$2b$')) {
+        user.password_hash = await bcrypt.hash(user.password_hash, 10);
+      }
+    }
+    
+    const usersPath = path.join(__dirname, 'users.json');
+    users = updatedUsers;
+    saveConfigAndRestart(usersPath, updatedUsers, 'Users updated successfully', response);
+  } catch (error) {
+    sendError(response, 500, error);
   }
 });
 
@@ -1251,14 +1561,14 @@ manrouter.get('/logs/:appName/:type', (request, response) => {
   const appName = request.params.appName;
   const type = request.params.type || 'out';
 
-  function setSSEHeaders(res) {
+  const setSSEHeaders = (res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders && res.flushHeaders();
   }
 
-  function sendLogLines(res, data) {
+  const sendLogLines = (res, data) => {
     const lines = data.split(/\r?\n/);
     for (const line of lines) {
       if (line) res.write(`data: ${line}\n\n`);

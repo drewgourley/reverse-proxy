@@ -1310,3 +1310,191 @@ input[type="checkbox"] {
     border-top: 1px solid #4a5568;
     margin: 12px 0;
 }
+
+/* Multi-select dropdown */
+.multi-select {
+    position: relative;
+    width: 100%;
+}
+
+.multi-select-display {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 12px;
+    padding-right: 32px;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 4px;
+    font-size: 14px;
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    transition: border-color 0.2s ease;
+}
+
+.multi-select-display:hover {
+    border-color: var(--color-primary);
+}
+
+.multi-select.open .multi-select-display {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.multi-select-display::after {
+    content: '';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--color-gray-500);
+    pointer-events: none;
+}
+
+.multi-select.open .multi-select-display::after {
+    border-top-color: transparent;
+    border-bottom-color: var(--color-gray-500);
+    transform: translateY(-80%);
+}
+
+.multi-select-placeholder {
+    color: var(--color-gray-400);
+}
+
+.multi-select-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 3px;
+    font-size: 12px;
+    max-width: 150px;
+}
+
+.multi-select-tag.all-access {
+    background: var(--color-accent);
+}
+
+.multi-select-tag span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.multi-select-tag-remove {
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.8;
+    padding: 0 2px;
+}
+
+.multi-select-tag-remove:hover {
+    opacity: 1;
+}
+
+.multi-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-background);
+    border: 1px solid var(--color-primary);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.multi-select.open .multi-select-dropdown {
+    display: block;
+}
+
+.multi-select-option {
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background-color 0.15s ease;
+}
+
+.multi-select-option:hover {
+    background: var(--color-gray-100);
+}
+
+.multi-select-option.selected {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.multi-select-option.all-services {
+    border-bottom: 1px solid var(--color-gray-200);
+    font-weight: 500;
+}
+
+.multi-select-option.all-services.selected {
+    background: rgba(72, 187, 120, 0.1);
+}
+
+.multi-select-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--color-gray-300);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+
+.multi-select-option.selected .multi-select-checkbox {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.multi-select-option.all-services.selected .multi-select-checkbox {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.multi-select-checkbox::after {
+    content: '';
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) scale(0);
+    transition: transform 0.15s ease;
+}
+
+.multi-select-option.selected .multi-select-checkbox::after {
+    transform: rotate(45deg) scale(1);
+}
+
+.multi-select-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.multi-select-option.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.multi-select-option.disabled:hover {
+    background: transparent;
+}

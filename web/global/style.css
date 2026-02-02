@@ -131,6 +131,10 @@ h1.smaller {
   font-size:250px;
   line-height:250px;
 }
+h1.smallest {
+  font-size:184px;
+  line-height:184px;
+}
 h3 {
   font-family:'Nunito', sans-serif;
   font-size:50px;
@@ -328,4 +332,64 @@ only screen and (                min-resolution: 2dppx) and (max-width: 1200px) 
 }
 .material-symbols-outlined.filled {
   font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;
+}
+
+form {
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+form input {
+  height:30px;
+  padding:12px 28px;
+  margin:0 0 10px;
+  z-index:1;
+  outline:none;
+  line-height:30px;
+  font-size:24px;
+  display:block;
+  background:transparent;
+  border:2px solid rgba(var(--color-text-rgb),0.2);
+  color:var(--color-muted);
+  border-radius:28px;
+  transition:background 300ms ease, border 300ms ease, color 300ms ease;
+} 
+form input:last-of-type {
+  margin:0;
+  padding:12px 68px 12px 28px;
+}
+form button {
+  position:absolute;
+  bottom:2px;
+  right:2px;
+  z-index:2;
+}
+form.hide {
+  opacity:0;
+}
+form:hover input, form:focus-within input {
+  background:var(--color-background);
+  border:2px solid rgba(var(--color-text-rgb),0.1);
+  color:var(--color-text);
+}
+form input:focus {
+  border:2px solid var(--color-focus-border);
+}
+form:hover button, form:focus-within button {
+  background:var(--color-secondary);
+  color:#fff;
+}
+form button:hover {
+  background:var(--color-secondary);
+}
+#message {
+  margin-top:8px;
+  font-size:13px;
+  padding:0 0 0 28px;
+}
+#message.error {
+  color:var(--pip-danger);
+}
+#message.success {
+  color:var(--color-accent);
 }

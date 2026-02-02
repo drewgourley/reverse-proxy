@@ -2,6 +2,8 @@ let config = {};
 let originalConfig = {};
 let secrets = {};
 let originalSecrets = {};
+let users = {};
+let originalUsers = {};
 let blocklist = [];
 let originalBlocklist = [];
 let ddns = {};
@@ -65,6 +67,7 @@ function parseErrorMessage(error) {
 document.addEventListener('DOMContentLoaded', async () => {
   await loadConfig(true);
   await loadSecrets(true);
+  await loadUsers(true);
   await loadBlocklist(true);
   await loadDdns(true);
   await loadEcosystem(true);
@@ -100,7 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const type = urlParams.get('type');
     if (section) {
       const validMonitorSections = ['monitor-logs', 'monitor-blocklist'];
-      const validManagementSections = ['management-application', 'management-secrets', 'management-theme', 'management-advanced'];
+      const validManagementSections = ['management-application', 'management-secrets', 'management-users', 'management-theme', 'management-advanced'];
       if (secrets.admin_email_address && secrets.admin_email_address.trim() !== '') {
         validManagementSections.push('management-certificates');
       }
@@ -326,6 +329,31 @@ async function loadSecrets(suppressStatus = false) {
     originalSecrets = JSON.parse(JSON.stringify(secrets));
     secretsSaved = false;
     if (!suppressStatus) showStatus('Could not load Secrets: ' + error.message, 'error');
+  }
+}
+
+async function loadUsers(suppressStatus = false) {
+  try {
+    const response = await fetch('users');
+    
+    if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load users`);
+    
+    const text = await response.text();
+    
+    if (!text) {
+      users = { users: [] };
+      originalUsers = JSON.parse(JSON.stringify(users));
+      return;
+    }
+    
+    users = JSON.parse(text);
+    if (!users.users) users.users = [];
+    originalUsers = JSON.parse(JSON.stringify(users));
+  } catch (error) {
+    console.error('Users load error:', error);
+    users = { users: [] };
+    originalUsers = JSON.parse(JSON.stringify(users));
+    if (!suppressStatus) showStatus('Could not load Users: ' + error.message, 'error');
   }
 }
 
@@ -801,6 +829,305 @@ function revertSecrets() {
       }
     }
   );
+}
+
+function renderUsersEditor() {
+  const actions = document.getElementById('editorActions');
+  const panel = document.getElementById('editorPanel');
+
+  actions.classList.remove('hidden');
+  panel.classList.add('scrollable');
+
+  // Get list of services that have requireAuth enabled
+  const authServices = Object.keys(config.services || {}).filter(name => {
+    if (name === 'api' || name === 'www') return false;
+    return config.services[name]?.subdomain?.requireAuth === true;
+  });
+
+  let html = `
+    <div class="section">
+      <div class="section-title">👥 User Management</div>
+      <div class="hint hint-section">Manage users and their service access. Users can log into services that have "Require Login" enabled. The admin account (from Secrets) always has access to all services.</div>
+  `;
+
+  if (users.users && users.users.length > 0) {
+    users.users.forEach((user, index) => {
+      const isExistingHash = user.password_hash && user.password_hash.startsWith('$2b$');
+      html += `
+      <div class="secret-entry user-entry">
+        <div class="form-group">
+          <label for="user_username_${index}">Username</label>
+          <input type="text" id="user_username_${index}" value="${user.username || ''}" 
+              onchange="updateUser(${index}, 'username', this.value)"
+              autocomplete="off"
+              placeholder="Enter username">
+          <div class="hint">UUID: ${user.uuid || 'Will be generated on save'}</div>
+        </div>
+        <div class="form-group">
+          <label for="user_password_${index}">Password</label>
+          <div class="password-input-group">
+            <input type="text" id="user_password_${index}" value="${isExistingHash ? '' : (user.password_hash || '')}"
+                style="-webkit-text-security: disc;"
+                onchange="updateUserPassword(${index}, this.value)"
+                placeholder="${isExistingHash ? 'Password set - enter new to change' : 'Enter password'}"
+                autocomplete="new-password">
+            <button class="btn-toggle-password" onclick="togglePasswordVisibility('user_password_${index}', this)">👁️ Show</button>
+          </div>
+          <div class="hint">${isExistingHash ? 'Leave empty to keep current password' : 'Password will be hashed when saved'}</div>
+        </div>
+        <div class="form-group">
+          <label>Service Access</label>
+          <div class="multi-select" id="user_services_select_${index}" onclick="toggleMultiSelect(${index}, event)">
+            <div class="multi-select-display">
+              ${renderServiceTags(user, index, authServices)}
+            </div>
+            <div class="multi-select-dropdown">
+              <div class="multi-select-option all-services ${user.services?.includes('*') ? 'selected' : ''}" 
+                  data-value="*" onclick="selectServiceOption(${index}, '*', event)">
+                <div class="multi-select-checkbox"></div>
+                <span class="multi-select-label">✨ All Services</span>
+              </div>
+              ${authServices.map(serviceName => {
+                const nicename = config.services[serviceName]?.nicename || serviceName;
+                const hasAccess = user.services?.includes(serviceName);
+                const isDisabled = user.services?.includes('*');
+                return `
+              <div class="multi-select-option ${hasAccess && !user.services?.includes('*') ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}" 
+                  data-value="${serviceName}" onclick="selectServiceOption(${index}, '${serviceName}', event)">
+                <div class="multi-select-checkbox"></div>
+                <span class="multi-select-label">${nicename}</span>
+              </div>
+                `;
+              }).join('')}
+              ${authServices.length === 0 ? '<div class="multi-select-option disabled"><span class="multi-select-label">No services with "Require Login" configured</span></div>' : ''}
+            </div>
+          </div>
+          <div class="hint">Choose "✨ All Services" for full access or select individual services this user can access</div>
+        </div>
+        <div class="secret-actions">
+          <button class="btn-remove" onclick="removeUser(${index})">Remove User</button>
+        </div>
+      </div>
+      `;
+    });
+  } else {
+    html += `
+      <div class="hint">No users configured. Add a user to allow login to protected services.</div>
+    `;
+  }
+
+  html += `
+      <button class="btn-add-field" onclick="addNewUser()">+ Add New User</button>
+    </div>
+  `;
+  
+  panel.innerHTML = html;
+  actions.innerHTML = `
+    <button class="btn-reset" onclick="revertUsers()">Revert</button>
+    <button class="btn-save" id="saveUsersBtn" onclick="saveUsers()">Save Users</button>
+  `;
+}
+
+function updateUser(index, field, value) {
+  if (!users.users[index]) return;
+  users.users[index][field] = value;
+}
+
+function updateUserPassword(index, value) {
+  if (!users.users[index]) return;
+  if (value.trim() !== '') {
+    users.users[index].password_hash = value;
+  }
+}
+
+function toggleUserAllServices(index, checked) {
+  if (!users.users[index]) return;
+  if (checked) {
+    users.users[index].services = ['*'];
+  } else {
+    users.users[index].services = [];
+  }
+  renderUsersEditor();
+}
+
+function toggleUserService(index, serviceName, checked) {
+  if (!users.users[index]) return;
+  if (!users.users[index].services) users.users[index].services = [];
+  
+  if (checked) {
+    if (!users.users[index].services.includes(serviceName)) {
+      users.users[index].services.push(serviceName);
+    }
+  } else {
+    users.users[index].services = users.users[index].services.filter(s => s !== serviceName);
+  }
+}
+
+// Multi-select dropdown functions
+function renderServiceTags(user, index, authServices) {
+  if (!user.services || user.services.length === 0) {
+    return '<span class="multi-select-placeholder">Select services...</span>';
+  }
+  if (user.services.includes('*')) {
+    return '<span class="multi-select-tag all-access"><span>✨ All Services</span><span class="multi-select-tag-remove" onclick="removeServiceTag(' + index + ', \'*\', event)">×</span></span>';
+  }
+  return user.services.map(serviceName => {
+    const nicename = config.services[serviceName]?.nicename || serviceName;
+    return `<span class="multi-select-tag"><span>${nicename}</span><span class="multi-select-tag-remove" onclick="removeServiceTag(${index}, '${serviceName}', event)">×</span></span>`;
+  }).join('');
+}
+
+function toggleMultiSelect(index, event) {
+  // Don't toggle if clicking on an option or tag remove button
+  if (event.target.closest('.multi-select-option') || event.target.closest('.multi-select-tag-remove')) {
+    return;
+  }
+  const select = document.getElementById(`user_services_select_${index}`);
+  const wasOpen = select.classList.contains('open');
+  
+  // Close all other dropdowns
+  document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
+  
+  if (!wasOpen) {
+    select.classList.add('open');
+  }
+}
+
+function selectServiceOption(index, value, event) {
+  event.stopPropagation();
+  if (!users.users[index]) return;
+  
+  const option = event.target.closest('.multi-select-option');
+  if (option?.classList.contains('disabled')) return;
+  
+  if (!users.users[index].services) users.users[index].services = [];
+  
+  if (value === '*') {
+    // Toggle all services
+    if (users.users[index].services.includes('*')) {
+      users.users[index].services = [];
+    } else {
+      users.users[index].services = ['*'];
+    }
+    renderUsersEditor();
+  } else {
+    // Toggle individual service
+    if (users.users[index].services.includes('*')) return; // Can't select individual when all is selected
+    
+    if (users.users[index].services.includes(value)) {
+      users.users[index].services = users.users[index].services.filter(s => s !== value);
+    } else {
+      users.users[index].services.push(value);
+    }
+    renderUsersEditor();
+  }
+}
+
+function removeServiceTag(index, value, event) {
+  event.stopPropagation();
+  if (!users.users[index]) return;
+  
+  if (value === '*') {
+    users.users[index].services = [];
+  } else {
+    users.users[index].services = users.users[index].services.filter(s => s !== value);
+  }
+  renderUsersEditor();
+}
+
+// Close multi-select dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+  if (!event.target.closest('.multi-select')) {
+    document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
+  }
+});
+
+function generateUUID() {
+  // Generate a UUID v4 compatible with older browsers
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+function addNewUser() {
+  if (!users.users) users.users = [];
+  users.users.push({
+    uuid: generateUUID(),
+    username: '',
+    password_hash: '',
+    services: []
+  });
+  renderUsersEditor();
+  showStatus('New user added. Fill in details and save.', 'success');
+}
+
+function removeUser(index) {
+  const username = users.users[index]?.username || 'this user';
+  showConfirmModal(
+    'Remove User',
+    `Are you sure you want to remove ${username}?`,
+    (confirmed) => {
+      if (confirmed) {
+        users.users.splice(index, 1);
+        renderUsersEditor();
+        showStatus('User removed', 'success');
+      }
+    }
+  );
+}
+
+function revertUsers() {
+  showConfirmModal(
+    'Revert Users',
+    'Are you sure you want to discard all changes to users?',
+    (confirmed) => {
+      if (confirmed) {
+        users = JSON.parse(JSON.stringify(originalUsers));
+        renderUsersEditor();
+        showStatus('Users changes reverted', 'success');
+      }
+    }
+  );
+}
+
+async function saveUsers() {
+  try {
+    // Validate users before saving
+    for (const user of users.users) {
+      if (!user.username || user.username.trim() === '') {
+        showStatus('All users must have a username', 'error');
+        return;
+      }
+      if (!user.password_hash || user.password_hash.trim() === '') {
+        showStatus(`User ${user.username} must have a password`, 'error');
+        return;
+      }
+    }
+
+    const response = await fetch('users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(users)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(JSON.stringify(errorData));
+    }
+    
+    originalUsers = JSON.parse(JSON.stringify(users));
+    showStatus('✓ Users saved successfully!', 'success');
+    
+    showLoadingOverlay('Server Restarting...', 'Users saved. Waiting for the server to restart...');
+    await waitForServerRestart();
+
+    selectItem('management-users');
+  } catch (error) {
+    const message = parseErrorMessage(error);
+    showStatus('✗ Failed to save users: ' + message, 'error');
+  }
 }
 
 function renderDdnsEditor() {
@@ -1993,6 +2320,19 @@ function renderServicesList() {
   }
   list.appendChild(secretsItem);
 
+  const usersItem = document.createElement('div');
+  usersItem.className = 'service-item' + (currentSelection === 'management-users' ? ' active' : '');
+  usersItem.textContent = '👥 Users';
+  if (!secretsEnabled || isFirstTimeSetup || !secretsSaved) {
+    usersItem.style.opacity = '0.5';
+    usersItem.style.cursor = 'default';
+    usersItem.style.pointerEvents = 'none';
+    usersItem.onclick = null;
+  } else {
+    usersItem.onclick = () => selectItem('management-users');
+  }
+  list.appendChild(usersItem);
+
   const certsItem = document.createElement('div');
   certsItem.className = 'service-item' + (currentSelection === 'management-certificates' ? ' active' : '') + (canProvision ? ' insecure' : '');
   certsItem.innerHTML = '🔒 Certificates' + (canProvision ? ' <span class="hint">Provisioning Needed</span>' : '');
@@ -2128,6 +2468,8 @@ function selectItem(prefixedName, type) {
     renderCertificatesEditor();
   } else if (prefixedName === 'management-secrets') {
     renderSecretsEditor();
+  } else if (prefixedName === 'management-users') {
+    renderUsersEditor();
   } else if (prefixedName === 'management-ddns') {
     renderDdnsEditor();
   } else if (prefixedName === 'management-theme') {
@@ -2901,6 +3243,15 @@ function renderSubdomainSection(serviceName, subdomain) {
               placeholder="Optional password">
           <div class="hint">Used for /protected folder in dirlist services</div>
         </div>
+        <div class="form-group requireauth-field" data-service="${serviceName}">
+          <div class="checkbox-item">
+            <input type="checkbox" id="subdomain_requireAuth_${serviceName}" ${subdomain.requireAuth ? 'checked' : ''} 
+                onchange="updateServiceProperty('${serviceName}', 'subdomain.requireAuth', this.checked)"
+                ${!secrets.admin_email_address && (!users.users || users.users.length === 0) ? 'disabled' : ''}>
+            <label for="subdomain_requireAuth_${serviceName}" class="inline-label">Require Login</label>
+          </div>
+          <div class="hint">${!secrets.admin_email_address && (!users.users || users.users.length === 0) ? 'Configure admin credentials in Secrets or add users in Users to enable this option. ' : ''}Admin and configured users can log in to access this service</div>
+        </div>
         <div class="form-group form-group-no-margin proxy-field" data-service="${serviceName}">
           <p class="label">Proxy Options</p>
           <div class="nested-object">
@@ -3186,6 +3537,7 @@ function toggleFieldVisibility(serviceName) {
   const selectedType = typeSelect.value;
   const basicAuthFields = document.querySelectorAll(`.basicauth-field[data-service="${serviceName}"]`);
   const proxyFields = document.querySelectorAll(`.proxy-field[data-service="${serviceName}"]`);
+  const requireAuthFields = document.querySelectorAll(`.requireauth-field[data-service="${serviceName}"]`);
   
   // Basic Auth fields: show only for dirlist
   basicAuthFields.forEach(field => {
@@ -3202,6 +3554,15 @@ function toggleFieldVisibility(serviceName) {
       field.classList.add('form-group-hidden');
     } else {
       field.classList.remove('form-group-hidden');
+    }
+  });
+
+  // Require Auth fields: show only for index and spa
+  requireAuthFields.forEach(field => {
+    if (selectedType === 'index' || selectedType === 'spa') {
+      field.classList.remove('form-group-hidden');
+    } else {
+      field.classList.add('form-group-hidden');
     }
   });
 }
