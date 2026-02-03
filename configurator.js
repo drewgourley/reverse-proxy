@@ -944,12 +944,14 @@ configrouter.put('/certs', (request, response) => {
         error: 'Email contains invalid characters' 
       });
     }
+
     let config = {};
     try {
       config = require('./config.json');
     } catch (e) {
       return response.status(500).send({ success: false, error: 'Config not found' });
     }
+
     const domains = [config.domain];
     const secureServices = Object.keys(config.services || {}).filter(name => {
       return config.services[name].subdomain?.protocol === 'secure';
@@ -1047,18 +1049,25 @@ configrouter.get('/files/:serviceName/:folderType', (request, response) => {
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
-    
-    // Load config to check if service exists and has appropriate type
+
     let config = {};
     try {
       config = require('./config.json');
     } catch (e) {
-      return response.status(400).send({ success: false, error: 'Config not found' });
+      return response.status(500).send({ success: false, error: 'Config not found' });
     }
-    
+
     const service = config.services?.[serviceName];
     if (!service) {
       return response.status(404).send({ success: false, error: 'Service not found' });
+    }
+    
+    // Block file management for protected services
+    if (['api', 'www', 'radio'].includes(serviceName)) {
+      return response.status(403).send({ 
+        success: false, 
+        error: 'File management not allowed for this service' 
+      });
     }
     
     // Check if service type supports files
@@ -1133,18 +1142,25 @@ configrouter.post('/files/:serviceName/:folderType', fileUpload.single('file'), 
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
-    
-    // Load config to check service type
+
     let config = {};
     try {
       config = require('./config.json');
     } catch (e) {
-      return response.status(400).send({ success: false, error: 'Config not found' });
+      return response.status(500).send({ success: false, error: 'Config not found' });
     }
-    
+
     const service = config.services?.[serviceName];
     if (!service) {
       return response.status(404).send({ success: false, error: 'Service not found' });
+    }
+    
+    // Block file management for protected services
+    if (['api', 'www', 'radio'].includes(serviceName)) {
+      return response.status(403).send({ 
+        success: false, 
+        error: 'File management not allowed for this service' 
+      });
     }
     
     const subdomainType = service.subdomain?.type;
@@ -1198,15 +1214,27 @@ configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
       return response.status(400).send({ success: false, error: 'File path is required' });
     }
     
+    // Block file management for protected services
+    if (['api', 'www', 'radio'].includes(serviceName)) {
+      return response.status(403).send({ 
+        success: false, 
+        error: 'File management not allowed for this service' 
+      });
+    }
+    
     // Validate folder type
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
-    
-    // Check if this is a dirlist service and prevent deleting 'protected' folder
-    const configPath = path.join(__dirname, 'config.json');
-    const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    const service = configData.services[serviceName];
+
+    let config = {};
+    try {
+      config = require('./config.json');
+    } catch (e) {
+      return response.status(500).send({ success: false, error: 'Config not found' });
+    }
+
+    const service = config.services?.[serviceName];
     const isDirlist = service?.subdomain?.type === 'dirlist';
     
     if (isDirlist && folderType === 'public' && filePath === 'protected') {
@@ -1251,6 +1279,14 @@ configrouter.post('/files/:serviceName/:folderType/directory', (request, respons
       return response.status(400).send({ success: false, error: 'Directory path is required' });
     }
     
+    // Block file management for protected services
+    if (['api', 'www', 'radio'].includes(serviceName)) {
+      return response.status(403).send({ 
+        success: false, 
+        error: 'File management not allowed for this service' 
+      });
+    }
+    
     // Validate folder type
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
@@ -1286,15 +1322,27 @@ configrouter.post('/files/:serviceName/:folderType/rename', (request, response) 
       return response.status(400).send({ success: false, error: 'Both old and new paths are required' });
     }
     
+    // Block file management for protected services
+    if (['api', 'www', 'radio'].includes(serviceName)) {
+      return response.status(403).send({ 
+        success: false, 
+        error: 'File management not allowed for this service' 
+      });
+    }
+    
     // Validate folder type
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
-    
-    // Check if this is a dirlist service and prevent renaming 'protected' folder
-    const configPath = path.join(__dirname, 'config.json');
-    const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    const service = configData.services[serviceName];
+
+    let config = {};
+    try {
+      config = require('./config.json');
+    } catch (e) {
+      return response.status(500).send({ success: false, error: 'Config not found' });
+    }
+
+    const service = config.services?.[serviceName];
     const isDirlist = service?.subdomain?.type === 'dirlist';
     
     if (isDirlist && folderType === 'public' && oldPath === 'protected') {
@@ -1331,10 +1379,18 @@ configrouter.post('/files/:serviceName/:folderType/rename', (request, response) 
 configrouter.post('/files/:serviceName/:folderType/unpack', fileUpload.single('zipFile'), (request, response) => {
   try {
     const { serviceName, folderType } = request.params;
-    const { targetPath } = request.body;
+    const { targetPath, deploy } = request.body;
     
     if (!request.file) {
       return response.status(400).send({ success: false, error: 'No zip file provided' });
+    }
+    
+    // Block file management for protected services
+    if (['api', 'www', 'radio'].includes(serviceName)) {
+      return response.status(403).send({ 
+        success: false, 
+        error: 'File management not allowed for this service' 
+      });
     }
     
     // Validate folder type
@@ -1392,6 +1448,22 @@ configrouter.post('/files/:serviceName/:folderType/unpack', fileUpload.single('z
           success: false, 
           error: 'Zip uncompressed size exceeds limit (max 100MB)' 
         });
+      }
+    }
+    
+    // If deploy mode is enabled, clear the directory contents first
+    if (deploy === 'true') {
+      if (fs.existsSync(extractPath)) {
+        const items = fs.readdirSync(extractPath);
+        for (const item of items) {
+          const itemPath = path.join(extractPath, item);
+          const stats = fs.statSync(itemPath);
+          if (stats.isDirectory()) {
+            fs.rmSync(itemPath, { recursive: true, force: true });
+          } else {
+            fs.unlinkSync(itemPath);
+          }
+        }
       }
     }
     

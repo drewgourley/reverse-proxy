@@ -3079,9 +3079,10 @@ function renderServiceEditor(serviceName) {
 
   panel.innerHTML = html;
   
-  // Add file manager button to actions for index, spa, and dirlist types
+  // Add file manager button to actions for index, spa, and dirlist types (except protected services)
   const subdomainType = service.subdomain?.type;
-  if (['index', 'spa', 'dirlist'].includes(subdomainType)) {
+  const isProtectedService = ['api', 'www', 'radio'].includes(serviceName);
+  if (['index', 'spa', 'dirlist'].includes(subdomainType) && !isProtectedService) {
     actions.innerHTML = `
       <button class="btn-add-field" onclick="renderFileManager('${serviceName}', 'public')"><span class="icon-trap">📁</span> Manage Files</button>
       <div class="flex-spacer"></div>
@@ -4139,7 +4140,7 @@ async function renderFileManager(serviceName, folderType = 'public', currentPath
     let html = `
       <div class="section">
         <div class="section-title">📁 File Manager - ${serviceName}</div>
-        <div class="hint hint-section">Manage files in hosted by this service</div>
+        <div class="hint hint-section">Manage the files hosted by this service</div>
         ${showFolderTypeSelector ? `
         <div class="form-group">
           <label>Folder Type</label>
@@ -4484,6 +4485,13 @@ function showUnpackZipDialog(serviceName, folderType, currentPath = '') {
       <input type="file" id="zipFileInput" accept=".zip">
       <div class="hint">Choose a zip file to extract into the current directory</div>
     </div>
+    <div class="form-group">
+      <div class="checkbox-item">
+        <input type="checkbox" id="deployFromZip">
+        <label for="deployFromZip" class="inline-label">Deploy from this file</label>
+      </div>
+      <div class="hint">Clears the contents of the directory before unpacking the zip file</div>
+    </div>
     <div class="modal-footer">
       <button class="btn-reset" onclick="closePromptModal()">Cancel</button>
       <button class="btn-save" onclick="unpackZip('${serviceName}', '${folderType}', '${currentPath}')">Extract</button>
@@ -4652,6 +4660,7 @@ async function renameSelectedFile() {
 
 async function unpackZip(serviceName, folderType, currentPath = '') {
   const zipFileInput = document.getElementById('zipFileInput');
+  const deployCheckbox = document.getElementById('deployFromZip');
   
   if (!zipFileInput.files || zipFileInput.files.length === 0) {
     showStatus('Please select a zip file', 'error');
@@ -4669,6 +4678,7 @@ async function unpackZip(serviceName, folderType, currentPath = '') {
   const formData = new FormData();
   formData.append('zipFile', file);
   formData.append('targetPath', currentPath);
+  formData.append('deploy', deployCheckbox.checked ? 'true' : 'false');
   
   try {
     closePromptModal();
