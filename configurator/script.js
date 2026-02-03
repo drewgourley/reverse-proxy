@@ -129,9 +129,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   
-  document.getElementById('promptInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') submitPrompt();
-  });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeConfirmModal();
@@ -587,7 +584,7 @@ function renderSecretsEditor() {
       html += `
           <div class="password-input-group">
             <input type="text" id="secret_${key}" value="${displayValue}"
-                style="-webkit-text-security: disc;"
+                class="text-security"
                 onchange="updatePasswordHash('${key}', this.value, ${isExistingHash})"
                 placeholder="${placeholderText}"
                 autocomplete="current-password">
@@ -598,7 +595,7 @@ function renderSecretsEditor() {
       html += `
           <div class="password-input-group">
             <input type="text" id="secret_${key}" value="${value}"
-                style="-webkit-text-security: disc;"
+                class="text-security"
                 onchange="updateSecret('${key}', this.value)"
                 placeholder="Enter MAC address (e.g., 00:1A:2B:3C:4D:5E)"
                 autocomplete="current-password">
@@ -614,9 +611,9 @@ function renderSecretsEditor() {
           </div>
           ` : ''}
           ${isExistingHash && key === 'api_password_hash' ? `
-          <div class="secret-actions" style="display: flex;align-items: center;">
+          <div class="secret-actions flex-row">
             <button class="btn-remove" onclick="removeSecret('${key}')">Remove Password</button>
-            <div class="hint" style="margin-left: 10px;">⚠️ This will remove the login requirement to view the API page</div>
+            <div class="hint margin-left-10">⚠️ This will remove the login requirement to view the API page</div>
           </div>
           ` : ''}
         </div>
@@ -902,7 +899,7 @@ function renderUsersEditor() {
           <label for="user_password_${index}">Password</label>
           <div class="password-input-group">
             <input type="text" id="user_password_${index}" value="${isExistingHash ? '' : (user.password_hash || '')}"
-                style="-webkit-text-security: disc;"
+                class="text-security"
                 onchange="updateUserPassword(${index}, this.value)"
                 placeholder="${isExistingHash ? 'Password set - enter new to change' : 'Enter password'}"
                 autocomplete="new-password">
@@ -1209,7 +1206,7 @@ function renderDdnsEditor() {
               id="ddns_${key}" 
               value="${value}" 
               onchange="updateDdns('${key}', this.value)"
-              style="${isSecret ? '-webkit-text-security: disc;' : ''}"
+              ${isSecret ? 'class="text-security"' : ''}
             />
     `;
     
@@ -1255,7 +1252,7 @@ function renderDdnsEditor() {
   };
 
   html += `
-      <div class="section-title" style="margin-top: 2rem;">📋 Required IAM Policy</div>
+      <div class="section-title section-title-spaced">📋 Required IAM Policy</div>
       <div class="hint hint-section">Use this policy when creating your IAM user in AWS. This grants the minimum permissions needed for Dynamic DNS updates.</div>
       <div class="setup-box route53">
         <pre class="setup-record-content">${JSON.stringify(iamPolicy, null, 2)}</pre>
@@ -1626,9 +1623,9 @@ function renderThemeEditor() {
     <div class="section">
       <div class="section-title">🎨 Theme Customization</div>
       <div class="hint hint-section">Customize colors and favicon for the configurator interface.</div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 20px;">
+      <div class="grid-two-column">
         <div>
-          <h3 style="margin: 0 0 15px 0; color: var(--color-text-primary); font-size: 16px; font-weight: 600;">Colors</h3>
+          <h3 class="subsection-heading">Colors</h3>
           <div class="form-group">
             <label for="color1">Primary Color</label>
             <input type="color" id="color1" value="${colors.primary || '#667eea'}">
@@ -1651,28 +1648,28 @@ function renderThemeEditor() {
           </div>
         </div>
         <div>
-          <h3 style="margin: 0 0 15px 0; color: var(--color-text-primary); font-size: 16px; font-weight: 600;">Favicon</h3>
+          <h3 class="subsection-heading">Favicon</h3>
           <div class="form-group">
             <label for="faviconUpload">Upload New Favicon</label>
-            <input type="file" id="faviconUpload" accept="image/png" style="display: none;">
+            <input type="file" id="faviconUpload" accept="image/png" class="file-input-hidden">
             <button class="btn-primary" onclick="document.getElementById('faviconUpload').click()">Choose File</button>
-            <span id="faviconFileName" style="margin-left: 10px; color: var(--color-text-secondary);"></span>
+            <span id="faviconFileName" class="file-name-display"></span>
             <div class="hint">PNG format only, up to 512x512 pixels</div>
           </div>
-          <div style="margin-top: 15px;">
-            <label style="display: block; margin-bottom: 8px; color: var(--color-text-primary); font-weight: 500;">Current Favicon</label>
+          <div class="favicon-preview-container">
+            <label class="favicon-label">Current Favicon</label>
             <div id="currentFaviconContainer">
-              <img id="currentFavicon" src="/global/favicon/favicon-original.png" style="max-width: 128px; max-height: 128px; border-radius: 8px; background: var(--color-gray-100); padding: 10px; display: block;" onerror="this.style.display='none'; document.getElementById('noFaviconWarning').style.display='flex';">
-              <div id="noFaviconWarning" style="display: none; width: 128px; height: 128px; padding: 10px; background: var(--color-gray-100); border-radius: 8px; color: var(--color-text-secondary); text-align: center; border: 2px dashed var(--color-gray-300); flex-direction: column; align-items: center; justify-content: center;">
-                <div style="font-size: 32px; margin-bottom: 4px;">⚠️</div>
-                <div style="font-weight: 500; font-size: 11px; margin-bottom: 2px;">No Favicon</div>
-                <div style="font-size: 10px; line-height: 1.2;">Upload a PNG</div>
+              <img id="currentFavicon" src="/global/favicon/favicon-original.png" class="favicon-image" onerror="this.style.display='none'; document.getElementById('noFaviconWarning').style.display='flex';">
+              <div id="noFaviconWarning" class="favicon-warning">
+                <div class="favicon-warning-icon">⚠️</div>
+                <div class="favicon-warning-title">No Favicon</div>
+                <div class="favicon-warning-text">Upload a PNG</div>
               </div>
             </div>
           </div>
-          <div id="faviconPreview" style="display: none; margin-top: 15px;">
-            <label style="display: block; margin-bottom: 8px; color: var(--color-text-primary); font-weight: 500;">Preview</label>
-            <img id="faviconPreviewImg" style="max-width: 128px; max-height: 128px; border-radius: 8px; background: var(--color-gray-100); padding: 10px; display: block;">
+          <div id="faviconPreview" class="favicon-preview-container" style="display: none;">
+            <label class="favicon-label">Preview</label>
+            <img id="faviconPreviewImg" class="favicon-image">
           </div>
         </div>
       </div>
@@ -2086,7 +2083,7 @@ function renderAdvancedEditor() {
       queryTypesHtml += `
         <div class="form-group">
           <input type="text" id="querytype_${index}" value="${qt}" onchange="updateAdvancedQueryType(${index}, this.value)">
-          <button class="btn-remove" style="margin-top:4px;" onclick="removeAdvancedQueryType(${index})">Remove</button>
+          <button class="btn-remove advanced-remove-btn" onclick="removeAdvancedQueryType(${index})">Remove</button>
         </div>
       `;
     });
@@ -2865,9 +2862,9 @@ function renderCertificatesEditor() {
   
   let warningMessage = '';
   if (hasChanges) {
-    warningMessage = '<div class="hint" style="color: #ed8936; margin-bottom: 10px;">⚠️ Please save your configuration before provisioning certificates</div>';
+    warningMessage = '<div class="hint cert-warning">⚠️ Please save your configuration before provisioning certificates</div>';
   } else if (!canProvision) {
-    warningMessage = '<div class="hint" style="color: #718096; margin-bottom: 10px;">ℹ️ No certificate changes needed at this time</div>';
+    warningMessage = '<div class="hint cert-info">ℹ️ No certificate changes needed at this time</div>';
   }
   
   // Build certificate status readout
@@ -2913,7 +2910,7 @@ function renderCertificatesEditor() {
   }
   
   if (certStatus.provisioned.length === 0 && certStatus.needProvisioning.length === 0 && certStatus.needDeprovisioning.length === 0) {
-    statusHtml = '<div class="hint" style="color: #718096; padding: 20px; text-align: center;">No secure services configured. Add services with secure protocol to provision certificates.</div>';
+    statusHtml = '<div class="hint cert-empty">No secure services configured. Add services with secure protocol to provision certificates.</div>';
   }
   
   panel.innerHTML = `
@@ -3057,6 +3054,20 @@ function renderServiceEditor(serviceName) {
         </div>
       `;
     }
+  }
+
+  // Add file manager section for index, spa, and dirlist types
+  const subdomainType = service.subdomain?.type;
+  if (['index', 'spa', 'dirlist'].includes(subdomainType)) {
+    html += `
+      <div class="section">
+        <div class="section-title">📁 File Management</div>
+        <div class="form-group">
+          <button class="btn-add-field" onclick="renderFileManager('${serviceName}', 'public')">Manage Files</button>
+          <div class="hint">Upload and manage files for this service</div>
+        </div>
+      </div>
+    `;
   }
 
   panel.innerHTML = html;
@@ -3944,26 +3955,34 @@ function confirmAction() {
 }
 
 function showPromptModal(title, message, hint = '', defaultValue = '', placeholder = 'Enter text here', callback) {
-  document.getElementById('promptTitle').textContent = title;
-  document.getElementById('promptMessage').textContent = message;
-  const promptInput = document.getElementById('promptInput');
-  promptInput.value = defaultValue;
-  promptInput.placeholder = placeholder;
+  const modalContent = `
+    <div class="modal-header">${title}</div>
+    <div class="modal-body">${message}</div>
+    <div class="form-group">
+      <input type="text" id="promptInput" class="modal-input" placeholder="${placeholder}" value="${defaultValue}">
+      ${hint ? `<div id="promptHint" class="hint prompt-hint">${hint}</div>` : ''}
+      <div id="promptError" class="hint prompt-error"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-secondary" onclick="closePromptModal()">Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="submitPrompt()">Submit</button>
+    </div>
+  `;
   
-  const hintEl = document.getElementById('promptHint');
-  if (hint) {
-    hintEl.textContent = hint;
-    hintEl.style.display = 'block';
-  } else {
-    hintEl.style.display = 'none';
-  }
-  
-  document.getElementById('promptError').style.display = 'none';
-  
+  document.getElementById('promptModalContent').innerHTML = modalContent;
   promptCallback = callback;
   document.getElementById('promptModal').classList.add('active');
   setTimeout(() => {
-    document.getElementById('promptInput').focus();
+    const input = document.getElementById('promptInput');
+    if (input) {
+      input.focus();
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitPrompt();
+      });
+      input.addEventListener('input', () => {
+        document.getElementById('promptError').style.display = 'none';
+      });
+    }
   }, 100);
 }
 
@@ -3988,12 +4007,6 @@ function submitPrompt() {
     }
   }
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('promptInput').addEventListener('input', () => {
-    document.getElementById('promptError').style.display = 'none';
-  });
-});
 
 function showLoadingOverlay(title, message) {
   const overlay = document.getElementById('loadingOverlay');
@@ -4047,6 +4060,387 @@ async function waitForServerRestart(delay = 2000) {
   
   hideLoadingOverlay();
   showStatus('⚠ Server did not restart within expected time. Please check manually.', 'error');
+}
+
+/* FILE MANAGEMENT FUNCTIONS */
+async function renderFileManager(serviceName, folderType = 'public', currentPath = '') {
+  const panel = document.getElementById('editorPanel');
+  const actions = document.getElementById('editorActions');
+  
+  actions.classList.remove('hidden');
+  panel.classList.add('scrollable');
+  
+  try {
+    const queryPath = currentPath ? `?path=${encodeURIComponent(currentPath)}` : '';
+    const response = await fetch(`/files/${serviceName}/${folderType}${queryPath}`);
+    const data = await response.json();
+    
+    if (!data.success) {
+      showStatus(data.error, 'error');
+      return;
+    }
+    
+    const files = data.files || [];
+    const pathFromServer = data.currentPath || '';
+    
+    // Build breadcrumb navigation
+    const pathParts = pathFromServer ? pathFromServer.split('/').filter(p => p) : [];
+    let breadcrumbs = `<a href="#" onclick="renderFileManager('${serviceName}', '${folderType}', ''); return false;" class="breadcrumb-link">📁 ${folderType}</a>`;
+    
+    let accumulatedPath = '';
+    for (let i = 0; i < pathParts.length; i++) {
+      accumulatedPath += (accumulatedPath ? '/' : '') + pathParts[i];
+      const displayPath = accumulatedPath;
+      breadcrumbs += ` / <a href="#" onclick="renderFileManager('${serviceName}', '${folderType}', '${displayPath}'); return false;" class="breadcrumb-link">${pathParts[i]}</a>`;
+    }
+    
+    let html = `
+      <div class="section">
+        <div class="section-title">📁 File Manager - ${serviceName}</div>
+        <div class="hint hint-section">Manage files in the ${folderType} folder for this service</div>
+        
+        <div class="form-group">
+          <label>Folder Type</label>
+          <div class="folder-type-tabs">
+            <button class="btn-tab folder-type-tab ${folderType === 'public' ? 'folder-type-tab-active' : 'folder-type-tab-inactive'}" 
+                onclick="renderFileManager('${serviceName}', 'public', '')">
+              Public
+            </button>
+            <button class="btn-tab folder-type-tab ${folderType === 'static' ? 'folder-type-tab-active' : 'folder-type-tab-inactive'}" 
+                onclick="renderFileManager('${serviceName}', 'static', '')">
+              Static
+            </button>
+          </div>
+          <div class="hint">Public: Served directly. Static: Served with custom middleware.</div>
+        </div>
+        
+        <div class="form-group">
+          <label>Current Path</label>
+          <div class="breadcrumb-container">
+            ${breadcrumbs}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <div class="file-manager-actions">
+            <div class="file-manager-actions-left">
+              <button class="btn-add-field" onclick="showUploadDialog('${serviceName}', '${folderType}', '${pathFromServer}')">📤 Upload File</button>
+              <button class="btn-add-field" onclick="showCreateDirectoryDialog('${serviceName}', '${folderType}', '${pathFromServer}')">📁 Create Directory</button>
+            </div>
+            <button class="btn-add-field" onclick="showUnpackZipDialog('${serviceName}', '${folderType}', '${pathFromServer}')">📦 Unpack Zip</button>
+          </div>
+        </div>
+        
+        <div class="file-list-container">
+          ${renderFileList(files, serviceName, folderType, pathFromServer)}
+        </div>
+      </div>
+    `;
+    
+    panel.innerHTML = html;
+    actions.innerHTML = `
+      <button class="btn-reset" onclick="renderServiceEditor('${serviceName}')">← Back to Service</button>
+    `;
+  } catch (error) {
+    showStatus('Failed to load files: ' + error.message, 'error');
+  }
+}
+
+function renderFileList(files, serviceName, folderType, currentPath) {
+  if (!files || files.length === 0) {
+    return '<div class="hint">No files found. Upload files to get started.</div>';
+  }
+  
+  // Sort files: directories first, then by name
+  const sorted = files.sort((a, b) => {
+    if (a.type === 'directory' && b.type !== 'directory') return -1;
+    if (a.type !== 'directory' && b.type === 'directory') return 1;
+    return a.name.localeCompare(b.name);
+  });
+  
+  let html = '<div class="file-list">';
+  
+  // Add parent directory entry if we're in a subfolder
+  if (currentPath) {
+    const parentPath = currentPath.split('/').slice(0, -1).join('/');
+    html += `
+      <div class="file-item">
+        <span class="file-icon">📁</span>
+        <div class="file-info-clickable" onclick="renderFileManager('${serviceName}', '${folderType}', '${parentPath}')">
+          <div class="file-name-primary">../</div>
+          <div class="hint file-meta">Go up one level</div>
+        </div>
+        <div class="file-spacer"></div>
+      </div>
+    `;
+  }
+  
+  for (const file of sorted) {
+    const icon = file.type === 'directory' ? '📁' : '📄';
+    const sizeStr = file.type === 'file' ? formatFileSize(file.size) : '';
+    const modified = file.type === 'file' && file.modified ? new Date(file.modified).toLocaleString() : '';
+    const fullPath = currentPath ? `${currentPath}/${file.path}` : file.path;
+    
+    if (file.type === 'directory') {
+      html += `
+        <div class="file-item">
+          <span class="file-icon">${icon}</span>
+          <div class="file-info-clickable" onclick="renderFileManager('${serviceName}', '${folderType}', '${fullPath}')">
+            <div class="file-name-primary">${file.name}</div>
+            <div class="hint file-meta">Click to open</div>
+          </div>
+          <button class="btn-remove btn-remove-no-margin" onclick="event.stopPropagation(); deleteFile('${serviceName}', '${folderType}', '${fullPath}', '${currentPath}')">Delete</button>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="file-item">
+          <span class="file-icon">${icon}</span>
+          <div class="file-info">
+            <div class="file-name">${file.name}</div>
+            ${sizeStr || modified ? `<div class="hint file-meta">${sizeStr}${sizeStr && modified ? ' • ' : ''}${modified}</div>` : ''}
+          </div>
+          <button class="btn-remove btn-remove-no-margin" onclick="deleteFile('${serviceName}', '${folderType}', '${fullPath}', '${currentPath}')">Delete</button>
+        </div>
+      `;
+    }
+  }
+  
+  html += '</div>';
+  return html;
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function showUploadDialog(serviceName, folderType, currentPath = '') {
+  const pathDisplay = currentPath ? `/${currentPath}` : '';
+  const dialogContent = `
+    <div class="modal-header">Upload File</div>
+    ${currentPath ? `<div class="modal-body">Uploading to: <strong>${pathDisplay}</strong></div>` : ''}
+    <div class="form-group">
+      <label for="fileInput">Select File</label>
+      <input type="file" id="fileInput">
+    </div>
+    <div class="form-group">
+      <label for="targetPathInput">Filename (optional)</label>
+      <input type="text" id="targetPathInput" placeholder="Leave empty to use original filename">
+      <div class="hint">Specify just the filename to use a different name</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-reset" onclick="closePromptModal()">Cancel</button>
+      <button class="btn-save" onclick="uploadFile('${serviceName}', '${folderType}', '${currentPath}')">Upload</button>
+    </div>
+  `;
+  
+  document.getElementById('promptModalContent').innerHTML = dialogContent;
+  document.getElementById('promptModal').classList.add('active');
+}
+
+async function uploadFile(serviceName, folderType, currentPath = '') {
+  const fileInput = document.getElementById('fileInput');
+  const targetPathInput = document.getElementById('targetPathInput');
+  
+  if (!fileInput.files || fileInput.files.length === 0) {
+    showStatus('Please select a file', 'error');
+    return;
+  }
+  
+  const file = fileInput.files[0];
+  const filename = targetPathInput.value.trim() || file.name;
+  
+  // Build the full target path: currentPath + filename
+  const targetPath = currentPath ? `${currentPath}/${filename}` : filename;
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('targetPath', targetPath);
+  
+  try {
+    closePromptModal();
+    showLoadingOverlay('Uploading File', 'Please wait...');
+    
+    const response = await fetch(`/files/${serviceName}/${folderType}`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await response.json();
+    
+    hideLoadingOverlay();
+    
+    if (data.success) {
+      showStatus('✓ File uploaded successfully', 'success');
+      renderFileManager(serviceName, folderType, currentPath);
+    } else {
+      showStatus(data.error || 'Upload failed', 'error');
+    }
+  } catch (error) {
+    hideLoadingOverlay();
+    showStatus('Upload failed: ' + error.message, 'error');
+  }
+}
+
+function showCreateDirectoryDialog(serviceName, folderType, currentPath = '') {
+  const pathDisplay = currentPath ? `/${currentPath}` : '';
+  const dialogContent = `
+    <div class="modal-header">Create Directory</div>
+    ${currentPath ? `<div class="modal-body">Creating in: <strong>${pathDisplay}</strong></div>` : ''}
+    <div class="form-group">
+      <label for="directoryNameInput">Directory Name</label>
+      <input type="text" id="directoryNameInput" placeholder="folder-name">
+      <div class="hint">Enter the directory name to create</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-reset" onclick="closePromptModal()">Cancel</button>
+      <button class="btn-save" onclick="createDirectory('${serviceName}', '${folderType}', '${currentPath}')">Create</button>
+    </div>
+  `;
+  
+  document.getElementById('promptModalContent').innerHTML = dialogContent;
+  document.getElementById('promptModal').classList.add('active');
+}
+
+function showUnpackZipDialog(serviceName, folderType, currentPath = '') {
+  const pathDisplay = currentPath ? `/${currentPath}` : '';
+  const dialogContent = `
+    <div class="modal-header">Unpack Zip File</div>
+    ${currentPath ? `<div class="modal-body">Extracting to: <strong>${pathDisplay}</strong></div>` : ''}
+    <div class="form-group">
+      <label for="zipFileInput">Select Zip File</label>
+      <input type="file" id="zipFileInput" accept=".zip">
+      <div class="hint">Choose a zip file to extract into the current directory</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-reset" onclick="closePromptModal()">Cancel</button>
+      <button class="btn-save" onclick="unpackZip('${serviceName}', '${folderType}', '${currentPath}')">Extract</button>
+    </div>
+  `;
+  
+  document.getElementById('promptModalContent').innerHTML = dialogContent;
+  document.getElementById('promptModal').classList.add('active');
+}
+
+async function createDirectory(serviceName, folderType, currentPath = '') {
+  const directoryNameInput = document.getElementById('directoryNameInput');
+  const directoryName = directoryNameInput.value.trim();
+  
+  if (!directoryName) {
+    showStatus('Please enter a directory name', 'error');
+    return;
+  }
+  
+  // Build the full directory path: currentPath + directoryName
+  const directoryPath = currentPath ? `${currentPath}/${directoryName}` : directoryName;
+  
+  try {
+    closePromptModal();
+    showLoadingOverlay('Creating Directory', 'Please wait...');
+    
+    const response = await fetch(`/files/${serviceName}/${folderType}/directory`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ directoryPath })
+    });
+    
+    const data = await response.json();
+    
+    hideLoadingOverlay();
+    
+    if (data.success) {
+      showStatus('✓ Directory created successfully', 'success');
+      renderFileManager(serviceName, folderType, currentPath);
+    } else {
+      showStatus(data.error || 'Creation failed', 'error');
+    }
+  } catch (error) {
+    hideLoadingOverlay();
+    showStatus('Creation failed: ' + error.message, 'error');
+  }
+}
+
+async function deleteFile(serviceName, folderType, filePath, currentPath = '') {
+  const fileName = filePath.split('/').pop();
+  const confirmed = await showConfirmDialog(
+    `Are you sure you want to delete "${fileName}"?`,
+    'This action cannot be undone.'
+  );
+  
+  if (!confirmed) return;
+  
+  try {
+    showLoadingOverlay('Deleting', 'Please wait...');
+    
+    const response = await fetch(`/files/${serviceName}/${folderType}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePath })
+    });
+    
+    const data = await response.json();
+    
+    hideLoadingOverlay();
+    
+    if (data.success) {
+      showStatus('✓ Deleted successfully', 'success');
+      renderFileManager(serviceName, folderType, currentPath);
+    } else {
+      showStatus(data.error || 'Deletion failed', 'error');
+    }
+  } catch (error) {
+    hideLoadingOverlay();
+    showStatus('Deletion failed: ' + error.message, 'error');
+  }
+}
+
+async function unpackZip(serviceName, folderType, currentPath = '') {
+  const zipFileInput = document.getElementById('zipFileInput');
+  
+  if (!zipFileInput.files || zipFileInput.files.length === 0) {
+    showStatus('Please select a zip file', 'error');
+    return;
+  }
+  
+  const file = zipFileInput.files[0];
+  
+  // Validate file extension
+  if (!file.name.toLowerCase().endsWith('.zip')) {
+    showStatus('Please select a valid zip file', 'error');
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('zipFile', file);
+  formData.append('targetPath', currentPath);
+  
+  try {
+    closePromptModal();
+    showLoadingOverlay('Extracting Zip File', 'Please wait...');
+    
+    const response = await fetch(`/files/${serviceName}/${folderType}/unpack`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await response.json();
+    
+    hideLoadingOverlay();
+    
+    if (data.success) {
+      showStatus(`✓ Extracted ${data.filesExtracted || 'files'} successfully`, 'success');
+      renderFileManager(serviceName, folderType, currentPath);
+    } else {
+      showStatus(data.error || 'Extraction failed', 'error');
+    }
+  } catch (error) {
+    hideLoadingOverlay();
+    showStatus('Extraction failed: ' + error.message, 'error');
+  }
 }
 
 loadColors(true);

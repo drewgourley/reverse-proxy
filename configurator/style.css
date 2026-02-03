@@ -680,6 +680,7 @@ label, p.label {
 }
 
 input[type="text"],
+input[type="file"],
 input[type="email"],
 input[type="password"],
 input[type="number"],
@@ -697,6 +698,7 @@ textarea {
 }
 
 input[type="text"]:focus,
+input[type="file"]:focus,
 input[type="email"]:focus,
 input[type="password"]:focus,
 input[type="number"]:focus,
@@ -1497,4 +1499,257 @@ input[type="checkbox"] {
 
 .multi-select-option.disabled:hover {
     background: transparent;
+}
+/* Utility Classes */
+.text-security {
+    -webkit-text-security: disc;
+}
+
+.flex-row {
+    display: flex;
+    align-items: center;
+}
+
+.flex-gap-10 {
+    gap: 10px;
+}
+
+.flex-space-between {
+    justify-content: space-between;
+}
+
+.margin-left-10 {
+    margin-left: 10px;
+}
+
+.margin-top-15 {
+    margin-top: 15px;
+}
+
+.margin-top-20 {
+    margin-top: 20px;
+}
+
+.margin-bottom-15 {
+    margin-bottom: 15px;
+}
+
+/* Section Utilities */
+.section-title-spaced {
+    margin-top: 2rem;
+}
+
+/* Grid Layouts */
+.grid-two-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.subsection-heading {
+    margin: 0 0 15px 0;
+    color: var(--color-text-primary);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* File Input */
+.file-input-hidden {
+    display: none;
+}
+
+.file-name-display {
+    margin-left: 10px;
+    color: var(--color-text-secondary);
+}
+
+/* Favicon Styles */
+.favicon-preview-container {
+    margin-top: 15px;
+}
+
+.favicon-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--color-text-primary);
+    font-weight: 500;
+}
+
+.favicon-image {
+    max-width: 128px;
+    max-height: 128px;
+    border-radius: 8px;
+    background: var(--color-gray-100);
+    padding: 10px;
+    display: block;
+}
+
+.favicon-warning {
+    display: none;
+    width: 128px;
+    height: 128px;
+    padding: 10px;
+    background: var(--color-gray-100);
+    border-radius: 8px;
+    color: var(--color-text-secondary);
+    text-align: center;
+    border: 2px dashed var(--color-gray-300);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.favicon-warning-icon {
+    font-size: 32px;
+    margin-bottom: 4px;
+}
+
+.favicon-warning-title {
+    font-weight: 500;
+    font-size: 11px;
+    margin-bottom: 2px;
+}
+
+.favicon-warning-text {
+    font-size: 10px;
+    line-height: 1.2;
+}
+
+/* Advanced Editor */
+.advanced-remove-btn {
+    margin-top: 4px;
+}
+
+/* Certificate Status */
+.cert-warning {
+    color: #ed8936;
+    margin-bottom: 10px;
+}
+
+.cert-info {
+    color: #718096;
+    margin-bottom: 10px;
+}
+
+.cert-empty {
+    color: #718096;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Prompt Modal */
+.prompt-hint {
+    color: #718096;
+    margin-top: -10px;
+    margin-bottom: 15px;
+}
+
+.prompt-error {
+    color: #e53e3e;
+    margin-top: -10px;
+    margin-bottom: 15px;
+    display: none;
+}
+
+/* File Manager */
+.breadcrumb-link {
+    color: #555;
+    text-decoration: none;
+}
+
+.breadcrumb-container {
+    padding: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-family: monospace;
+    color: #555;
+}
+
+.folder-type-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.folder-type-tab {
+    flex: 1;
+    padding: 8px 16px;
+    border: 1px solid var(--color-primary);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.folder-type-tab-inactive {
+    background: transparent;
+    color: var(--color-primary);
+}
+
+.folder-type-tab-active {
+    background: var(--color-primary);
+    color: var(--color-background);
+}
+
+.file-manager-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.file-manager-actions-left {
+    display: flex;
+    gap: 10px;
+}
+
+.file-list-container {
+    margin-top: 20px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid var(--color-gray-200);
+    gap: 10px;
+}
+
+.file-icon {
+    font-size: 20px;
+}
+
+.file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-info-clickable {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.file-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-name-primary {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-primary);
+}
+
+.file-meta {
+    font-size: 12px;
+}
+
+.file-spacer {
+    width: 70px;
+}
+
+.btn-remove-no-margin {
+    margin: 0;
 }

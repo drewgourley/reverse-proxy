@@ -11,6 +11,7 @@ const bcrypt = require('bcrypt');
 const express = require('express');
 const got = require('got');
 const multer = require('multer');
+const AdmZip = require('adm-zip');
 const faviconUpload = multer({ storage: multer.memoryStorage() });
 const sharp = require('sharp');
 const toIco = require('to-ico');
@@ -1030,6 +1031,322 @@ configrouter.put('/certs', (request, response) => {
     response.status(500).send({ success: false, error: error.message });
   }
 });
+/* FILE MANAGEMENT ROUTES */
+const fileUpload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit
+});
+
+// Get list of files for a service
+configrouter.get('/files/:serviceName/:folderType', (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const subPath = request.query.path || '';
+    
+    // Validate folder type
+    if (!['public', 'static'].includes(folderType)) {
+      return response.status(400).send({ success: false, error: 'Invalid folder type' });
+    }
+    
+    // Load config to check if service exists and has appropriate type
+    let config = {};
+    try {
+      config = require('./config.json');
+    } catch (e) {
+      return response.status(400).send({ success: false, error: 'Config not found' });
+    }
+    
+    const service = config.services?.[serviceName];
+    if (!service) {
+      return response.status(404).send({ success: false, error: 'Service not found' });
+    }
+    
+    // Check if service type supports files
+    const subdomainType = service.subdomain?.type;
+    if (!['index', 'spa', 'dirlist'].includes(subdomainType)) {
+      return response.status(400).send({ 
+        success: false, 
+        error: `File management not available for ${subdomainType} type services` 
+      });
+    }
+    
+    const baseFolderPath = path.join(__dirname, 'web', folderType, serviceName);
+    const currentFolderPath = path.join(baseFolderPath, subPath);
+    
+    // Security check: ensure path is within the service folder
+    if (!currentFolderPath.startsWith(baseFolderPath)) {
+      return response.status(400).send({ success: false, error: 'Invalid path' });
+    }
+    
+    // Create folder if it doesn't exist
+    if (!fs.existsSync(baseFolderPath)) {
+      fs.mkdirSync(baseFolderPath, { recursive: true });
+    }
+    
+    if (!fs.existsSync(currentFolderPath)) {
+      return response.status(404).send({ success: false, error: 'Directory not found' });
+    }
+    
+    // Read only the current directory (non-recursive)
+    const files = [];
+    const items = fs.readdirSync(currentFolderPath, { withFileTypes: true });
+    
+    for (const item of items) {
+      const fullPath = path.join(currentFolderPath, item.name);
+      
+      if (item.isDirectory()) {
+        files.push({
+          name: item.name,
+          path: item.name,
+          type: 'directory',
+          size: 0
+        });
+      } else {
+        const stats = fs.statSync(fullPath);
+        files.push({
+          name: item.name,
+          path: item.name,
+          type: 'file',
+          size: stats.size,
+          modified: stats.mtime
+        });
+      }
+    }
+    
+    response.status(200).send({ success: true, files, currentPath: subPath });
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+// Upload file to service folder
+configrouter.post('/files/:serviceName/:folderType', fileUpload.single('file'), (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const targetPath = request.body.targetPath || '';
+    
+    if (!request.file) {
+      return response.status(400).send({ success: false, error: 'No file uploaded' });
+    }
+    
+    // Validate folder type
+    if (!['public', 'static'].includes(folderType)) {
+      return response.status(400).send({ success: false, error: 'Invalid folder type' });
+    }
+    
+    // Load config to check service type
+    let config = {};
+    try {
+      config = require('./config.json');
+    } catch (e) {
+      return response.status(400).send({ success: false, error: 'Config not found' });
+    }
+    
+    const service = config.services?.[serviceName];
+    if (!service) {
+      return response.status(404).send({ success: false, error: 'Service not found' });
+    }
+    
+    const subdomainType = service.subdomain?.type;
+    if (!['index', 'spa', 'dirlist'].includes(subdomainType)) {
+      return response.status(400).send({ 
+        success: false, 
+        error: `File upload not available for ${subdomainType} type services` 
+      });
+    }
+    
+    const folderPath = path.join(__dirname, 'web', folderType, serviceName);
+    
+    // Create folder if it doesn't exist
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+    }
+    
+    // Build full target path
+    const fullTargetPath = path.join(folderPath, targetPath);
+    const targetDir = path.dirname(fullTargetPath);
+    
+    // Create target directory if needed
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+    
+    // Write file
+    fs.writeFileSync(fullTargetPath, request.file.buffer);
+    
+    response.status(200).send({ 
+      success: true, 
+      message: 'File uploaded successfully',
+      file: {
+        name: request.file.originalname,
+        size: request.file.size,
+        path: path.relative(folderPath, fullTargetPath)
+      }
+    });
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+// Delete file from service folder
+configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const { filePath } = request.body;
+    
+    if (!filePath) {
+      return response.status(400).send({ success: false, error: 'File path is required' });
+    }
+    
+    // Validate folder type
+    if (!['public', 'static'].includes(folderType)) {
+      return response.status(400).send({ success: false, error: 'Invalid folder type' });
+    }
+    
+    const folderPath = path.join(__dirname, 'web', folderType, serviceName);
+    const fullPath = path.join(folderPath, filePath);
+    
+    // Security check: ensure path is within the service folder
+    if (!fullPath.startsWith(folderPath)) {
+      return response.status(400).send({ success: false, error: 'Invalid file path' });
+    }
+    
+    if (!fs.existsSync(fullPath)) {
+      return response.status(404).send({ success: false, error: 'File not found' });
+    }
+    
+    const stats = fs.statSync(fullPath);
+    
+    if (stats.isDirectory()) {
+      // Remove directory recursively
+      fs.rmSync(fullPath, { recursive: true, force: true });
+    } else {
+      // Remove file
+      fs.unlinkSync(fullPath);
+    }
+    
+    response.status(200).send({ success: true, message: 'File deleted successfully' });
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+// Create directory in service folder
+configrouter.post('/files/:serviceName/:folderType/directory', (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const { directoryPath } = request.body;
+    
+    if (!directoryPath) {
+      return response.status(400).send({ success: false, error: 'Directory path is required' });
+    }
+    
+    // Validate folder type
+    if (!['public', 'static'].includes(folderType)) {
+      return response.status(400).send({ success: false, error: 'Invalid folder type' });
+    }
+    
+    const folderPath = path.join(__dirname, 'web', folderType, serviceName);
+    const fullPath = path.join(folderPath, directoryPath);
+    
+    // Security check: ensure path is within the service folder
+    if (!fullPath.startsWith(folderPath)) {
+      return response.status(400).send({ success: false, error: 'Invalid directory path' });
+    }
+    
+    if (fs.existsSync(fullPath)) {
+      return response.status(400).send({ success: false, error: 'Directory already exists' });
+    }
+    
+    fs.mkdirSync(fullPath, { recursive: true });
+    
+    response.status(200).send({ success: true, message: 'Directory created successfully' });
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+// Unpack zip file into service folder
+configrouter.post('/files/:serviceName/:folderType/unpack', fileUpload.single('zipFile'), (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const { targetPath } = request.body;
+    
+    if (!request.file) {
+      return response.status(400).send({ success: false, error: 'No zip file provided' });
+    }
+    
+    // Validate folder type
+    if (!['public', 'static'].includes(folderType)) {
+      return response.status(400).send({ success: false, error: 'Invalid folder type' });
+    }
+    
+    const folderPath = path.join(__dirname, 'web', folderType, serviceName);
+    const extractPath = targetPath ? path.join(folderPath, targetPath) : folderPath;
+    
+    // Security check: ensure extraction path is within the service folder
+    if (!extractPath.startsWith(folderPath)) {
+      return response.status(400).send({ success: false, error: 'Invalid target path' });
+    }
+    
+    // Validate file is actually a zip
+    if (!request.file.originalname.toLowerCase().endsWith('.zip')) {
+      return response.status(400).send({ success: false, error: 'File must be a zip archive' });
+    }
+    
+    let zip;
+    try {
+      zip = new AdmZip(request.file.buffer);
+    } catch (error) {
+      return response.status(400).send({ success: false, error: 'Invalid or corrupted zip file' });
+    }
+    
+    const zipEntries = zip.getEntries();
+    
+    // Security check: validate all entries stay within target directory
+    for (const entry of zipEntries) {
+      const entryPath = path.join(extractPath, entry.entryName);
+      if (!entryPath.startsWith(extractPath)) {
+        return response.status(400).send({ 
+          success: false, 
+          error: 'Zip contains invalid paths (potential path traversal attack)' 
+        });
+      }
+    }
+    
+    // Limit check: prevent zip bombs (max 1000 files, max 100MB uncompressed)
+    if (zipEntries.length > 1000) {
+      return response.status(400).send({ 
+        success: false, 
+        error: 'Zip contains too many files (max 1000)' 
+      });
+    }
+    
+    let totalSize = 0;
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    for (const entry of zipEntries) {
+      totalSize += entry.header.size;
+      if (totalSize > maxSize) {
+        return response.status(400).send({ 
+          success: false, 
+          error: 'Zip uncompressed size exceeds limit (max 100MB)' 
+        });
+      }
+    }
+    
+    // Extract all files
+    zip.extractAllTo(extractPath, true);
+    
+    response.status(200).send({ 
+      success: true, 
+      message: 'Zip extracted successfully',
+      filesExtracted: zipEntries.length
+    });
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
 configapp.use(configrouter);
 const configurator = http.createServer(configapp);
 module.exports = configurator;
