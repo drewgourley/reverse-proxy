@@ -15,6 +15,8 @@ let originalAdvanced = {};
 let certs = {};
 let originalCerts = {};
 let currentSelection = null;
+let selectedFiles = new Set();
+let currentFileManagerContext = null;
 let secureServicesChangedThisSession = false;
 let firstConfigSave = true;
 let secretsSaved = false;
@@ -102,6 +104,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     const section = urlParams.get('section');
     const type = urlParams.get('type');
+    const folder = urlParams.get('folder');
+    const path = urlParams.get('path');
+    
     if (section) {
       const validMonitorSections = ['monitor-logs', 'monitor-blocklist'];
       const validManagementSections = ['management-application', 'management-secrets', 'management-users', 'management-theme', 'management-advanced'];
@@ -119,11 +124,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
       if (isValidManagement || isValidConfig || isService || isValidMonitor) {
-        selectItem(section, type);
+        selectItem(section, type, folder, path, false);
       } else {
         const url = new URL(window.location);
         url.searchParams.delete('section');
         url.searchParams.delete('type');
+        url.searchParams.delete('folder');
+        url.searchParams.delete('path');
         window.history.replaceState({}, '', url);
       }
     }
@@ -141,9 +148,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const section = urlParams.get('section');
     const type = urlParams.get('type');
+    const folder = urlParams.get('folder');
+    const path = urlParams.get('path');
     
     if (section) {
-      // Validate section and navigate to it
       const validMonitorSections = ['monitor-logs', 'monitor-blocklist'];
       const validManagementSections = ['management-application', 'management-secrets', 'management-users', 'management-theme', 'management-advanced'];
       if (secrets.admin_email_address && secrets.admin_email_address.trim() !== '') {
@@ -159,18 +167,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       const isService = section.startsWith('config-') && config.services && config.services[section.replace('config-', '')];
       
       if (isValidManagement || isValidConfig || isService || isValidMonitor) {
-        selectItem(section, type, false);
+        selectItem(section, type, folder, path, false);
       }
     } else {
-      // No section in URL, show default view
       currentSelection = null;
       renderPlaceholderEditor();
       renderServicesList();
       updateSidebarButtons();
     }
   });
-  
-  // Mark page as fully loaded
   document.documentElement.classList.add('loaded');
 });
 
@@ -513,6 +518,7 @@ function renderBlocklistEditor() {
   `;
   panel.innerHTML = html;
   actions.innerHTML = `
+    <div class="flex-spacer"></div>
     <button class="btn-reset" onclick="revertBlocklist()">Revert</button>
     <button class="btn-save" id="saveBlocklistBtn" onclick="saveBlocklist()">Save Blocklist</button>
   `;
@@ -627,6 +633,7 @@ function renderSecretsEditor() {
   `;
   panel.innerHTML = html;
   actions.innerHTML = `
+    <div class="flex-spacer"></div>
     <button class="btn-reset" onclick="revertSecrets()">Revert</button>
     <button class="btn-save" id="saveSecretsBtn" onclick="saveSecrets()">Save Secrets</button>
   `;
@@ -955,6 +962,7 @@ function renderUsersEditor() {
   
   panel.innerHTML = html;
   actions.innerHTML = `
+    <div class="flex-spacer"></div>
     <button class="btn-reset" onclick="revertUsers()">Revert</button>
     <button class="btn-save" id="saveUsersBtn" onclick="saveUsers()">Save Users</button>
   `;
@@ -1264,6 +1272,7 @@ function renderDdnsEditor() {
   `;
   panel.innerHTML = html;
   actions.innerHTML = `
+    <div class="flex-spacer"></div>
     <button class="btn-reset" onclick="revertDdns()">Revert Changes</button>
     <button class="btn-save" id="saveDdnsBtn" onclick="saveDdns()">Save DDNS Config</button>
   `;
@@ -1652,7 +1661,7 @@ function renderThemeEditor() {
           <div class="form-group">
             <label for="faviconUpload">Upload New Favicon</label>
             <input type="file" id="faviconUpload" accept="image/png" class="file-input-hidden">
-            <button class="btn-primary" onclick="document.getElementById('faviconUpload').click()">Choose File</button>
+            <button class="btn-add-field no-top" onclick="document.getElementById('faviconUpload').click()">Choose File</button>
             <span id="faviconFileName" class="file-name-display"></span>
             <div class="hint">PNG format only, up to 512x512 pixels</div>
           </div>
@@ -1677,6 +1686,7 @@ function renderThemeEditor() {
   `;
   
   actions.innerHTML = `
+    <div class="flex-spacer"></div>
     <button class="btn-reset" onclick="revertColors()">Revert</button>
     <button class="btn-save" id="saveThemeBtn" onclick="saveTheme()">Save Theme</button>
   `;
@@ -1960,6 +1970,7 @@ function renderApplicationEditor() {
   `;
 
   actions.innerHTML = `
+    <div class="flex-spacer"></div>
     <button class="btn-reset" onclick="revertEcosystem()">Revert</button>
     <button class="btn-save" id="saveEcosystemBtn" onclick="saveEcosystem()">${buttonText}</button>
   `;
@@ -2115,6 +2126,7 @@ function renderAdvancedEditor() {
   `;
 
   actions.innerHTML = `
+    <div class="flex-spacer"></div>
     <button class="btn-reset" onclick="revertAdvanced()">Revert</button>
     <button class="btn-save" id="saveAdvancedBtn" onclick="saveAdvanced()">Save Advanced Config</button>
   `;
@@ -2479,13 +2491,15 @@ function renderServicesList() {
   });
 }
 
-function selectItem(prefixedName, type, pushState = true) {
+function selectItem(prefixedName, type, folder, path, pushState = true) {
   currentSelection = prefixedName;
   
   if (pushState) {
     const url = new URL(window.location);
     url.searchParams.set('section', prefixedName);
     url.searchParams.delete('type');
+    url.searchParams.delete('folder');
+    url.searchParams.delete('path');
     window.history.pushState({}, '', url);
   }
 
@@ -2515,7 +2529,11 @@ function selectItem(prefixedName, type, pushState = true) {
   } else if (prefixedName === 'monitor-blocklist') {
     renderBlocklistEditor();
   } else if (prefixedName.startsWith('config-')) {
-    renderServiceEditor(itemName);
+    if (folder) {
+      renderFileManager(itemName, folder, path, pushState);
+    } else {
+      renderServiceEditor(itemName);
+    }
   } else {
     renderPlaceholderEditor();
   }
@@ -2734,6 +2752,7 @@ function renderDomainEditor() {
   `;
 
   actions.innerHTML = `
+    <div class="flex-spacer"></div>
     <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
     <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
   `;
@@ -2927,11 +2946,13 @@ function renderCertificatesEditor() {
 
   if (hasChanges) {
     actions.innerHTML = `
+      <div class="flex-spacer"></div>
       <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
       <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
     `;
   } else {
     actions.innerHTML = `
+      <div class="flex-spacer"></div>
       <button class="btn-save" onclick="provisionCertificates()" id="provisionBtn" ${canProvision ? '' : 'disabled'}>Provision Certificates</button>
     `;
   }
@@ -3056,25 +3077,24 @@ function renderServiceEditor(serviceName) {
     }
   }
 
-  // Add file manager section for index, spa, and dirlist types
+  panel.innerHTML = html;
+  
+  // Add file manager button to actions for index, spa, and dirlist types
   const subdomainType = service.subdomain?.type;
   if (['index', 'spa', 'dirlist'].includes(subdomainType)) {
-    html += `
-      <div class="section">
-        <div class="section-title">📁 File Management</div>
-        <div class="form-group">
-          <button class="btn-add-field" onclick="renderFileManager('${serviceName}', 'public')">Manage Files</button>
-          <div class="hint">Upload and manage files for this service</div>
-        </div>
-      </div>
+    actions.innerHTML = `
+      <button class="btn-add-field" onclick="renderFileManager('${serviceName}', 'public')"><span class="icon-trap">📁</span> Manage Files</button>
+      <div class="flex-spacer"></div>
+      <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
+      <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
+    `;
+  } else {
+    actions.innerHTML = `
+      <div class="flex-spacer"></div>
+      <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
+      <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
     `;
   }
-
-  panel.innerHTML = html;
-  actions.innerHTML = `
-    <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
-    <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
-  `;
 
   // Set initial visibility state for conditional fields
   if (service.subdomain) {
@@ -3707,6 +3727,7 @@ function removeService(serviceName) {
         
         const message = 'Service removed. Select another item to continue editing.';
         const actions = `
+          <div class="flex-spacer"></div>
           <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
           <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
         `
@@ -4063,9 +4084,21 @@ async function waitForServerRestart(delay = 2000) {
 }
 
 /* FILE MANAGEMENT FUNCTIONS */
-async function renderFileManager(serviceName, folderType = 'public', currentPath = '') {
+async function renderFileManager(serviceName, folderType = 'public', currentPath = '', pushState = true) {
   const panel = document.getElementById('editorPanel');
   const actions = document.getElementById('editorActions');
+  
+  if (pushState) {
+    const url = new URL(window.location);
+    url.searchParams.set('section', `config-${serviceName}`);
+    url.searchParams.set('folder', folderType);
+    if (currentPath) {
+      url.searchParams.set('path', currentPath);
+    } else {
+      url.searchParams.delete('path');
+    }
+    window.history.pushState({}, '', url);
+  }
   
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
@@ -4083,9 +4116,18 @@ async function renderFileManager(serviceName, folderType = 'public', currentPath
     const files = data.files || [];
     const pathFromServer = data.currentPath || '';
     
+    // Get service type to determine if we should show folder type selector
+    const service = config.services[serviceName];
+    const serviceType = service?.subdomain?.type;
+    const showFolderTypeSelector = serviceType === 'index';
+    
     // Build breadcrumb navigation
     const pathParts = pathFromServer ? pathFromServer.split('/').filter(p => p) : [];
-    let breadcrumbs = `<a href="#" onclick="renderFileManager('${serviceName}', '${folderType}', ''); return false;" class="breadcrumb-link">📁 ${folderType}</a>`;
+    const domain = config.domain || 'domain.com';
+    const rootUrl = folderType === 'public' 
+      ? `${serviceName}.${domain}` 
+      : `${serviceName}.${domain}/static`;
+    let breadcrumbs = `<a href="#" onclick="renderFileManager('${serviceName}', '${folderType}', ''); return false;" class="breadcrumb-link">📁 ${rootUrl}</a>`;
     
     let accumulatedPath = '';
     for (let i = 0; i < pathParts.length; i++) {
@@ -4097,23 +4139,24 @@ async function renderFileManager(serviceName, folderType = 'public', currentPath
     let html = `
       <div class="section">
         <div class="section-title">📁 File Manager - ${serviceName}</div>
-        <div class="hint hint-section">Manage files in the ${folderType} folder for this service</div>
-        
+        <div class="hint hint-section">Manage files in hosted by this service</div>
+        ${showFolderTypeSelector ? `
         <div class="form-group">
           <label>Folder Type</label>
-          <div class="folder-type-tabs">
-            <button class="btn-tab folder-type-tab ${folderType === 'public' ? 'folder-type-tab-active' : 'folder-type-tab-inactive'}" 
+          <div class="folders-tabs-row">
+            <button class="tab-folder-type ${folderType === 'public' ? 'active' : ''}" 
                 onclick="renderFileManager('${serviceName}', 'public', '')">
               Public
             </button>
-            <button class="btn-tab folder-type-tab ${folderType === 'static' ? 'folder-type-tab-active' : 'folder-type-tab-inactive'}" 
+            <button class="tab-folder-type ${folderType === 'static' ? 'active' : ''}" 
                 onclick="renderFileManager('${serviceName}', 'static', '')">
               Static
             </button>
           </div>
-          <div class="hint">Public: Served directly. Static: Served with custom middleware.</div>
+          <div class="folders-tabs-spacer"></div>
+          <div class="hint">${folderType === 'public' ? 'Public files are served directly.' : ' Static files are stored differently and are served at the /static path.'}</div>
         </div>
-        
+        ` : ''}
         <div class="form-group">
           <label>Current Path</label>
           <div class="breadcrumb-container">
@@ -4122,12 +4165,13 @@ async function renderFileManager(serviceName, folderType = 'public', currentPath
         </div>
         
         <div class="form-group">
-          <div class="file-manager-actions">
+          <div class="file-manager-actions" id="file-manager-actions">
             <div class="file-manager-actions-left">
-              <button class="btn-add-field" onclick="showUploadDialog('${serviceName}', '${folderType}', '${pathFromServer}')">📤 Upload File</button>
-              <button class="btn-add-field" onclick="showCreateDirectoryDialog('${serviceName}', '${folderType}', '${pathFromServer}')">📁 Create Directory</button>
+              <button class="btn-add-field secondary" onclick="showUploadDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="icon-trap">📤</span> Upload File</button>
+              <button class="btn-add-field secondary" onclick="showCreateDirectoryDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="icon-trap">📁</span> Create Directory</button>
+              <button class="btn-add-field secondary" onclick="showUnpackZipDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="icon-trap">📦</span> Unpack Zip</button>
             </div>
-            <button class="btn-add-field" onclick="showUnpackZipDialog('${serviceName}', '${folderType}', '${pathFromServer}')">📦 Unpack Zip</button>
+            <button class="btn-add-field secondary" onclick="selectAllFiles()"><span class="icon-trap">☑</span> Select All</button>
           </div>
         </div>
         
@@ -4139,10 +4183,126 @@ async function renderFileManager(serviceName, folderType = 'public', currentPath
     
     panel.innerHTML = html;
     actions.innerHTML = `
-      <button class="btn-reset" onclick="renderServiceEditor('${serviceName}')">← Back to Service</button>
+      <button class="btn-add-field" onclick="backToServiceEditor('${serviceName}')"><span class="icon-trap">🡰</span> Back to Service</button>
     `;
+    
+    // Initialize file manager context and clear selections
+    currentFileManagerContext = { serviceName, folderType, currentPath: pathFromServer };
+    selectedFiles.clear();
+    updateFileManagerActions();
   } catch (error) {
     showStatus('Failed to load files: ' + error.message, 'error');
+  }
+}
+
+function backToServiceEditor(serviceName) {
+  const url = new URL(window.location);
+  url.searchParams.delete('folder');
+  url.searchParams.delete('path');
+  window.history.pushState({}, '', url);
+  selectedFiles.clear();
+  currentFileManagerContext = null;
+  renderServiceEditor(serviceName);
+}
+
+function toggleFileSelection(filePath) {
+  if (selectedFiles.has(filePath)) {
+    selectedFiles.delete(filePath);
+  } else {
+    selectedFiles.add(filePath);
+  }
+  updateFileManagerActions();
+  updateFileItemStyles();
+}
+
+function updateFileItemStyles() {
+  const fileItems = document.querySelectorAll('.file-item');
+  fileItems.forEach(item => {
+    const checkbox = item.querySelector('.file-checkbox');
+    if (checkbox && checkbox.checked) {
+      item.classList.add('file-item-selected');
+    } else {
+      item.classList.remove('file-item-selected');
+    }
+  });
+}
+
+function clearFileSelection() {
+  selectedFiles.clear();
+  
+  // Uncheck all checkboxes
+  const checkboxes = document.querySelectorAll('.file-checkbox');
+  checkboxes.forEach(cb => cb.checked = false);
+  
+  updateFileManagerActions();
+  updateFileItemStyles();
+}
+
+function selectAllFiles() {
+  if (!currentFileManagerContext) return;
+  
+  const { serviceName, folderType, currentPath } = currentFileManagerContext;
+  const service = config.services[serviceName];
+  const isDirlist = service?.subdomain?.type === 'dirlist';
+  
+  const fileItems = document.querySelectorAll('.file-item');
+  fileItems.forEach(item => {
+    const checkbox = item.querySelector('.file-checkbox');
+    if (checkbox) {
+      const onchangeAttr = checkbox.getAttribute('onchange');
+      if (onchangeAttr) {
+        const match = onchangeAttr.match(/toggleFileSelection\('([^']+)'\)/);
+        if (match) {
+          const filePath = match[1];
+          // Skip the protected folder in dirlist services
+          if (isDirlist && folderType === 'public' && !currentPath && filePath === 'protected') {
+            return;
+          }
+          selectedFiles.add(filePath);
+          checkbox.checked = true;
+        }
+      }
+    }
+  });
+  
+  updateFileManagerActions();
+  updateFileItemStyles();
+}
+
+function updateFileManagerActions() {
+  const actionsDiv = document.getElementById('file-manager-actions');
+  if (!actionsDiv || !currentFileManagerContext) return;
+  
+  const { serviceName, folderType, currentPath } = currentFileManagerContext;
+  const selectionCount = selectedFiles.size;
+  
+  if (selectionCount === 0) {
+    // No selection - show default actions
+    actionsDiv.innerHTML = `
+      <div class="file-manager-actions-left">
+        <button class="btn-add-field secondary" onclick="showUploadDialog('${serviceName}', '${folderType}', '${currentPath}')"><span class="icon-trap">📤</span> Upload File</button>
+        <button class="btn-add-field secondary" onclick="showCreateDirectoryDialog('${serviceName}', '${folderType}', '${currentPath}')"><span class="icon-trap">📁</span> Create Directory</button>
+        <button class="btn-add-field secondary" onclick="showUnpackZipDialog('${serviceName}', '${folderType}', '${currentPath}')"><span class="icon-trap">📦</span> Unpack Zip</button>
+      </div>
+      <button class="btn-add-field secondary" onclick="selectAllFiles()"><span class="icon-trap">☑</span> Select All</button>
+    `;
+  } else if (selectionCount === 1) {
+    // Single selection - show delete and rename buttons
+    actionsDiv.innerHTML = `
+      <div class="file-manager-actions-left">
+        <button class="btn-remove" onclick="deleteSelectedFiles()"><span class="icon-trap">🗑</span> Delete</button>
+        <button class="btn-add-field secondary" onclick="renameSelectedFile()"><span class="icon-trap">✏️</span> Rename</button>
+      </div>
+      <button class="btn-add-field secondary" onclick="clearFileSelection()"><span class="icon-trap">✖</span> Clear Selection</button>
+    `;
+  } else {
+    // Multiple selections - show delete and clear buttons
+    actionsDiv.innerHTML = `
+      <div class="file-manager-actions-left">
+        <button class="btn-remove" onclick="deleteSelectedFiles()"><span class="icon-trap">🗑</span> Delete (${selectionCount})</button>
+      </div>
+      <button class="btn-add-field secondary" onclick="clearFileSelection()"><span class="icon-trap">✖</span> Clear Selection</button>
+    `;
   }
 }
 
@@ -4158,6 +4318,10 @@ function renderFileList(files, serviceName, folderType, currentPath) {
     return a.name.localeCompare(b.name);
   });
   
+  // Check if this is a dirlist service
+  const service = config.services[serviceName];
+  const isDirlist = service?.subdomain?.type === 'dirlist';
+  
   let html = '<div class="file-list">';
   
   // Add parent directory entry if we're in a subfolder
@@ -4170,7 +4334,7 @@ function renderFileList(files, serviceName, folderType, currentPath) {
           <div class="file-name-primary">../</div>
           <div class="hint file-meta">Go up one level</div>
         </div>
-        <div class="file-spacer"></div>
+        <span class="file-checkbox-placeholder"></span>
       </div>
     `;
   }
@@ -4180,27 +4344,31 @@ function renderFileList(files, serviceName, folderType, currentPath) {
     const sizeStr = file.type === 'file' ? formatFileSize(file.size) : '';
     const modified = file.type === 'file' && file.modified ? new Date(file.modified).toLocaleString() : '';
     const fullPath = currentPath ? `${currentPath}/${file.path}` : file.path;
+    const isSelected = selectedFiles.has(fullPath);
+    
+    // Check if this is the protected folder in a dirlist service
+    const isProtectedFolder = isDirlist && folderType === 'public' && !currentPath && file.name === 'protected' && file.type === 'directory';
     
     if (file.type === 'directory') {
       html += `
-        <div class="file-item">
+        <div class="file-item ${isSelected ? 'file-item-selected' : ''}">
           <span class="file-icon">${icon}</span>
           <div class="file-info-clickable" onclick="renderFileManager('${serviceName}', '${folderType}', '${fullPath}')">
             <div class="file-name-primary">${file.name}</div>
             <div class="hint file-meta">Click to open</div>
           </div>
-          <button class="btn-remove btn-remove-no-margin" onclick="event.stopPropagation(); deleteFile('${serviceName}', '${folderType}', '${fullPath}', '${currentPath}')">Delete</button>
+          ${isProtectedFolder ? '<span class="file-checkbox-placeholder"></span>' : `<input type="checkbox" class="file-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleFileSelection('${fullPath}')" onclick="event.stopPropagation()">`}
         </div>
       `;
     } else {
       html += `
-        <div class="file-item">
+        <div class="file-item ${isSelected ? 'file-item-selected' : ''}">
           <span class="file-icon">${icon}</span>
           <div class="file-info">
             <div class="file-name">${file.name}</div>
             ${sizeStr || modified ? `<div class="hint file-meta">${sizeStr}${sizeStr && modified ? ' • ' : ''}${modified}</div>` : ''}
           </div>
-          <button class="btn-remove btn-remove-no-margin" onclick="deleteFile('${serviceName}', '${folderType}', '${fullPath}', '${currentPath}')">Delete</button>
+          <input type="checkbox" class="file-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleFileSelection('${fullPath}')" onclick="event.stopPropagation()">
         </div>
       `;
     }
@@ -4364,38 +4532,122 @@ async function createDirectory(serviceName, folderType, currentPath = '') {
   }
 }
 
-async function deleteFile(serviceName, folderType, filePath, currentPath = '') {
-  const fileName = filePath.split('/').pop();
-  const confirmed = await showConfirmDialog(
-    `Are you sure you want to delete "${fileName}"?`,
-    'This action cannot be undone.'
-  );
+
+async function deleteSelectedFiles() {
+  if (!currentFileManagerContext || selectedFiles.size === 0) return;
   
-  if (!confirmed) return;
+  const { serviceName, folderType, currentPath } = currentFileManagerContext;
+  const fileCount = selectedFiles.size;
+  const fileList = Array.from(selectedFiles).map(f => f.split('/').pop()).join(', ');
   
-  try {
-    showLoadingOverlay('Deleting', 'Please wait...');
-    
-    const response = await fetch(`/files/${serviceName}/${folderType}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filePath })
-    });
-    
-    const data = await response.json();
-    
-    hideLoadingOverlay();
-    
-    if (data.success) {
-      showStatus('✓ Deleted successfully', 'success');
-      renderFileManager(serviceName, folderType, currentPath);
-    } else {
-      showStatus(data.error || 'Deletion failed', 'error');
+  showConfirmModal(
+    'Delete Files',
+    `Are you sure you want to delete ${fileCount} item${fileCount > 1 ? 's' : ''}?\n\nFiles: ${fileList}\n\nThis action cannot be undone.`,
+    async (confirmed) => {
+      if (!confirmed) return;
+      
+      try {
+        showLoadingOverlay('Deleting', `Deleting ${fileCount} item${fileCount > 1 ? 's' : ''}...`);
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (const filePath of selectedFiles) {
+          try {
+            const response = await fetch(`/files/${serviceName}/${folderType}`, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filePath })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+              successCount++;
+            } else {
+              failCount++;
+            }
+          } catch (error) {
+            failCount++;
+          }
+        }
+        
+        hideLoadingOverlay();
+        
+        if (failCount === 0) {
+          showStatus(`✓ Successfully deleted ${successCount} item${successCount > 1 ? 's' : ''}`, 'success');
+        } else {
+          showStatus(`Deleted ${successCount} item${successCount > 1 ? 's' : ''}, ${failCount} failed`, 'error');
+        }
+        
+        selectedFiles.clear();
+        renderFileManager(serviceName, folderType, currentPath);
+      } catch (error) {
+        hideLoadingOverlay();
+        showStatus('Batch deletion failed: ' + error.message, 'error');
+      }
     }
-  } catch (error) {
-    hideLoadingOverlay();
-    showStatus('Deletion failed: ' + error.message, 'error');
-  }
+  );
+}
+
+async function renameSelectedFile() {
+  if (!currentFileManagerContext || selectedFiles.size !== 1) return;
+  
+  const { serviceName, folderType, currentPath } = currentFileManagerContext;
+  const filePath = Array.from(selectedFiles)[0];
+  const fileName = filePath.split('/').pop();
+  
+  showPromptModal(
+    'Rename File',
+    'Enter new name:',
+    '',
+    fileName,
+    'Enter new name',
+    async (newName) => {
+      if (!newName || newName.trim() === '') {
+        showPromptError('Please enter a valid name');
+        return false;
+      }
+      
+      const trimmedName = newName.trim();
+      if (trimmedName === fileName) {
+        showStatus('Name unchanged', 'info');
+        return;
+      }
+      
+      // Construct new path
+      const pathParts = filePath.split('/');
+      pathParts[pathParts.length - 1] = trimmedName;
+      const newPath = pathParts.join('/');
+      
+      try {
+        showLoadingOverlay('Renaming', 'Please wait...');
+        
+        const response = await fetch(`/files/${serviceName}/${folderType}/rename`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            oldPath: filePath,
+            newPath: newPath
+          })
+        });
+        
+        const data = await response.json();
+        
+        hideLoadingOverlay();
+        
+        if (data.success) {
+          showStatus('✓ Renamed successfully', 'success');
+          selectedFiles.clear();
+          renderFileManager(serviceName, folderType, currentPath);
+        } else {
+          showStatus(data.error || 'Rename failed', 'error');
+        }
+      } catch (error) {
+        hideLoadingOverlay();
+        showStatus('Rename failed: ' + error.message, 'error');
+      }
+    }
+  );
 }
 
 async function unpackZip(serviceName, folderType, currentPath = '') {

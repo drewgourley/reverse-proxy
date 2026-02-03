@@ -1203,6 +1203,16 @@ configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
     
+    // Check if this is a dirlist service and prevent deleting 'protected' folder
+    const configPath = path.join(__dirname, 'config.json');
+    const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const service = configData.services[serviceName];
+    const isDirlist = service?.subdomain?.type === 'dirlist';
+    
+    if (isDirlist && folderType === 'public' && filePath === 'protected') {
+      return response.status(400).send({ success: false, error: 'Cannot delete the protected folder in dirlist services' });
+    }
+    
     const folderPath = path.join(__dirname, 'web', folderType, serviceName);
     const fullPath = path.join(folderPath, filePath);
     
@@ -1261,6 +1271,57 @@ configrouter.post('/files/:serviceName/:folderType/directory', (request, respons
     fs.mkdirSync(fullPath, { recursive: true });
     
     response.status(200).send({ success: true, message: 'Directory created successfully' });
+  } catch (error) {
+    response.status(500).send({ success: false, error: error.message });
+  }
+});
+
+// Rename file or directory in service folder
+configrouter.post('/files/:serviceName/:folderType/rename', (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const { oldPath, newPath } = request.body;
+    
+    if (!oldPath || !newPath) {
+      return response.status(400).send({ success: false, error: 'Both old and new paths are required' });
+    }
+    
+    // Validate folder type
+    if (!['public', 'static'].includes(folderType)) {
+      return response.status(400).send({ success: false, error: 'Invalid folder type' });
+    }
+    
+    // Check if this is a dirlist service and prevent renaming 'protected' folder
+    const configPath = path.join(__dirname, 'config.json');
+    const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const service = configData.services[serviceName];
+    const isDirlist = service?.subdomain?.type === 'dirlist';
+    
+    if (isDirlist && folderType === 'public' && oldPath === 'protected') {
+      return response.status(400).send({ success: false, error: 'Cannot rename the protected folder in dirlist services' });
+    }
+    
+    const folderPath = path.join(__dirname, 'web', folderType, serviceName);
+    const fullOldPath = path.join(folderPath, oldPath);
+    const fullNewPath = path.join(folderPath, newPath);
+    
+    // Security check: ensure both paths are within the service folder
+    if (!fullOldPath.startsWith(folderPath) || !fullNewPath.startsWith(folderPath)) {
+      return response.status(400).send({ success: false, error: 'Invalid file path' });
+    }
+    
+    if (!fs.existsSync(fullOldPath)) {
+      return response.status(404).send({ success: false, error: 'Source file not found' });
+    }
+    
+    if (fs.existsSync(fullNewPath)) {
+      return response.status(400).send({ success: false, error: 'Destination already exists' });
+    }
+    
+    // Rename/move the file or directory
+    fs.renameSync(fullOldPath, fullNewPath);
+    
+    response.status(200).send({ success: true, message: 'Renamed successfully' });
   } catch (error) {
     response.status(500).send({ success: false, error: error.message });
   }
