@@ -352,6 +352,16 @@ const initApplication = async () => {
     Object.keys(config.services).forEach(name => {
       if (config.services[name].subdomain) {
         if (config.services[name].subdomain.type === 'index') {
+          // Ensure required folders exist for index services
+          const publicFolderPath = path.join(__dirname, 'web', 'public', name);
+          const staticFolderPath = path.join(__dirname, 'web', 'static', name);
+          if (!fs.existsSync(publicFolderPath)) {
+            fs.mkdirSync(publicFolderPath, { recursive: true });
+          }
+          if (!fs.existsSync(staticFolderPath)) {
+            fs.mkdirSync(staticFolderPath, { recursive: true });
+          }
+          
           config.services[name].subdomain.router.use('/global', express.static(path.join(__dirname, 'web', 'global')));
           config.services[name].subdomain.router.use('/static', express.static(path.join(__dirname, 'web', 'static', name)));
           if (name !== 'api' && name !== 'www' && config.services[name].subdomain.requireAuth && (secrets.admin_email_address || users.users?.length > 0)) {
@@ -615,6 +625,12 @@ const initApplication = async () => {
             response.status(404).sendFile(path.join(__dirname, 'web', 'public', '404.html'));
           });
         } else if (config.services[name].subdomain.type === 'dirlist') {
+          // Ensure protected folder exists for dirlist services
+          const protectedFolderPath = path.join(__dirname, 'web', 'public', name, 'protected');
+          if (!fs.existsSync(protectedFolderPath)) {
+            fs.mkdirSync(protectedFolderPath, { recursive: true });
+          }
+          
           if (config.services[name].subdomain.basicUser && config.services[name].subdomain.basicPass) {
             const authMiddleware = basicAuth({
               users: { [config.services[name].subdomain.basicUser]: config.services[name].subdomain.basicPass },
@@ -624,6 +640,12 @@ const initApplication = async () => {
           }
           config.services[name].subdomain.router.use('/', express.static(path.join(__dirname, 'web', 'public', name)), serveIndex(path.join(__dirname, 'web', 'public', name)));
         } else if (config.services[name].subdomain.type === 'spa') {
+          // Ensure required folder exists for spa services
+          const publicFolderPath = path.join(__dirname, 'web', 'public', name);
+          if (!fs.existsSync(publicFolderPath)) {
+            fs.mkdirSync(publicFolderPath, { recursive: true });
+          }
+          
           config.services[name].subdomain.router.use('/global', express.static(path.join(__dirname, 'web', 'global')));
           if (name !== 'api' && name !== 'www' && config.services[name].subdomain.requireAuth && (secrets.admin_email_address || users.users?.length > 0)) {
             let sessionSecret = secrets.api_session_secret;
@@ -726,8 +748,9 @@ const initApplication = async () => {
         application.use(subdomain(name, config.services[name].subdomain.router));
       }
     });
-    if (config.services.www) {
-      application.use(config.services.www.subdomain.router);
+    const rootService = config.rootservice || 'www';
+    if (config.services[rootService] && config.services[rootService].subdomain) {
+      application.use(config.services[rootService].subdomain.router);
     }
   }
   return application;

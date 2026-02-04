@@ -270,6 +270,7 @@ configrouter.put('/config', (request, response) => {
       required: ['domain'],
       properties: {
         domain: { type: 'string', minLength: 1 },
+        rootservice: { type: 'string' },
         services: {
           type: 'object',
           patternProperties: {

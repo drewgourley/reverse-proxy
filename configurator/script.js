@@ -2478,7 +2478,9 @@ function renderServicesList() {
   sortedServices.forEach(serviceName => {
     const item = document.createElement('div');
     item.className = 'service-item' + (currentSelection === 'config-' + serviceName ? ' active' : '') + (config.services[serviceName].subdomain?.protocol === 'insecure' ? ' insecure' : '');
-    item.innerHTML = '⚙️ ' + serviceName + (config.services[serviceName].subdomain?.protocol === 'insecure' ? '<span class="hint">Not Secure</span>' : '');
+    item.innerHTML = '⚙️ ' + serviceName +
+      (config.services[serviceName].subdomain?.protocol === 'insecure' ? '<span class="hint">Not Secure</span>' : '') +
+      (!config.rootservice && serviceName === 'www' || config.rootservice === serviceName ? '<span class="hint">Root Service</span>' : '');
     if (isFirstTimeSetup || !secretsSaved) {
       item.style.opacity = '0.5';
       item.style.cursor = 'default';
@@ -2674,15 +2676,37 @@ function renderDomainEditor() {
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
 
+  // Build service options list (services with subdomain type index or spa, except api)
+  const serviceOptions = Object.keys(config.services || {})
+    .filter(name => {
+      if (name === 'api') return false;
+      const service = config.services[name];
+      const subdomainType = service?.subdomain?.type;
+      return subdomainType === 'index' || subdomainType === 'spa';
+    })
+    .sort()
+    .map(name => {
+      const selected = (config.rootservice || 'www') === name ? 'selected' : '';
+      return `<option value="${name}" ${selected}>${name}</option>`;
+    })
+    .join('');
+
   panel.innerHTML = `
     <div class="section">
       <div class="section-title">🌐 Domain Settings</div>
       <div class="hint hint-section">Configure your primary domain</div>
       <div class="domain-entry${isEmpty ? ' highlight-required' : ''}">
-        <div class="form-group form-group-no-margin">
+        <div class="form-group">
           <label for="domainInput">Domain Name</label>
           <input type="text" id="domainInput" placeholder="example.com" value="${config.domain || ''}" onchange="updateConfig('domain', this.value)">
           <div class="hint">Primary domain name for your services, without "www" or any subdomains</div>
+        </div>
+        <div class="form-group form-group-no-margin">
+          <label for="rootServiceSelect">Serve at Root</label>
+          <select id="rootServiceSelect" onchange="updateConfig('rootservice', this.value)">
+            ${serviceOptions}
+          </select>
+          <div class="hint">The service that will be served at the root domain (e.g., ${config.domain || 'example.com'})</div>
         </div>
       </div>
     </div>
