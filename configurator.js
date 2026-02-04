@@ -1292,6 +1292,28 @@ configrouter.post('/files/:serviceName/:folderType/directory', (request, respons
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
+
+    let config = {};
+    try {
+      config = require('./config.json');
+    } catch (e) {
+      return response.status(500).send({ success: false, error: 'Config not found' });
+    }
+    
+    // Get service config to check type
+    const serviceConfig = config.services?.[serviceName];
+    const isIndexService = serviceConfig?.subdomain?.type === 'index';
+    
+    // For index services, prevent creating "static" folder in public folder type
+    if (isIndexService && folderType === 'public') {
+      const directoryName = directoryPath.split('/')[0]; // Get the root folder name
+      if (directoryName === 'static') {
+        return response.status(400).send({ 
+          success: false, 
+          error: 'Cannot create "static" folder in public directory for index services (reserved for /static route)' 
+        });
+      }
+    }
     
     const folderPath = path.join(__dirname, 'web', folderType, serviceName);
     const fullPath = path.join(folderPath, directoryPath);
@@ -1364,7 +1386,7 @@ configrouter.post('/files/:serviceName/:folderType/rename', (request, response) 
     }
     
     if (fs.existsSync(fullNewPath)) {
-      return response.status(400).send({ success: false, error: 'Destination already exists' });
+      return response.status(400).send({ success: false, error: 'File already exists' });
     }
     
     // Rename/move the file or directory

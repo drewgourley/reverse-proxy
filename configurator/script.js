@@ -2311,6 +2311,16 @@ function revertAdvanced() {
   );
 }
 
+function getServiceIcon(serviceType) {
+  switch(serviceType) {
+    case 'index': return '📄';
+    case 'proxy': return '🔀';
+    case 'dirlist': return '📂';
+    case 'spa': return '⚡';
+    default: return '⚙️';
+  }
+}
+
 function renderServicesList() {
   const list = document.getElementById('servicesList');
   list.innerHTML = '';
@@ -2478,7 +2488,11 @@ function renderServicesList() {
   sortedServices.forEach(serviceName => {
     const item = document.createElement('div');
     item.className = 'service-item' + (currentSelection === 'config-' + serviceName ? ' active' : '') + (config.services[serviceName].subdomain?.protocol === 'insecure' ? ' insecure' : '');
-    item.innerHTML = '⚙️ ' + serviceName +
+    
+    const serviceType = config.services[serviceName].subdomain?.type;
+    const icon = getServiceIcon(serviceType);
+    
+    item.innerHTML = icon + ' ' + serviceName +
       (config.services[serviceName].subdomain?.protocol === 'insecure' ? '<span class="hint">Not Secure</span>' : '') +
       (!config.rootservice && serviceName === 'www' || config.rootservice === serviceName ? '<span class="hint">Root Service</span>' : '');
     if (isFirstTimeSetup || !secretsSaved) {
@@ -3049,9 +3063,11 @@ function renderServiceEditor(serviceName) {
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
   
+  const icon = getServiceIcon(service.subdomain?.type);
+  
   let html = `
     <div class="section">
-      <div class="section-title">⚙️ ${serviceName}</div>
+      <div class="section-title">${icon} ${serviceName}</div>
       ${!isDefaultService ? `<button class="btn-remove" onclick="removeService('${serviceName}')">Remove Service</button>` : ''}
       <div class="form-group">
         <label for="service_nicename_${serviceName}">Display Name</label>
@@ -3609,6 +3625,7 @@ function addSubdomain(serviceName) {
       protocol: 'secure'
     };
     renderServiceEditor(serviceName);
+    renderServicesList();
     showStatus('Subdomain added', 'success');
   }
 }
@@ -3621,6 +3638,7 @@ function removeSubdomain(serviceName) {
       if (confirmed) {
         delete config.services[serviceName].subdomain;
         renderServiceEditor(serviceName);
+        renderServicesList();
         showStatus('Subdomain removed', 'success');
       }
     }
@@ -4212,7 +4230,7 @@ async function renderFileManager(serviceName, folderType = 'public', currentPath
     `;
     
     // Initialize file manager context and clear selections
-    currentFileManagerContext = { serviceName, folderType, currentPath: pathFromServer };
+    currentFileManagerContext = { serviceName, folderType, currentPath: pathFromServer, files };
     selectedFiles.clear();
     updateFileManagerActions();
   } catch (error) {
@@ -4418,12 +4436,14 @@ function showUploadDialog(serviceName, folderType, currentPath = '') {
     ${currentPath ? `<div class="modal-body">Uploading to: <strong>${pathDisplay}</strong></div>` : ''}
     <div class="form-group">
       <label for="fileInput">Select File</label>
-      <input type="file" id="fileInput">
+      <input type="file" id="fileInput" class="file-input-hidden">
+      <button class="btn-add-field no-top" onclick="document.getElementById('fileInput').click()">Choose File</button>
+      <span id="fileInputName" class="file-name-display"></span>
     </div>
     <div class="form-group">
       <label for="targetPathInput">Filename (optional)</label>
       <input type="text" id="targetPathInput" placeholder="Leave empty to use original filename">
-      <div class="hint">Specify just the filename to use a different name</div>
+      <div class="hint">Specify a filename (with extension) to use a different name</div>
     </div>
     <div class="modal-footer">
       <button class="btn-reset" onclick="closePromptModal()">Cancel</button>
@@ -4433,19 +4453,37 @@ function showUploadDialog(serviceName, folderType, currentPath = '') {
   
   document.getElementById('promptModalContent').innerHTML = dialogContent;
   document.getElementById('promptModal').classList.add('active');
+  
+  // Add event listener for file selection
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    const fileName = e.target.files[0]?.name || '';
+    document.getElementById('fileInputName').textContent = fileName;
+  });
 }
 
-async function uploadFile(serviceName, folderType, currentPath = '') {
+async function uploadFile(serviceName, folderType, currentPath = '', forcedFilename = null, providedFile = null) {
   const fileInput = document.getElementById('fileInput');
   const targetPathInput = document.getElementById('targetPathInput');
   
-  if (!fileInput.files || fileInput.files.length === 0) {
+  // Use provided file or get from input
+  const file = providedFile || (fileInput?.files?.[0]);
+  
+  if (!file) {
     showStatus('Please select a file', 'error');
     return;
   }
   
-  const file = fileInput.files[0];
-  const filename = targetPathInput.value.trim() || file.name;
+  const filename = forcedFilename || targetPathInput?.value.trim() || file.name;
+  
+  // Check for file conflicts before uploading
+  if (!forcedFilename && currentFileManagerContext && currentFileManagerContext.files) {
+    const existingFile = currentFileManagerContext.files.find(f => f.name === filename && f.type === 'file');
+    if (existingFile) {
+      // File exists - show overwrite dialog
+      showOverwriteDialog(serviceName, folderType, currentPath, file, filename);
+      return;
+    }
+  }
   
   // Build the full target path: currentPath + filename
   const targetPath = currentPath ? `${currentPath}/${filename}` : filename;
@@ -4479,6 +4517,87 @@ async function uploadFile(serviceName, folderType, currentPath = '') {
   }
 }
 
+function generateAutoRename(filename, existingFiles) {
+  const files = existingFiles || [];
+  const fileNames = files.filter(f => f.type === 'file').map(f => f.name);
+  
+  // Parse filename into base and extension
+  const lastDotIndex = filename.lastIndexOf('.');
+  let baseName, extension;
+  
+  if (lastDotIndex > 0) {
+    baseName = filename.substring(0, lastDotIndex);
+    extension = filename.substring(lastDotIndex);
+  } else {
+    baseName = filename;
+    extension = '';
+  }
+  
+  // Find the next available number
+  let counter = 1;
+  let newName;
+  do {
+    newName = `${baseName}(${counter})${extension}`;
+    counter++;
+  } while (fileNames.includes(newName));
+  
+  return newName;
+}
+
+function showOverwriteDialog(serviceName, folderType, currentPath, file, filename) {
+  const suggestedName = generateAutoRename(filename, currentFileManagerContext.files);
+  
+  const dialogContent = `
+    <div class="modal-header">File Already Exists</div>
+    <div class="modal-body">
+      <p>The file <strong>${filename}</strong> already exists in this directory.</p>
+    </div>
+    <div class="form-group">
+      <label for="newFilenameInput">New Filename</label>
+      <input type="text" id="newFilenameInput" value="${suggestedName}">
+      <div class="hint">Enter a new filename or click Overwrite to replace the existing file</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-remove btn-remove-no-margin" onclick="handleOverwrite('${serviceName}', '${folderType}', '${currentPath}')">Overwrite</button>
+      <div class="flex-spacer"></div>
+      <button class="btn-reset" onclick="closePromptModal(); window._pendingUploadFile = null;">Cancel</button>
+      <button class="btn-save" onclick="handleRename('${serviceName}', '${folderType}', '${currentPath}')">Rename</button>
+    </div>
+  `;
+  
+  document.getElementById('promptModalContent').innerHTML = dialogContent;
+  document.getElementById('promptModal').classList.add('active');
+  
+  // Store the file in a temporary location so handlers can access it
+  window._pendingUploadFile = file;
+}
+
+function handleOverwrite(serviceName, folderType, currentPath) {
+  const file = window._pendingUploadFile;
+  if (!file) return;
+  
+  // Call uploadFile with original filename (overwrite) and provided file
+  uploadFile(serviceName, folderType, currentPath, file.name, file);
+  
+  window._pendingUploadFile = null;
+}
+
+function handleRename(serviceName, folderType, currentPath) {
+  const file = window._pendingUploadFile;
+  if (!file) return;
+  
+  const newFilename = document.getElementById('newFilenameInput').value.trim();
+  if (!newFilename) {
+    showStatus('Please enter a valid filename', 'error');
+    return;
+  }
+  
+  // Call uploadFile with new filename and provided file
+  uploadFile(serviceName, folderType, currentPath, newFilename, file);
+  
+  window._pendingUploadFile = null;
+}
+
 function showCreateDirectoryDialog(serviceName, folderType, currentPath = '') {
   const pathDisplay = currentPath ? `/${currentPath}` : '';
   const dialogContent = `
@@ -4506,7 +4625,9 @@ function showUnpackZipDialog(serviceName, folderType, currentPath = '') {
     ${currentPath ? `<div class="modal-body">Extracting to: <strong>${pathDisplay}</strong></div>` : ''}
     <div class="form-group">
       <label for="zipFileInput">Select Zip File</label>
-      <input type="file" id="zipFileInput" accept=".zip">
+      <input type="file" id="zipFileInput" accept=".zip" class="file-input-hidden">
+      <button class="btn-add-field no-top" onclick="document.getElementById('zipFileInput').click()">Choose File</button>
+      <span id="zipFileInputName" class="file-name-display"></span>
       <div class="hint">Choose a zip file to extract into the current directory</div>
     </div>
     <div class="form-group">
@@ -4524,6 +4645,12 @@ function showUnpackZipDialog(serviceName, folderType, currentPath = '') {
   
   document.getElementById('promptModalContent').innerHTML = dialogContent;
   document.getElementById('promptModal').classList.add('active');
+  
+  // Add event listener for file selection
+  document.getElementById('zipFileInput').addEventListener('change', (e) => {
+    const fileName = e.target.files[0]?.name || '';
+    document.getElementById('zipFileInputName').textContent = fileName;
+  });
 }
 
 async function createDirectory(serviceName, folderType, currentPath = '') {
@@ -4574,7 +4701,7 @@ async function deleteSelectedFiles() {
   
   showConfirmModal(
     'Delete Files',
-    `Are you sure you want to delete ${fileCount} item${fileCount > 1 ? 's' : ''}?\n\nFiles: ${fileList}\n\nThis action cannot be undone.`,
+    `Are you sure you want to delete ${fileCount} item${fileCount > 1 ? 's' : ''}?\n\nThis action cannot be undone.`,
     async (confirmed) => {
       if (!confirmed) return;
       
@@ -4699,10 +4826,31 @@ async function unpackZip(serviceName, folderType, currentPath = '') {
     return;
   }
   
+  const isDeploy = deployCheckbox.checked;
+  
+  // If not in deploy mode and files exist, warn about potential overwrites
+  if (!isDeploy && currentFileManagerContext && currentFileManagerContext.files && currentFileManagerContext.files.length > 0) {
+    closePromptModal();
+    showConfirmModal(
+      'Overwrite Warning',
+      'Extracting this zip file may overwrite existing files with the same names in this directory.\n\nDo you want to continue?',
+      (confirmed) => {
+        if (confirmed) {
+          performZipExtraction(serviceName, folderType, currentPath, file, isDeploy);
+        }
+      }
+    );
+  } else {
+    // Deploy mode or empty directory - proceed directly
+    performZipExtraction(serviceName, folderType, currentPath, file, isDeploy);
+  }
+}
+
+async function performZipExtraction(serviceName, folderType, currentPath, file, isDeploy) {
   const formData = new FormData();
   formData.append('zipFile', file);
   formData.append('targetPath', currentPath);
-  formData.append('deploy', deployCheckbox.checked ? 'true' : 'false');
+  formData.append('deploy', isDeploy ? 'true' : 'false');
   
   try {
     closePromptModal();
@@ -4718,7 +4866,7 @@ async function unpackZip(serviceName, folderType, currentPath = '') {
     hideLoadingOverlay();
     
     if (data.success) {
-      showStatus(`✓ Extracted ${data.filesExtracted || 'files'} successfully`, 'success');
+      showStatus(`✓ Extracted ${data.filesExtracted || 'all'} files successfully`, 'success');
       renderFileManager(serviceName, folderType, currentPath);
     } else {
       showStatus(data.error || 'Extraction failed', 'error');
