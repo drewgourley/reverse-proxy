@@ -3316,7 +3316,7 @@ function renderDefaultSubdomainSection(serviceName, subdomain) {
             <option value="dirlist" ${subdomain.type === 'dirlist' ? 'selected' : ''}>Directory List</option>
             <option value="proxy" ${subdomain.type === 'proxy' ? 'selected' : ''}>Proxy</option>
           </select>
-          <div class="hint">Type of service (index = static files, spa = single-page webapp, dirlist = directory listing, proxy = reverse proxy)</div>
+          <div class="hint">Determines the behavior of the served assets</div>
         </div>
         <div class="form-group">
           <label for="subdomain_protocol_${serviceName}">Protocol</label>
@@ -3345,7 +3345,7 @@ function renderSubdomainSection(serviceName, subdomain) {
             <option value="dirlist" ${subdomain.type === 'dirlist' ? 'selected' : ''}>Directory List</option>
             <option value="proxy" ${subdomain.type === 'proxy' ? 'selected' : ''}>Proxy</option>
           </select>
-          <div class="hint">Type of service (index = static files, spa = single-page webapp, dirlist = directory listing, proxy = reverse proxy)</div>
+          <div class="hint">Determines the behavior of the served assets</div>
         </div>
         <div class="form-group">
           <label for="subdomain_protocol_${serviceName}">Protocol</label>
