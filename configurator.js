@@ -709,9 +709,7 @@ configrouter.get('/git/status', (request, response) => {
           const message = messageError ? '' : messageOut.trim();
           exec('git log -1 --format=%ct', (timestampError, timestampOut) => {
             let version = 'Unknown';
-            if (env === 'development') {
-              version = 'Developer Mode';
-            } else if (!timestampError && timestampOut.trim()) {
+            if (!timestampError && timestampOut.trim()) {
               const timestamp = parseInt(timestampOut.trim()) * 1000;
               const d = new Date(timestamp);
               const year = d.getFullYear();
@@ -738,14 +736,6 @@ configrouter.get('/git/status', (request, response) => {
 });
 configrouter.get('/git/check', (request, response) => {
   try {
-    if (env === 'development') {
-      return response.status(200).send({
-        success: true,
-        updatesAvailable: true,
-        commitsAhead: 1,
-        message: '1 Update Available',
-      });
-    }
     exec('git fetch origin', (fetchError) => {
       if (fetchError) {
         return response.status(500).send({ success: false, error: 'Could not fetch from origin' });
