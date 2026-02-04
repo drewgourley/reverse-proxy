@@ -580,9 +580,16 @@ configrouter.get('/logs/:appName/:type', (request, response) => {
   let fileSize = fs.statSync(logPath).size;
   let fileDescriptor = fs.openSync(logPath, 'r');
   let isClosed = false;
-  const tail = require('child_process').spawn('tail', ['-n', '100', logPath]);
-  tail.stdout.on('data', (data) => sendLogLines(response, data.toString('utf8')));
-  tail.on('close', () => {});
+  try {
+    const fileContent = fs.readFileSync(logPath, 'utf8');
+    const lines = fileContent.split(/\r?\n/).filter(line => line.trim());
+    const last100Lines = lines.slice(-100).join('\n');
+    if (last100Lines) {
+      sendLogLines(response, last100Lines);
+    }
+  } catch (err) {
+    response.write(`data: Error reading log file\n\n`);
+  }
   const watcher = fs.watch(logPath, (eventType) => {
     if (eventType === 'change') {
       try {
