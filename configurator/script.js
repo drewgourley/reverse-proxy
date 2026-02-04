@@ -3128,7 +3128,9 @@ function renderServiceEditor(serviceName) {
   // Add file manager button to actions for index, spa, and dirlist types (except protected services)
   const subdomainType = service.subdomain?.type;
   const isProtectedService = ['api', 'www', 'radio'].includes(serviceName);
-  if (['index', 'spa', 'dirlist'].includes(subdomainType) && !isProtectedService) {
+  const isFileManageableType = ['index', 'spa', 'dirlist'].includes(subdomainType);
+  const isInitiated = originalConfig.services[serviceName]?.subdomain
+  if (isInitiated && isFileManageableType && !isProtectedService) {
     actions.innerHTML = `
       <button class="btn-add-field" onclick="renderFileManager('${serviceName}', 'public')"><span class="icon-trap">📁</span> Manage Files</button>
       <div class="flex-spacer"></div>
