@@ -15,23 +15,9 @@ const AdmZip = require('adm-zip');
 const faviconUpload = multer({ storage: multer.memoryStorage() });
 const sharp = require('sharp');
 const toIco = require('to-ico');
+const dotenv = require('dotenv');
+dotenv.config();
 const env = process.env.NODE_ENV;
-const defaultIgnoreWatch = [
-  "node_modules",
-  "web",
-  "advanced.json",
-  "blocklist.json",
-  "certs.json",
-  "config.json",
-  "ddns.json",
-  "ecosystem.config.js",
-  "secrets.json",
-  "users.json",
-  "package-lock.json",
-  "package.json",
-  "readme.md",
-  ".*"
-];
 const saveConfigAndRestart = (filePath, data, message, response, delay = 2000) => {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
   response.status(200).send({ success: true, message });
@@ -227,15 +213,13 @@ configrouter.get('/localip', (request, response) => {
 configrouter.get('/ecosystem', (request, response) => {
   try {
     const ecosystemPath = path.join(__dirname, 'ecosystem.config.js');
-    
     if (!fs.existsSync(ecosystemPath)) {
       const defaultEcosystem = {
         default: true,
         apps: [{
           name: "Reverse Proxy",
           script: "./app.js",
-          watch: true,
-          ignore_watch: defaultIgnoreWatch,
+          watch: false,
           env: {
             NODE_ENV: "production"
           }
@@ -245,10 +229,12 @@ configrouter.get('/ecosystem', (request, response) => {
       return response.send(defaultEcosystem);
     }
     const ecosystemConfig = require(ecosystemPath);
-    const ignoreWatch = ecosystemConfig.apps?.[0]?.ignore_watch || [];
-    const missingIgnores = defaultIgnoreWatch.filter(item => !ignoreWatch.includes(item));
-    if (missingIgnores.length > 0) {
-      ecosystemConfig.resave = true;
+    if (ecosystemConfig.apps && Array.isArray(ecosystemConfig.apps)) {
+      for (const app of ecosystemConfig.apps) {
+        if (app.watch === true || app.ignore_watch) {
+          ecosystemConfig.resave = true;
+        }
+      }
     }
     response.setHeader('Content-Type', 'application/json');
     response.send(ecosystemConfig);
@@ -548,9 +534,6 @@ configrouter.get('/advanced', (request, response) => {
   }
 });
 configrouter.get('/checklogrotate', (request, response) => {
-  if (env === 'development') {
-    return response.status(200).send({ success: true, message: 'Logrotate success response faked in development mode.' });
-  }
   exec('pm2 describe pm2-logrotate', (err, out) => {
     if ((err && err.toString().includes("doesn't exist")) || (out && out.includes("doesn't exist"))) {
       return response.status(500).send({ success: false, error: 'Logrotate module is not installed. Please install it to enable live log streaming.' });
@@ -559,21 +542,15 @@ configrouter.get('/checklogrotate', (request, response) => {
   });
 });
 configrouter.get('/installlogrotate', (request, response) => {
-  if (env === 'development') {
+  exec('pm2 install pm2-logrotate', (err, out) => {
+    if (err) {
+      return response.status(500).send({ success: false, error: `Failed to install logrotate module: ${err.message}` });
+    }
+    response.status(200).send({ success: true, message: 'Logrotate module installed successfully.' });
     setTimeout(() => {
-      return response.status(500).send({ success: false, error: 'Logrotate module cannot be installed in development mode.' });
-    }, 5000);
-  } else {
-    exec('pm2 install pm2-logrotate', (err, out) => {
-      if (err) {
-        return response.status(500).send({ success: false, error: `Failed to install logrotate module: ${err.message}` });
-      }
-      response.status(200).send({ success: true, message: 'Logrotate module installed successfully.' });
-      setTimeout(() => {
-        process.exit(0);
-      }, 2000);
-    });
-  }
+      process.exit(0);
+    }, 2000);
+  });
 });
 configrouter.get('/logs/:appName/:type', (request, response) => {
   const appName = request.params.appName;
@@ -590,69 +567,47 @@ configrouter.get('/logs/:appName/:type', (request, response) => {
       if (line) res.write(`data: ${line}\n\n`);
     }
   }
-  if (env === 'development') {
-    setSSEHeaders(response);
-    let count = 1;
-    const interval = setInterval(() => {
-      response.write(`data: 2026-01-21T02:28:46.493Z: (${appName} Development Mode: Mocked test message) [${count}]\n\n`);
-      count++;
-      if (count > 100) {
-        clearInterval(interval);
-        setTimeout(() => response.end(), 60000);
-      }
-    }, 100);
-    request.on('close', () => {
-      clearInterval(interval);
-      response.end();
-    });
-    return;
-  }
-  if (env === 'production' || env === 'test') {
-    setSSEHeaders(response);
-    const logPath = path.join(os.homedir(), '.pm2', 'logs', `${appName.replace(' ', '-')}-${type}.log`);
-    if (!fs.existsSync(logPath)) {
-      response.write(`data: Log file not found\n\n`);
-      response.end();
-      return;
-    }
-    const keepAliveInterval = setInterval(() => {
-      response.write(': keep-alive\n\n');
-    }, 30000);
-    let fileSize = fs.statSync(logPath).size;
-    let fileDescriptor = fs.openSync(logPath, 'r');
-    let isClosed = false;
-    const tail = require('child_process').spawn('tail', ['-n', '100', logPath]);
-    tail.stdout.on('data', (data) => sendLogLines(response, data.toString('utf8')));
-    tail.on('close', () => {});
-    const watcher = fs.watch(logPath, (eventType) => {
-      if (eventType === 'change') {
-        try {
-          const stats = fs.statSync(logPath);
-          if (stats.size > fileSize) {
-            const readLen = stats.size - fileSize;
-            const readBuffer = Buffer.alloc(readLen);
-            fs.readSync(fileDescriptor, readBuffer, 0, readLen, fileSize);
-            fileSize = stats.size;
-            sendLogLines(response, readBuffer.toString('utf8'));
-          }
-        } catch (err) {
-          // file may be rotated, ignore
-        }
-      }
-    });
-    request.on('close', () => {
-      if (isClosed) return;
-      isClosed = true;
-      clearInterval(keepAliveInterval);
-      watcher.close();
-      fs.closeSync(fileDescriptor);
-      tail.kill();
-    });
-    return;
-  }
   setSSEHeaders(response);
-  response.write(`data: Logs are not available in this environment\n\n`);
-  response.end();
+  const logPath = path.join(os.homedir(), '.pm2', 'logs', `${appName.replace(' ', '-')}-${type}.log`);
+  if (!fs.existsSync(logPath)) {
+    response.write(`data: Log file not found\n\n`);
+    response.end();
+    return;
+  }
+  const keepAliveInterval = setInterval(() => {
+    response.write(': keep-alive\n\n');
+  }, 30000);
+  let fileSize = fs.statSync(logPath).size;
+  let fileDescriptor = fs.openSync(logPath, 'r');
+  let isClosed = false;
+  const tail = require('child_process').spawn('tail', ['-n', '100', logPath]);
+  tail.stdout.on('data', (data) => sendLogLines(response, data.toString('utf8')));
+  tail.on('close', () => {});
+  const watcher = fs.watch(logPath, (eventType) => {
+    if (eventType === 'change') {
+      try {
+        const stats = fs.statSync(logPath);
+        if (stats.size > fileSize) {
+          const readLen = stats.size - fileSize;
+          const readBuffer = Buffer.alloc(readLen);
+          fs.readSync(fileDescriptor, readBuffer, 0, readLen, fileSize);
+          fileSize = stats.size;
+          sendLogLines(response, readBuffer.toString('utf8'));
+        }
+      } catch (err) {
+        // file may be rotated, ignore
+      }
+    }
+  });
+  request.on('close', () => {
+    if (isClosed) return;
+    isClosed = true;
+    clearInterval(keepAliveInterval);
+    watcher.close();
+    fs.closeSync(fileDescriptor);
+    tail.kill();
+  });
+  return;
 });
 configrouter.put('/advanced', (request, response) => {
   try {
@@ -695,7 +650,6 @@ configrouter.put('/ecosystem', (request, response) => {
               name: { type: 'string', minLength: 1 },
               script: { type: 'string', minLength: 1 },
               watch: { type: 'boolean' },
-              ignore_watch: { type: 'array', items: { type: 'string' } },
               env: { type: 'object' }
             }
           }
@@ -716,9 +670,6 @@ configrouter.put('/ecosystem', (request, response) => {
     if (fs.existsSync(ecosystemPath)) {
       firstrun = false;
     }
-    if (updatedEcosystem.apps && updatedEcosystem.apps.length > 0) {
-      updatedEcosystem.apps[0].ignore_watch = Array.from(new Set([...(updatedEcosystem.apps[0].ignore_watch || []), ...defaultIgnoreWatch]));
-    }
     const fileContent = `module.exports = ${JSON.stringify(updatedEcosystem, null, 2)}\n`;
     fs.writeFileSync(ecosystemPath, fileContent);
     let ecosystem = {};
@@ -729,19 +680,13 @@ configrouter.put('/ecosystem', (request, response) => {
     }
     response.status(200).send({ success: true, message: 'Ecosystem config updated successfully' });
     setTimeout(() => {
-      if (env === 'development') {
-        process.exit(0);
+      if (firstrun) {
+        exec('pm2 start ecosystem.config.js && pm2 save', () => {
+          process.exit(0);
+        });
       } else {
-        if (firstrun) {
-          exec('pm2 start ecosystem.config.js && pm2 save', () => {
-            process.exit(0);
-          });
-        } else {
-          const safeName = (updatedEcosystem.apps[0].name || 'app').replace(/[^a-zA-Z0-9 _-]/g, '');
-          exec(`pm2 restart '${ecosystem.apps[0].name}' ecosystem.config.js --name '${safeName}'`, () => {
-            process.exit(0);
-          });
-        }
+        const safeName = (updatedEcosystem.apps[0].name || 'app').replace(/[^a-zA-Z0-9 _-]/g, '');
+        exec(`pm2 restart '${ecosystem.apps[0].name}' ecosystem.config.js --name '${safeName}'`);
       }
     }, 2000);
   } catch (error) {
@@ -842,43 +787,47 @@ configrouter.get('/git/check', (request, response) => {
 });
 configrouter.post('/git/pull', (request, response) => {
   try {
-    if (env === 'development') {
-      response.status(500).send({
-        success: false,
-        error: 'Development mode: No actual update performed, showing as failed to test force update.',
-      });
-      return;
-    }
     let ecosystem = {};
     try {
       ecosystem = require('./ecosystem.config.js');
     } catch (e) {
       // Ignore if doesn't exist yet
     }
+    console.log('Pulling latest changes from git...');
     exec('git pull origin', (error, stdout, stderr) => {
       if (error) {
         return response.status(500).send({ success: false, error: stderr || error.message });
       }
       if (stdout.includes('package.json') || stdout.includes('package-lock.json')) {
+        console.log('Changes detected in package.json or package-lock.json, installing dependencies...');
         exec('npm install', (npmError, npmStdout, npmStderr) => {
           if (npmError) {
             response.status(500).send({ success: false, error: `Update succeeded but dependency install failed: ${npmStderr || npmError.message}` });
           } else {
             response.status(200).send({ success: true, message: 'Update successful', output: stdout });
           }
-          setTimeout(() => {
-            exec(`pm2 restart '${ecosystem.apps[0].name}'`, () => {
+          if (ecosystem.apps && ecosystem.apps.length > 0) {
+            setTimeout(() => {
+              exec(`pm2 restart '${ecosystem.apps[0].name}'`);
+            }, 2000);
+          } else {
+            setTimeout(() => {
               process.exit(0);
-            });
-          }, 2000);
+            }, 2000);
+          }
         });
       } else {
+        console.log('No dependency changes detected.');
         response.status(200).send({ success: true, message: 'Update successful', output: stdout });
-        setTimeout(() => {
-          exec(`pm2 restart '${ecosystem.apps[0].name}'`, () => {
+        if (ecosystem.apps && ecosystem.apps.length > 0) {
+          setTimeout(() => {
+            exec(`pm2 restart '${ecosystem.apps[0].name}'`);
+          }, 2000);
+        } else {
+          setTimeout(() => {
             process.exit(0);
-          });
-        }, 2000);
+          }, 2000);
+        }
       }
     });
   } catch (error) {
@@ -887,17 +836,6 @@ configrouter.post('/git/pull', (request, response) => {
 });
 configrouter.post('/git/force', (request, response) => {
   try {
-    if (env === 'development') {
-      response.status(200).send({
-        success: true,
-        message: 'Force update endpoint tested successfully',
-        output: 'Development mode: No actual git pull performed',
-      });
-      setTimeout(() => {
-        process.exit(0);
-      }, 2000);
-      return;
-    }
     let ecosystem = {};
     try {
       ecosystem = require('./ecosystem.config.js');
@@ -914,11 +852,15 @@ configrouter.post('/git/force', (request, response) => {
         } else {
           response.status(200).send({ success: true, message: 'Update successful', output: stdout });
         }
-        setTimeout(() => {
-          exec(`pm2 restart '${ecosystem.apps[0].name}'`, () => {
+        if (ecosystem.apps && ecosystem.apps.length > 0) {
+          setTimeout(() => {
+            exec(`pm2 restart '${ecosystem.apps[0].name}'`);
+          }, 2000);
+        } else {
+          setTimeout(() => {
             process.exit(0);
-          });
-        }, 2000);
+          }, 2000);
+        }
       });
     });
   } catch (error) {

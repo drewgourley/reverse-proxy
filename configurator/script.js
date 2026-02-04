@@ -1996,6 +1996,17 @@ async function saveEcosystem() {
     const ecosystemToSave = JSON.parse(JSON.stringify(ecosystem));
     delete ecosystemToSave.default;
     delete ecosystemToSave.resave;
+
+    //remove ignore_watch from all apps in apps array and set watch to false
+    if (ecosystemToSave.apps && Array.isArray(ecosystemToSave.apps)) {
+      ecosystemToSave.apps = ecosystemToSave.apps.map(app => {
+        if (app.ignore_watch) {
+          delete app.ignore_watch;
+        }
+        app.watch = false;
+        return app;
+      });
+    }
     
     const response = await fetch('ecosystem', {
       method: 'PUT',
