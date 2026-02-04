@@ -2491,10 +2491,16 @@ function renderServicesList() {
     
     const serviceType = config.services[serviceName].subdomain?.type;
     const icon = getServiceIcon(serviceType);
-    
-    item.innerHTML = icon + ' ' + serviceName +
-      (config.services[serviceName].subdomain?.protocol === 'insecure' ? '<span class="hint">Not Secure</span>' : '') +
-      (!config.rootservice && serviceName === 'www' || config.rootservice === serviceName ? '<span class="hint">Root Service</span>' : '');
+    const hintParts = [];
+    if (!config.rootservice && serviceName === 'www' || config.rootservice === serviceName) {
+      hintParts.push('Root Service');
+    }
+    if (config.services[serviceName].subdomain?.protocol === 'insecure') {
+      hintParts.push('Not Secure');
+    }
+
+    item.innerHTML = icon + ' ' + serviceName + (hintParts.length > 0 ? ' <span class="hint">' + hintParts.join(', ') + '</span>' : '');
+
     if (isFirstTimeSetup || !secretsSaved) {
       item.style.opacity = '0.5';
       item.style.cursor = 'default';

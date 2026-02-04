@@ -56,9 +56,14 @@ async function getColors() {
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching colors:', error);
-    // Return defaults if fetch fails
-    return;
+    console.error('Cannot fetch colors:', error);
+    return {
+      "primary": "#667eea",
+      "secondary": "#764ba2",
+      "accent": "#48bb78",
+      "background": "#ffffff",
+      "inverse": "#b84878"
+    };
   }
 }
 
@@ -269,9 +274,9 @@ function getTextColor(bgColor) {
 
 async function applyColors() {
   const colors = await getColors();
-
-  if (!colors) return;
   
+  if (!colors) return;
+
   // Update subscribable globalColors
   globalColors.data = colors;
   
