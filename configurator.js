@@ -691,7 +691,7 @@ configrouter.put('/ecosystem', (request, response) => {
         });
       } else {
         const safeName = (updatedEcosystem.apps[0].name || 'app').replace(/[^a-zA-Z0-9 _-]/g, '');
-        exec(`pm2 restart '${ecosystem.apps[0].name}' ecosystem.config.js --name '${safeName}'`);
+        exec(`pm2 restart '${ecosystem.apps[0].name}' --name '${safeName}' --update-env`);
       }
     }, 2000);
   } catch (error) {
