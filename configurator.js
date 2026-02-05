@@ -696,7 +696,6 @@ configrouter.put('/ecosystem', (request, response) => {
         });
       }, 2000);
     } else {
-      // Spawn a detached process to handle the PM2 restart after this process exits
       const child = spawn(process.execPath, ['-e', `
         setTimeout(() => {
           const { execSync } = require('child_process');
@@ -710,9 +709,6 @@ configrouter.put('/ecosystem', (request, response) => {
         stdio: 'ignore'
       });
       child.unref();
-      setTimeout(() => {
-        process.exit(0);
-      }, 1000);
     }
   } catch (error) {
     response.status(500).send({ success: false, error: error.message });
