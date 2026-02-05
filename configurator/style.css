@@ -660,6 +660,26 @@ button {
     color: rgba(255, 255, 255, 0.8);
 }
 
+.service-item .name-container {
+    white-space: nowrap;
+    overflow: hidden;
+    max-width:280px;
+    text-overflow: ellipsis;
+    color: #718096;
+}
+
+.service-item.active .name-container {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.service-item .subdomain-name-container {
+    color: var(--color-text-primary);
+}
+
+.service-item .hint {
+    white-space: nowrap;
+}
+
 .editor-panel {
     background: var(--color-background);
     border-radius: 8px;

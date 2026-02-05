@@ -2475,11 +2475,14 @@ function renderServicesList() {
   });
   
   sortedServices.forEach(serviceName => {
+    const nicename = config.services[serviceName]?.nicename;
     const item = document.createElement('div');
-    item.className = 'service-item' + (currentSelection === 'config-' + serviceName ? ' active' : '') + (config.services[serviceName].subdomain?.protocol === 'insecure' ? ' insecure' : '');
-    
+    const protocol = config.services[serviceName]?.subdomain?.protocol;
     const serviceType = config.services[serviceName].subdomain?.type;
     const icon = getServiceIcon(serviceType);
+
+    item.className = 'service-item' + (currentSelection === 'config-' + serviceName ? ' active' : '') + (protocol === 'insecure' ? ' insecure' : '');
+
     const hintParts = [];
     if (!config.rootservice && serviceName === 'www' || config.rootservice === serviceName) {
       hintParts.push('Root Service');
@@ -2488,7 +2491,7 @@ function renderServicesList() {
       hintParts.push('Not Secure');
     }
 
-    item.innerHTML = icon + ' ' + serviceName + (hintParts.length > 0 ? ' <span class="hint">' + hintParts.join(', ') + '</span>' : '');
+    item.innerHTML = `<span id="${serviceName}NameContainer" class="name-container"><span class="subdomain-name-container">${icon} ${serviceName}</span>${nicename ? `<span class="nicename-container"> - ${nicename}</span>` : ''}</span>` + (hintParts.length > 0 ? ' <span class="hint">' + hintParts.join(', ') + '</span>' : '');
 
     if (isFirstTimeSetup || !secretsSaved) {
       item.style.opacity = '0.5';
@@ -2499,6 +2502,12 @@ function renderServicesList() {
       item.onclick = () => selectItem('config-' + serviceName);
     }
     list.appendChild(item);
+
+    const serviceNameContainer = document.getElementById(serviceName + 'NameContainer');
+
+    if (serviceNameContainer && serviceNameContainer.offsetWidth < serviceNameContainer.scrollWidth && nicename) {
+      serviceNameContainer.setAttribute('title', nicename);
+    }
   });
 }
 
@@ -2704,8 +2713,9 @@ function renderDomainEditor() {
     })
     .sort()
     .map(name => {
+      const nicename = config.services[name]?.nicename;
       const selected = (config.rootservice || 'www') === name ? 'selected' : '';
-      return `<option value="${name}" ${selected}>${name}</option>`;
+      return `<option value="${name}" ${selected}>${name}${nicename ? ` - ${nicename}` : ''}</option>`;
     })
     .join('');
 
@@ -3131,7 +3141,7 @@ function renderServiceEditor(serviceName) {
   
   let html = `
     <div class="section">
-      <div class="section-title">${icon} ${serviceName}</div>
+      <div class="section-title">${icon} ${serviceName}${service.nicename ? ` - ${service.nicename}` : ''}</div>
       ${!isDefaultService ? `<button class="btn-remove" onclick="removeService('${serviceName}')">Remove Service</button>` : ''}
       <div class="form-group">
         <label for="service_nicename_${serviceName}">Display Name</label>

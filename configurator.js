@@ -538,7 +538,7 @@ configrouter.get('/advanced', (request, response) => {
   }
 });
 configrouter.get('/checklogrotate', (request, response) => {
-  exec('pm2 describe pm2-logrotate', (err, out) => {
+  exec('pm2 describe pm2-logrotate', { windowsHide: true }, (err, out) => {
     if ((err && err.toString().includes("doesn't exist")) || (out && out.includes("doesn't exist"))) {
       return response.status(500).send({ success: false, error: 'Logrotate module is not installed. Please install it to enable live log streaming.' });
     }
@@ -546,7 +546,7 @@ configrouter.get('/checklogrotate', (request, response) => {
   });
 });
 configrouter.get('/installlogrotate', (request, response) => {
-  exec('pm2 install pm2-logrotate', (err, out) => {
+  exec('pm2 install pm2-logrotate', { windowsHide: true }, (err, out) => {
     if (err) {
       return response.status(500).send({ success: false, error: `Failed to install logrotate module: ${err.message}` });
     }
@@ -690,7 +690,7 @@ configrouter.put('/ecosystem', (request, response) => {
     
     if (firstrun) {
       setTimeout(() => {
-        exec('pm2 start ecosystem.config.js && pm2 save', () => {
+        exec('pm2 start ecosystem.config.js && pm2 save', { windowsHide: true }, () => {
           process.exit(0);
         });
       }, 2000);
@@ -699,13 +699,14 @@ configrouter.put('/ecosystem', (request, response) => {
         setTimeout(() => {
           const { execSync } = require('child_process');
           try {
-            execSync('pm2 delete "${originalEcosystem.apps[0].name}"', { stdio: 'inherit' });
+            execSync('pm2 delete "${originalEcosystem.apps[0].name}"', { stdio: 'inherit', windowsHide: true });
           } catch (e) {}
-          execSync('pm2 start ecosystem.config.js && pm2 save', { stdio: 'inherit' });
+          execSync('pm2 start ecosystem.config.js && pm2 save', { stdio: 'inherit', windowsHide: true });
         }, 2000);
       `], {
         detached: true,
-        stdio: 'ignore'
+        stdio: 'ignore',
+        windowsHide: true
       });
       child.unref();
     }
@@ -715,19 +716,19 @@ configrouter.put('/ecosystem', (request, response) => {
 });
 configrouter.get('/git/status', (request, response) => {
   try {
-    exec('git rev-parse --abbrev-ref HEAD', (branchError, branchOut) => {
+    exec('git rev-parse --abbrev-ref HEAD', { windowsHide: true }, (branchError, branchOut) => {
       if (branchError) {
         return response.status(500).send({ success: false, error: 'Not a git repository or git not available' });
       }
       const branch = branchOut.trim();
-      exec('git rev-parse --short HEAD', (commitError, commitOut) => {
+      exec('git rev-parse --short HEAD', { windowsHide: true }, (commitError, commitOut) => {
         if (commitError) {
           return response.status(500).send({ success: false, error: 'Could not get commit hash' });
         }
         const commit = commitOut.trim();
-        exec('git log -1 --format=%s', (messageError, messageOut) => {
+        exec('git log -1 --format=%s', { windowsHide: true }, (messageError, messageOut) => {
           const message = messageError ? '' : messageOut.trim();
-          exec('git log -1 --format=%ct', (timestampError, timestampOut) => {
+          exec('git log -1 --format=%ct', { windowsHide: true }, (timestampError, timestampOut) => {
             let version = 'Unknown';
             if (!timestampError && timestampOut.trim()) {
               const timestamp = parseInt(timestampOut.trim()) * 1000;
@@ -756,23 +757,23 @@ configrouter.get('/git/status', (request, response) => {
 });
 configrouter.get('/git/check', (request, response) => {
   try {
-    exec('git fetch origin', (fetchError) => {
+    exec('git fetch origin', { windowsHide: true }, (fetchError) => {
       if (fetchError) {
         return response.status(500).send({ success: false, error: 'Could not fetch from origin' });
       }
-      exec('git rev-parse HEAD', (localError, localOut) => {
+      exec('git rev-parse HEAD', { windowsHide: true }, (localError, localOut) => {
         if (localError) {
           return response.status(500).send({ success: false, error: 'Could not get local commit' });
         }
         const localCommit = localOut.trim();
-        exec('git rev-parse @{u}', (remoteError, remoteOut) => {
+        exec('git rev-parse @{u}', { windowsHide: true }, (remoteError, remoteOut) => {
           if (remoteError) {
             return response.status(200).send({ success: true, updatesAvailable: false, message: 'No upstream branch configured' });
           }
           const remoteCommit = remoteOut.trim();
           const updatesAvailable = localCommit !== remoteCommit;
           if (updatesAvailable) {
-            exec('git rev-list --count HEAD..@{u}', (countError, countOut) => {
+            exec('git rev-list --count HEAD..@{u}', { windowsHide: true }, (countError, countOut) => {
               const commitsAhead = countError ? 0 : parseInt(countOut.trim());
               response.status(200).send({
                 success: true,
@@ -804,13 +805,13 @@ configrouter.post('/git/pull', (request, response) => {
       // Ignore if doesn't exist yet
     }
     console.log('Pulling latest changes from git...');
-    exec('git pull origin', (error, stdout, stderr) => {
+    exec('git pull origin', { windowsHide: true }, (error, stdout, stderr) => {
       if (error) {
         return response.status(500).send({ success: false, error: stderr || error.message });
       }
       if (stdout.includes('package.json') || stdout.includes('package-lock.json')) {
         console.log('Changes detected in package.json or package-lock.json, installing dependencies...');
-        exec('npm install', (npmError, npmStdout, npmStderr) => {
+        exec('npm install', { windowsHide: true }, (npmError, npmStdout, npmStderr) => {
           if (npmError) {
             response.status(500).send({ success: false, error: `Update succeeded but dependency install failed: ${npmStderr || npmError.message}` });
           } else {
@@ -818,7 +819,7 @@ configrouter.post('/git/pull', (request, response) => {
           }
           if (ecosystem.apps && ecosystem.apps.length > 0) {
             setTimeout(() => {
-              exec(`pm2 restart '${ecosystem.apps[0].name}'`);
+              exec(`pm2 restart '${ecosystem.apps[0].name}'`, { windowsHide: true });
             }, 2000);
           } else {
             setTimeout(() => {
@@ -831,7 +832,7 @@ configrouter.post('/git/pull', (request, response) => {
         response.status(200).send({ success: true, message: 'Update successful', output: stdout });
         if (ecosystem.apps && ecosystem.apps.length > 0) {
           setTimeout(() => {
-            exec(`pm2 restart '${ecosystem.apps[0].name}'`);
+            exec(`pm2 restart '${ecosystem.apps[0].name}'`, { windowsHide: true });
           }, 2000);
         } else {
           setTimeout(() => {
@@ -852,11 +853,11 @@ configrouter.post('/git/force', (request, response) => {
     } catch (e) {
       // Ignore if doesn't exist yet
     }
-    exec('git reset --hard origin', (error, stdout, stderr) => {
+    exec('git reset --hard origin', { windowsHide: true }, (error, stdout, stderr) => {
       if (error) {
         return response.status(500).send({ success: false, error: stderr || error.message });
       }
-      exec('npm install', (npmError, npmStdout, npmStderr) => {
+      exec('npm install', { windowsHide: true }, (npmError, npmStdout, npmStderr) => {
         if (npmError) {
           response.status(500).send({ success: false, error: `Update succeeded but dependency install failed: ${npmStderr || npmError.message}` });
         } else {
@@ -864,7 +865,7 @@ configrouter.post('/git/force', (request, response) => {
         }
         if (ecosystem.apps && ecosystem.apps.length > 0) {
           setTimeout(() => {
-            exec(`pm2 restart '${ecosystem.apps[0].name}'`);
+            exec(`pm2 restart '${ecosystem.apps[0].name}'`, { windowsHide: true });
           }, 2000);
         } else {
           setTimeout(() => {
@@ -924,7 +925,7 @@ configrouter.put('/certs', (request, response) => {
           process.exit(0);
         }, 2000);
       } else {
-        exec(baseCommand, (error, stdout, stderr) => {
+        exec(baseCommand, { windowsHide: true }, (error, stdout, stderr) => {
           if (error) {
             return response.status(500).send({ success: false, error: error.message });
           }
@@ -932,11 +933,11 @@ configrouter.put('/certs', (request, response) => {
           const certbotReport = { success: true };
           const tmpCronFile = path.join(os.tmpdir(), `reverseproxy-cron-${Date.now()}.txt`);
           try {
-            const existingCron = require('child_process').execSync('crontab -l 2>/dev/null || true', { encoding: 'utf8' });
+            const existingCron = require('child_process').execSync('crontab -l 2>/dev/null || true', { encoding: 'utf8', windowsHide: true });
             const filtered = existingCron.split(/\r?\n/).filter(line => !line.includes('certbot certonly --webroot') && line.trim() !== '').join('\n');
             const newCron = (filtered ? filtered + '\n' : '') + cronCommand + '\n';
             fs.writeFileSync(tmpCronFile, newCron, { encoding: 'utf8', mode: 0o600 });
-            exec(`crontab "${tmpCronFile}"`, (cronError, cronStdout, cronStderr) => {
+            exec(`crontab "${tmpCronFile}"`, { windowsHide: true }, (cronError, cronStdout, cronStderr) => {
               try { fs.unlinkSync(tmpCronFile); } catch (e) {}
               if (cronError) {
                 certbotReport.message = 'Certificates provisioned successfully, but automatic renewal setup failed. You may need to set up cron manually.';
@@ -962,7 +963,7 @@ configrouter.put('/certs', (request, response) => {
                   }, 2000);
                   return;
                 }
-                exec(chmodCommands[index], (chmodError, chmodStdout, chmodStderr) => {
+                exec(chmodCommands[index], { windowsHide: true }, (chmodError, chmodStdout, chmodStderr) => {
                   if (chmodError) {
                     chmodFailed = true;
                   }
