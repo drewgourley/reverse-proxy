@@ -13,7 +13,7 @@ const os = require('os');
 const path = require('path');
 const sharp = require('sharp');
 const toIco = require('to-ico');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const ajv = new Ajv();
 const faviconUpload = multer({ storage: multer.memoryStorage() });
 /* ENVIRONMENT SETUP */
@@ -230,7 +230,9 @@ configrouter.get('/ecosystem', (request, response) => {
       response.setHeader('Content-Type', 'application/json');
       return response.send(defaultEcosystem);
     }
-    const ecosystemConfig = require(ecosystemPath);
+    const fileContent = fs.readFileSync(ecosystemPath, 'utf8');
+    const jsonString = fileContent.replace(/^module\.exports\s*=\s*/, '').trim();
+    const ecosystemConfig = JSON.parse(jsonString);
     if (ecosystemConfig.apps && Array.isArray(ecosystemConfig.apps)) {
       for (const app of ecosystemConfig.apps) {
         if (app.watch === true || app.ignore_watch) {
@@ -676,24 +678,42 @@ configrouter.put('/ecosystem', (request, response) => {
     }
     let firstrun = true;
     const ecosystemPath = path.join(__dirname, 'ecosystem.config.js');
-    let ecosystem = {};
     if (fs.existsSync(ecosystemPath)) {
       firstrun = false;
-      ecosystem = require(ecosystemPath);
     }
-    const fileContent = `module.exports = ${JSON.stringify(updatedEcosystem, null, 2)}\n`;
-    fs.writeFileSync(ecosystemPath, fileContent);
+    const originalContent = fs.readFileSync(ecosystemPath, 'utf8');
+    const jsonString = originalContent.replace(/^module\.exports\s*=\s*/, '').trim();
+    const originalEcosystem = JSON.parse(jsonString);
+
+    const updateContent = `module.exports = ${JSON.stringify(updatedEcosystem, null, 2)}\n`;
+    fs.writeFileSync(ecosystemPath, updateContent);
     response.status(200).send({ success: true, message: 'Ecosystem config updated successfully' });
-    setTimeout(() => {
-      if (firstrun) {
+    
+    if (firstrun) {
+      setTimeout(() => {
         exec('pm2 start ecosystem.config.js && pm2 save', () => {
           process.exit(0);
         });
-      } else {
-        const safeName = (updatedEcosystem.apps[0].name || 'app').replace(/[^a-zA-Z0-9 _-]/g, '');
-        exec(`pm2 restart '${ecosystem.apps[0].name}' --name '${safeName}' --update-env`);
-      }
-    }, 2000);
+      }, 2000);
+    } else {
+      // Spawn a detached process to handle the PM2 restart after this process exits
+      const child = spawn(process.execPath, ['-e', `
+        setTimeout(() => {
+          const { execSync } = require('child_process');
+          try {
+            execSync('pm2 delete "${originalEcosystem.apps[0].name}"', { stdio: 'inherit' });
+          } catch (e) {}
+          execSync('pm2 start ecosystem.config.js && pm2 save', { stdio: 'inherit' });
+        }, 2000);
+      `], {
+        detached: true,
+        stdio: 'ignore'
+      });
+      child.unref();
+      setTimeout(() => {
+        process.exit(0);
+      }, 1000);
+    }
   } catch (error) {
     response.status(500).send({ success: false, error: error.message });
   }
