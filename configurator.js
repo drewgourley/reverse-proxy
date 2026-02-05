@@ -688,7 +688,7 @@ configrouter.put('/ecosystem', (request, response) => {
       if (firstrun) {
         exec('pm2 start ecosystem.config.js && pm2 save');
       } else {
-        exec(`pm2 delete '${ecosystem.apps[0].name}' && pm2 start ecosystem.config.js --update-env`);
+        exec(`pm2 restart ${ecosystem.apps[0].name} --update-env --name '${updatedEcosystem.apps[0].name}'`);
       }
     }, 2000);
   } catch (error) {
