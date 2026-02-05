@@ -816,6 +816,12 @@ input[type="checkbox"] {
     background: var(--color-secondary-hover);
 }
 
+.btn-add-field:disabled {
+    opacity: 0.5;
+    cursor: default;
+    pointer-events: none;
+}
+
 .btn-add-logrotate {
     background: var(--color-primary);
     color: white;

@@ -4,8 +4,6 @@ let secrets = {};
 let originalSecrets = {};
 let users = {};
 let originalUsers = {};
-let blocklist = [];
-let originalBlocklist = [];
 let ddns = {};
 let originalDdns = {};
 let ecosystem = {};
@@ -14,14 +12,14 @@ let advanced = {};
 let originalAdvanced = {};
 let certs = {};
 let originalCerts = {};
-let currentSelection = null;
-let selectedFiles = new Set();
-let currentFileManagerContext = null;
-let secureServicesChangedThisSession = false;
-let firstConfigSave = true;
-let secretsSaved = false;
 let gitStatus = {};
+let blocklist = [];
+let originalBlocklist = [];
+let secretsSaved = false;
 let logRotateInstalled = false;
+let currentSelection = null;
+let currentFileManagerContext = null;
+let selectedFiles = new Set();
 
 function parseErrorMessage(error) {
   try {
@@ -78,7 +76,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadLogRotateStatus(true);
 
   renderServicesList();
-  updateSidebarButtons();
   renderPlaceholderEditor();
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -102,6 +99,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isFirstTimeSetup = ecosystem.default === true;
   const certStatus = getCertificateStatus();
   const canProvision = certStatus.needDeprovisioning.length > 0 || certStatus.needProvisioning.length > 0;
+  const addServiceBtn = document.getElementById('addServiceBtn');
+
+  if (addServiceBtn && (isFirstTimeSetup || !secretsSaved)) {
+    addServiceBtn.disabled = true;
+  }
 
   if (isFirstTimeSetup) {
     selectItem('management-application');
@@ -132,7 +134,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const isValidConfig = validConfigSections.includes(section);
       const isService = section.startsWith('config-') && config.services && config.services[section.replace('config-', '')];
 
-
       if (isValidManagement || isValidConfig || isService || isValidMonitor) {
         selectItem(section, type, folder, path, false);
       } else {
@@ -153,7 +154,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
   
-  // Listen for browser history navigation (back/forward buttons)
   window.addEventListener('popstate', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const section = urlParams.get('section');
@@ -183,58 +183,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       currentSelection = null;
       renderPlaceholderEditor();
       renderServicesList();
-      updateSidebarButtons();
     }
   });
+
   document.documentElement.classList.add('loaded');
 });
-
-function updateSidebarButtons() {
-  const isFirstTimeSetup = ecosystem.default === true || !secretsSaved;
-  const saveBtn = document.getElementById('saveBtn');
-  const resetBtn = document.getElementById('resetBtn');
-  const addServiceBtn = document.getElementById('addServiceBtn');
-  
-  if (isFirstTimeSetup) {
-    if (saveBtn) {
-      saveBtn.disabled = true;
-      saveBtn.style.opacity = '0.5';
-      saveBtn.style.cursor = 'default';
-      saveBtn.style.pointerEvents = 'none';
-    }
-    if (resetBtn) {
-      resetBtn.disabled = true;
-      resetBtn.style.opacity = '0.5';
-      resetBtn.style.cursor = 'default';
-      resetBtn.style.pointerEvents = 'none';
-    }
-    if (addServiceBtn) {
-      addServiceBtn.disabled = true;
-      addServiceBtn.style.opacity = '0.5';
-      addServiceBtn.style.cursor = 'default';
-      addServiceBtn.style.pointerEvents = 'none';
-    }
-  } else {
-    if (saveBtn) {
-      saveBtn.disabled = false;
-      saveBtn.style.opacity = '';
-      saveBtn.style.cursor = '';
-      saveBtn.style.pointerEvents = '';
-    }
-    if (resetBtn) {
-      resetBtn.disabled = false;
-      resetBtn.style.opacity = '';
-      resetBtn.style.cursor = '';
-      resetBtn.style.pointerEvents = '';
-    }
-    if (addServiceBtn) {
-      addServiceBtn.disabled = false;
-      addServiceBtn.style.opacity = '';
-      addServiceBtn.style.cursor = '';
-      addServiceBtn.style.pointerEvents = '';
-    }
-  }
-}
 
 function getDefaultConfig() {
   return {
@@ -813,8 +766,6 @@ async function saveSecrets() {
   saveBtn.disabled = true;
   saveBtn.textContent = 'Saving...';
 
-  const isFirstSecretsSave = !secretsSaved;
-
   try {
     const response = await fetch('secrets', {
       method: 'PUT',
@@ -836,7 +787,7 @@ async function saveSecrets() {
     showLoadingOverlay('Server Restarting...', 'Secrets saved. Waiting for the server to restart...');
     await waitForServerRestart();
     
-    if (isFirstSecretsSave) {
+    if (!secretsSaved) {
       selectItem('config-domain');
     }
 
@@ -884,7 +835,6 @@ function renderUsersEditor() {
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
 
-  // Get list of services that have requireAuth enabled
   const authServices = Object.keys(config.services || {}).filter(name => {
     if (name === 'api' || name === 'www') return false;
     return config.services[name]?.subdomain?.requireAuth === true;
@@ -1010,7 +960,6 @@ function toggleUserService(index, serviceName, checked) {
   }
 }
 
-// Multi-select dropdown functions
 function renderServiceTags(user, index, authServices) {
   if (!user.services || user.services.length === 0) {
     return '<span class="multi-select-placeholder">Select services...</span>';
@@ -1025,14 +974,12 @@ function renderServiceTags(user, index, authServices) {
 }
 
 function toggleMultiSelect(index, event) {
-  // Don't toggle if clicking on an option or tag remove button
   if (event.target.closest('.multi-select-option') || event.target.closest('.multi-select-tag-remove')) {
     return;
   }
   const select = document.getElementById(`user_services_select_${index}`);
   const wasOpen = select.classList.contains('open');
   
-  // Close all other dropdowns
   document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
   
   if (!wasOpen) {
@@ -1050,7 +997,6 @@ function selectServiceOption(index, value, event) {
   if (!users.users[index].services) users.users[index].services = [];
   
   if (value === '*') {
-    // Toggle all services
     if (users.users[index].services.includes('*')) {
       users.users[index].services = [];
     } else {
@@ -1058,8 +1004,7 @@ function selectServiceOption(index, value, event) {
     }
     renderUsersEditor();
   } else {
-    // Toggle individual service
-    if (users.users[index].services.includes('*')) return; // Can't select individual when all is selected
+    if (users.users[index].services.includes('*')) return;
     
     if (users.users[index].services.includes(value)) {
       users.users[index].services = users.users[index].services.filter(s => s !== value);
@@ -1082,7 +1027,6 @@ function removeServiceTag(index, value, event) {
   renderUsersEditor();
 }
 
-// Close multi-select dropdowns when clicking outside
 document.addEventListener('click', function(event) {
   if (!event.target.closest('.multi-select')) {
     document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
@@ -1090,7 +1034,6 @@ document.addEventListener('click', function(event) {
 });
 
 function generateUUID() {
-  // Generate a UUID v4 compatible with older browsers
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -2352,6 +2295,7 @@ function renderServicesList() {
   const hasDomain = config.domain && config.domain.trim() !== '';
   const secretsEnabled = !isFirstTimeSetup;
   const certificatesEnabled = !isFirstTimeSetup && hasAdminEmail && hasDomain;
+  const usersEnabled = secretsEnabled && !isFirstTimeSetup && secretsSaved;
   const ddnsEnabled = !isFirstTimeSetup && hasDomain;
 
   const monitorHeader = document.createElement('h2');
@@ -2361,13 +2305,27 @@ function renderServicesList() {
   const logsItem = document.createElement('div');
   logsItem.className = 'service-item' + (currentSelection === 'monitor-logs' ? ' active' : '');
   logsItem.textContent = '📝 Logs';
-  logsItem.onclick = () => selectItem('monitor-logs');
+  if (isFirstTimeSetup) {
+    logsItem.style.opacity = '0.5';
+    logsItem.style.cursor = 'default';
+    logsItem.style.pointerEvents = 'none';
+    logsItem.onclick = null;
+  } else {
+    logsItem.onclick = () => selectItem('monitor-logs');
+  }
   list.appendChild(logsItem);
 
   const blocklistItem = document.createElement('div');
   blocklistItem.className = 'service-item' + (currentSelection === 'monitor-blocklist' ? ' active' : '');
   blocklistItem.textContent = '🛡️ Blocklist';
-  blocklistItem.onclick = () => selectItem('monitor-blocklist');
+  if (isFirstTimeSetup) {
+    blocklistItem.style.opacity = '0.5';
+    blocklistItem.style.cursor = 'default';
+    blocklistItem.style.pointerEvents = 'none';
+    blocklistItem.onclick = null;
+  } else {
+    blocklistItem.onclick = () => selectItem('monitor-blocklist');
+  }
   list.appendChild(blocklistItem);
 
   const managementHeader = document.createElement('h2');
@@ -2396,7 +2354,7 @@ function renderServicesList() {
   const usersItem = document.createElement('div');
   usersItem.className = 'service-item' + (currentSelection === 'management-users' ? ' active' : '');
   usersItem.textContent = '👥 Users';
-  if (!secretsEnabled || isFirstTimeSetup || !secretsSaved) {
+  if (!usersEnabled) {
     usersItem.style.opacity = '0.5';
     usersItem.style.cursor = 'default';
     usersItem.style.pointerEvents = 'none';
@@ -2545,7 +2503,6 @@ function selectItem(prefixedName, type, folder, path, pushState = true) {
   }
 
   renderServicesList();
-  updateSidebarButtons();
   
   const itemName = prefixedName.replace(/^(management-|config-)/, '');
   
