@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
   <title>Reverse Proxy Configurator</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔧</text></svg>">
   <style>
-    html { background-color: #000; }
-    body { visibility: hidden; }
+    html { background-color: #000; min-width: 520px; }
+    body { visibility: hidden; min-width: 520px; }
     html.ready body { visibility: visible; }
     
     #initialLoadingOverlay {
