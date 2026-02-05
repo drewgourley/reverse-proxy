@@ -2297,7 +2297,9 @@ function getServiceIcon(serviceType) {
 
 function renderServicesList() {
   const list = document.getElementById('servicesList');
-  list.innerHTML = '';
+  
+  // Build all content in a DocumentFragment to preserve scroll position
+  const fragment = document.createDocumentFragment();
   
   const isFirstTimeSetup = ecosystem.default === true;
   const certStatus = getCertificateStatus();
@@ -2312,7 +2314,7 @@ function renderServicesList() {
 
   const monitorHeader = document.createElement('h2');
   monitorHeader.textContent = 'Activity Monitor';
-  list.appendChild(monitorHeader);
+  fragment.appendChild(monitorHeader);
 
   const logsItem = document.createElement('div');
   logsItem.className = 'service-item' + (currentSelection === 'monitor-logs' ? ' active' : '');
@@ -2325,7 +2327,7 @@ function renderServicesList() {
   } else {
     logsItem.onclick = () => selectItem('monitor-logs');
   }
-  list.appendChild(logsItem);
+  fragment.appendChild(logsItem);
 
   const blocklistItem = document.createElement('div');
   blocklistItem.className = 'service-item' + (currentSelection === 'monitor-blocklist' ? ' active' : '');
@@ -2338,17 +2340,17 @@ function renderServicesList() {
   } else {
     blocklistItem.onclick = () => selectItem('monitor-blocklist');
   }
-  list.appendChild(blocklistItem);
+  fragment.appendChild(blocklistItem);
 
   const managementHeader = document.createElement('h2');
   managementHeader.textContent = 'Management';
-  list.appendChild(managementHeader);
+  fragment.appendChild(managementHeader);
 
   const appItem = document.createElement('div');
   appItem.className = 'service-item' + (currentSelection === 'management-application' ? ' active' : '') + (needsApplicationResave ? ' insecure' : '');
   appItem.innerHTML = '🛠️ Application' + (needsApplicationResave ? ' <span class="hint">Resave to apply PM2 update</span>' : '');;
   appItem.onclick = () => selectItem('management-application');
-  list.appendChild(appItem);
+  fragment.appendChild(appItem);
 
   const secretsItem = document.createElement('div');
   secretsItem.className = 'service-item' + (currentSelection === 'management-secrets' ? ' active' : '');
@@ -2361,7 +2363,7 @@ function renderServicesList() {
   } else {
     secretsItem.onclick = () => selectItem('management-secrets');
   }
-  list.appendChild(secretsItem);
+  fragment.appendChild(secretsItem);
 
   const usersItem = document.createElement('div');
   usersItem.className = 'service-item' + (currentSelection === 'management-users' ? ' active' : '');
@@ -2374,7 +2376,7 @@ function renderServicesList() {
   } else {
     usersItem.onclick = () => selectItem('management-users');
   }
-  list.appendChild(usersItem);
+  fragment.appendChild(usersItem);
 
   const certsItem = document.createElement('div');
   certsItem.className = 'service-item' + (currentSelection === 'management-certificates' ? ' active' : '') + (canProvision ? ' insecure' : '');
@@ -2387,7 +2389,7 @@ function renderServicesList() {
   } else {
     certsItem.onclick = () => selectItem('management-certificates');
   }
-  list.appendChild(certsItem);
+  fragment.appendChild(certsItem);
 
   const ddnsItem = document.createElement('div');
   ddnsItem.className = 'service-item' + (currentSelection === 'management-ddns' ? ' active' : '');
@@ -2400,7 +2402,7 @@ function renderServicesList() {
   } else {
     ddnsItem.onclick = () => selectItem('management-ddns');
   }
-  list.appendChild(ddnsItem);
+  fragment.appendChild(ddnsItem);
 
   const themeItem = document.createElement('div');
   themeItem.className = 'service-item' + (currentSelection === 'management-theme' ? ' active' : '');
@@ -2413,7 +2415,7 @@ function renderServicesList() {
   } else {
     themeItem.onclick = () => selectItem('management-theme');
   }
-  list.appendChild(themeItem);
+  fragment.appendChild(themeItem);
 
   const advancedItem = document.createElement('div');
   advancedItem.className = 'service-item' + (currentSelection === 'management-advanced' ? ' active' : '');
@@ -2426,15 +2428,16 @@ function renderServicesList() {
   } else {
     advancedItem.onclick = () => selectItem('management-advanced');
   }
-  list.appendChild(advancedItem);
+  fragment.appendChild(advancedItem);
 
   const configHeader = document.createElement('h2');
   configHeader.textContent = 'Configuration';
-  list.appendChild(configHeader);
+  fragment.appendChild(configHeader);
 
   const domainItem = document.createElement('div');
+  const domainName = config.domain;
   domainItem.className = 'service-item' + (currentSelection === 'config-domain' ? ' active' : '');
-  domainItem.textContent = '🌐 Domain';
+  domainItem.innerHTML = `<span id="domainNameContainer" class="name-container"><span class="subdomain-name-container">🌐 Domain</span>${domainName ? `<span class="nicename-name-container"> - ${domainName}</span>` : ''}</span>`;
   if (isFirstTimeSetup || !secretsSaved) {
     domainItem.style.opacity = '0.5';
     domainItem.style.cursor = 'default';
@@ -2443,7 +2446,7 @@ function renderServicesList() {
   } else {
     domainItem.onclick = () => selectItem('config-domain');
   }
-  list.appendChild(domainItem);
+  fragment.appendChild(domainItem);
 
   const defaultServices = ['www', 'api'];
   const allServiceNames = new Set(defaultServices);
@@ -2474,6 +2477,8 @@ function renderServicesList() {
     return a.localeCompare(b);
   });
   
+  const itemsToProcess = [];
+  
   sortedServices.forEach(serviceName => {
     const nicename = config.services[serviceName]?.nicename;
     const item = document.createElement('div');
@@ -2501,11 +2506,21 @@ function renderServicesList() {
     } else {
       item.onclick = () => selectItem('config-' + serviceName);
     }
-    list.appendChild(item);
+    fragment.appendChild(item);
 
+    if (nicename) {
+      itemsToProcess.push({ serviceName, nicename });
+    }
+  });
+  
+  itemsToProcess.push({ serviceName: 'domain', nicename: domainName });
+
+  list.innerHTML = '';
+  list.appendChild(fragment);
+  
+  itemsToProcess.forEach(({ serviceName, nicename }) => {
     const serviceNameContainer = document.getElementById(serviceName + 'NameContainer');
-
-    if (serviceNameContainer && serviceNameContainer.offsetWidth < serviceNameContainer.scrollWidth && nicename) {
+    if (serviceNameContainer && serviceNameContainer.offsetWidth < serviceNameContainer.scrollWidth) {
       serviceNameContainer.setAttribute('title', nicename);
     }
   });
