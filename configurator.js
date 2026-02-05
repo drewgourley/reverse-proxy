@@ -686,12 +686,10 @@ configrouter.put('/ecosystem', (request, response) => {
     response.status(200).send({ success: true, message: 'Ecosystem config updated successfully' });
     setTimeout(() => {
       if (firstrun) {
-        exec('pm2 start ecosystem.config.js && pm2 save', () => {
-          process.exit(0);
-        });
+        exec('pm2 start ecosystem.config.js && pm2 save');
       } else {
         const safeName = (updatedEcosystem.apps[0].name || 'app').replace(/[^a-zA-Z0-9 _-]/g, '');
-        exec(`pm2 restart '${ecosystem.apps[0].name}' ecosystem.config.js --name '${safeName}'`);
+        exec(`pm2 restart '${ecosystem.apps[0].name}' ecosystem.config.js --name '${safeName}' --update-env`);
       }
     }, 2000);
   } catch (error) {
