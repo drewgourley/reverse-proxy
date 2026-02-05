@@ -1,7 +1,6 @@
 {
   "scripts": {
-    "start": "node app.js",
-    "start:legacy": "node app_old.js"
+    "start": "node app.js"
   },
   "dependencies": {
     "@aws-sdk/client-route-53": "^3.515.0",
