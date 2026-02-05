@@ -616,7 +616,6 @@ configrouter.get('/logs/:appName/:type', (request, response) => {
     clearInterval(keepAliveInterval);
     watcher.close();
     fs.closeSync(fileDescriptor);
-    tail.kill();
   });
   return;
 });

@@ -1637,7 +1637,7 @@ function renderThemeEditor() {
           <div class="favicon-preview-container">
             <label class="favicon-label">Current Favicon</label>
             <div id="currentFaviconContainer">
-              <img id="currentFavicon" src="/global/favicon/favicon-original.png" class="favicon-image" onerror="this.style.display='none'; document.getElementById('noFaviconWarning').style.display='flex';">
+              <img id="currentFavicon" src="/global/favicon/favicon-original.png?t=${new Date().getTime()}" class="favicon-image" onerror="this.style.display='none'; document.getElementById('noFaviconWarning').style.display='flex';">
               <div id="noFaviconWarning" class="favicon-warning">
                 <div class="favicon-warning-icon">⚠️</div>
                 <div class="favicon-warning-title">No Favicon</div>
