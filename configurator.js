@@ -1,23 +1,25 @@
 "use strict";
 /* CORE DEPENDENCY SETUP */
-const http = require('http');
+const AdmZip = require('adm-zip');
+const Ajv = require('ajv');
+const bcrypt = require('bcrypt');
+const dotenv = require('dotenv');
+const express = require('express');
 const fs = require('fs');
+const got = require('got');
+const http = require('http');
+const multer = require('multer');
 const os = require('os');
 const path = require('path');
-const { exec } = require('child_process');
-const Ajv = require('ajv');
-const ajv = new Ajv();
-const bcrypt = require('bcrypt');
-const express = require('express');
-const got = require('got');
-const multer = require('multer');
-const AdmZip = require('adm-zip');
-const faviconUpload = multer({ storage: multer.memoryStorage() });
 const sharp = require('sharp');
 const toIco = require('to-ico');
-const dotenv = require('dotenv');
+const { exec } = require('child_process');
+const ajv = new Ajv();
+const faviconUpload = multer({ storage: multer.memoryStorage() });
+/* ENVIRONMENT SETUP */
 dotenv.config();
 const env = process.env.NODE_ENV;
+/* CONFIGURATOR SETUP */
 const saveConfigAndRestart = (filePath, data, message, response, delay = 2000) => {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
   response.status(200).send({ success: true, message });
@@ -979,13 +981,11 @@ const fileUpload = multer({
   limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit
 });
 
-// Get list of files for a service
 configrouter.get('/files/:serviceName/:folderType', (request, response) => {
   try {
     const { serviceName, folderType } = request.params;
     const subPath = request.query.path || '';
     
-    // Validate folder type
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
@@ -1002,7 +1002,6 @@ configrouter.get('/files/:serviceName/:folderType', (request, response) => {
       return response.status(404).send({ success: false, error: 'Service not found' });
     }
     
-    // Block file management for protected services
     if (['api', 'www', 'radio'].includes(serviceName)) {
       return response.status(403).send({ 
         success: false, 
@@ -1010,7 +1009,6 @@ configrouter.get('/files/:serviceName/:folderType', (request, response) => {
       });
     }
     
-    // Check if service type supports files
     const subdomainType = service.subdomain?.type;
     if (!['index', 'spa', 'dirlist'].includes(subdomainType)) {
       return response.status(400).send({ 
@@ -1022,12 +1020,10 @@ configrouter.get('/files/:serviceName/:folderType', (request, response) => {
     const baseFolderPath = path.join(__dirname, 'web', folderType, serviceName);
     const currentFolderPath = path.join(baseFolderPath, subPath);
     
-    // Security check: ensure path is within the service folder
     if (!currentFolderPath.startsWith(baseFolderPath)) {
       return response.status(400).send({ success: false, error: 'Invalid path' });
     }
     
-    // Create folder if it doesn't exist
     if (!fs.existsSync(baseFolderPath)) {
       fs.mkdirSync(baseFolderPath, { recursive: true });
     }
@@ -1036,7 +1032,6 @@ configrouter.get('/files/:serviceName/:folderType', (request, response) => {
       return response.status(404).send({ success: false, error: 'Directory not found' });
     }
     
-    // Read only the current directory (non-recursive)
     const files = [];
     const items = fs.readdirSync(currentFolderPath, { withFileTypes: true });
     
@@ -1068,7 +1063,6 @@ configrouter.get('/files/:serviceName/:folderType', (request, response) => {
   }
 });
 
-// Upload file to service folder
 configrouter.post('/files/:serviceName/:folderType', fileUpload.single('file'), (request, response) => {
   try {
     const { serviceName, folderType } = request.params;
@@ -1078,7 +1072,6 @@ configrouter.post('/files/:serviceName/:folderType', fileUpload.single('file'), 
       return response.status(400).send({ success: false, error: 'No file uploaded' });
     }
     
-    // Validate folder type
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
@@ -1095,7 +1088,6 @@ configrouter.post('/files/:serviceName/:folderType', fileUpload.single('file'), 
       return response.status(404).send({ success: false, error: 'Service not found' });
     }
     
-    // Block file management for protected services
     if (['api', 'www', 'radio'].includes(serviceName)) {
       return response.status(403).send({ 
         success: false, 
@@ -1113,21 +1105,17 @@ configrouter.post('/files/:serviceName/:folderType', fileUpload.single('file'), 
     
     const folderPath = path.join(__dirname, 'web', folderType, serviceName);
     
-    // Create folder if it doesn't exist
     if (!fs.existsSync(folderPath)) {
       fs.mkdirSync(folderPath, { recursive: true });
     }
     
-    // Build full target path
     const fullTargetPath = path.join(folderPath, targetPath);
     const targetDir = path.dirname(fullTargetPath);
     
-    // Create target directory if needed
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
     
-    // Write file
     fs.writeFileSync(fullTargetPath, request.file.buffer);
     
     response.status(200).send({ 
@@ -1144,7 +1132,6 @@ configrouter.post('/files/:serviceName/:folderType', fileUpload.single('file'), 
   }
 });
 
-// Delete file from service folder
 configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
   try {
     const { serviceName, folderType } = request.params;
@@ -1154,7 +1141,6 @@ configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
       return response.status(400).send({ success: false, error: 'File path is required' });
     }
     
-    // Block file management for protected services
     if (['api', 'www', 'radio'].includes(serviceName)) {
       return response.status(403).send({ 
         success: false, 
@@ -1162,7 +1148,6 @@ configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
       });
     }
     
-    // Validate folder type
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
@@ -1184,7 +1169,6 @@ configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
     const folderPath = path.join(__dirname, 'web', folderType, serviceName);
     const fullPath = path.join(folderPath, filePath);
     
-    // Security check: ensure path is within the service folder
     if (!fullPath.startsWith(folderPath)) {
       return response.status(400).send({ success: false, error: 'Invalid file path' });
     }
@@ -1196,10 +1180,8 @@ configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
     const stats = fs.statSync(fullPath);
     
     if (stats.isDirectory()) {
-      // Remove directory recursively
       fs.rmSync(fullPath, { recursive: true, force: true });
     } else {
-      // Remove file
       fs.unlinkSync(fullPath);
     }
     
@@ -1209,7 +1191,6 @@ configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
   }
 });
 
-// Create directory in service folder
 configrouter.post('/files/:serviceName/:folderType/directory', (request, response) => {
   try {
     const { serviceName, folderType } = request.params;
@@ -1219,7 +1200,6 @@ configrouter.post('/files/:serviceName/:folderType/directory', (request, respons
       return response.status(400).send({ success: false, error: 'Directory path is required' });
     }
     
-    // Block file management for protected services
     if (['api', 'www', 'radio'].includes(serviceName)) {
       return response.status(403).send({ 
         success: false, 
@@ -1227,7 +1207,6 @@ configrouter.post('/files/:serviceName/:folderType/directory', (request, respons
       });
     }
     
-    // Validate folder type
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
@@ -1239,13 +1218,11 @@ configrouter.post('/files/:serviceName/:folderType/directory', (request, respons
       return response.status(500).send({ success: false, error: 'Config not found' });
     }
     
-    // Get service config to check type
     const serviceConfig = config.services?.[serviceName];
     const isIndexService = serviceConfig?.subdomain?.type === 'index';
     
-    // For index services, prevent creating "static" folder in public folder type
     if (isIndexService && folderType === 'public') {
-      const directoryName = directoryPath.split('/')[0]; // Get the root folder name
+      const directoryName = directoryPath.split('/')[0];
       if (directoryName === 'static') {
         return response.status(400).send({ 
           success: false, 
@@ -1257,7 +1234,6 @@ configrouter.post('/files/:serviceName/:folderType/directory', (request, respons
     const folderPath = path.join(__dirname, 'web', folderType, serviceName);
     const fullPath = path.join(folderPath, directoryPath);
     
-    // Security check: ensure path is within the service folder
     if (!fullPath.startsWith(folderPath)) {
       return response.status(400).send({ success: false, error: 'Invalid directory path' });
     }
@@ -1274,7 +1250,6 @@ configrouter.post('/files/:serviceName/:folderType/directory', (request, respons
   }
 });
 
-// Rename file or directory in service folder
 configrouter.post('/files/:serviceName/:folderType/rename', (request, response) => {
   try {
     const { serviceName, folderType } = request.params;
@@ -1284,7 +1259,6 @@ configrouter.post('/files/:serviceName/:folderType/rename', (request, response) 
       return response.status(400).send({ success: false, error: 'Both old and new paths are required' });
     }
     
-    // Block file management for protected services
     if (['api', 'www', 'radio'].includes(serviceName)) {
       return response.status(403).send({ 
         success: false, 
@@ -1292,7 +1266,6 @@ configrouter.post('/files/:serviceName/:folderType/rename', (request, response) 
       });
     }
     
-    // Validate folder type
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
@@ -1315,7 +1288,6 @@ configrouter.post('/files/:serviceName/:folderType/rename', (request, response) 
     const fullOldPath = path.join(folderPath, oldPath);
     const fullNewPath = path.join(folderPath, newPath);
     
-    // Security check: ensure both paths are within the service folder
     if (!fullOldPath.startsWith(folderPath) || !fullNewPath.startsWith(folderPath)) {
       return response.status(400).send({ success: false, error: 'Invalid file path' });
     }
@@ -1328,7 +1300,6 @@ configrouter.post('/files/:serviceName/:folderType/rename', (request, response) 
       return response.status(400).send({ success: false, error: 'File already exists' });
     }
     
-    // Rename/move the file or directory
     fs.renameSync(fullOldPath, fullNewPath);
     
     response.status(200).send({ success: true, message: 'Renamed successfully' });
@@ -1337,7 +1308,6 @@ configrouter.post('/files/:serviceName/:folderType/rename', (request, response) 
   }
 });
 
-// Unpack zip file into service folder
 configrouter.post('/files/:serviceName/:folderType/unpack', fileUpload.single('zipFile'), (request, response) => {
   try {
     const { serviceName, folderType } = request.params;
@@ -1347,7 +1317,6 @@ configrouter.post('/files/:serviceName/:folderType/unpack', fileUpload.single('z
       return response.status(400).send({ success: false, error: 'No zip file provided' });
     }
     
-    // Block file management for protected services
     if (['api', 'www', 'radio'].includes(serviceName)) {
       return response.status(403).send({ 
         success: false, 
@@ -1355,7 +1324,6 @@ configrouter.post('/files/:serviceName/:folderType/unpack', fileUpload.single('z
       });
     }
     
-    // Validate folder type
     if (!['public', 'static'].includes(folderType)) {
       return response.status(400).send({ success: false, error: 'Invalid folder type' });
     }
@@ -1363,12 +1331,10 @@ configrouter.post('/files/:serviceName/:folderType/unpack', fileUpload.single('z
     const folderPath = path.join(__dirname, 'web', folderType, serviceName);
     const extractPath = targetPath ? path.join(folderPath, targetPath) : folderPath;
     
-    // Security check: ensure extraction path is within the service folder
     if (!extractPath.startsWith(folderPath)) {
       return response.status(400).send({ success: false, error: 'Invalid target path' });
     }
     
-    // Validate file is actually a zip
     if (!request.file.originalname.toLowerCase().endsWith('.zip')) {
       return response.status(400).send({ success: false, error: 'File must be a zip archive' });
     }
@@ -1382,7 +1348,6 @@ configrouter.post('/files/:serviceName/:folderType/unpack', fileUpload.single('z
     
     const zipEntries = zip.getEntries();
     
-    // Security check: validate all entries stay within target directory
     for (const entry of zipEntries) {
       const entryPath = path.join(extractPath, entry.entryName);
       if (!entryPath.startsWith(extractPath)) {
@@ -1393,7 +1358,6 @@ configrouter.post('/files/:serviceName/:folderType/unpack', fileUpload.single('z
       }
     }
     
-    // Limit check: prevent zip bombs (max 1000 files, max 100MB uncompressed)
     if (zipEntries.length > 1000) {
       return response.status(400).send({ 
         success: false, 
@@ -1413,7 +1377,6 @@ configrouter.post('/files/:serviceName/:folderType/unpack', fileUpload.single('z
       }
     }
     
-    // If deploy mode is enabled, clear the directory contents first
     if (deploy === 'true') {
       if (fs.existsSync(extractPath)) {
         const items = fs.readdirSync(extractPath);
@@ -1429,7 +1392,6 @@ configrouter.post('/files/:serviceName/:folderType/unpack', fileUpload.single('z
       }
     }
     
-    // Extract all files
     zip.extractAllTo(extractPath, true);
     
     response.status(200).send({ 

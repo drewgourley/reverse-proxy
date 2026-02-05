@@ -1,28 +1,28 @@
 "use strict";
 /* CORE DEPENDENCY SETUP */
-const http = require('http');
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const cheerio = require('cheerio');
+const cron = require('node-cron');
+const crypto = require('crypto');
 const dotenv = require('dotenv');
+const fs = require('fs');
+const got = require('got');
+const http = require('http');
+const https = require('https');
+const path = require('path');
+const wol = require('wake_on_lan');
 const express = require('express');
 const basicAuth = require('express-basic-auth');
-const session = require('express-session');
 const rateLimit = require('express-rate-limit');
+const session = require('express-session');
 const subdomain = require('express-subdomain');
-const { GameDig } = require('gamedig');
-const { createProxyMiddleware } = require('http-proxy-middleware');
-const got = require('got');
-const cron = require('node-cron');
 const serveIndex = require('serve-index');
-const wol = require('wake_on_lan');
 const { createClient } = require('redis');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+const { GameDig } = require('gamedig');
 const { RedisStore } = require('connect-redis');
-const configurator = require('./configurator.js');
 const { OdalPapiService } = require('./odalpapi.js')
+const configurator = require('./configurator.js');
 /* CONFIGURED DEPENDENCY SETUP */
 let config;
 try {

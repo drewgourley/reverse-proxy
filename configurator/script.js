@@ -20,7 +20,6 @@ let currentFileManagerContext = null;
 let secureServicesChangedThisSession = false;
 let firstConfigSave = true;
 let secretsSaved = false;
-let servicesWithSubdomainsAtLastSave = new Set();
 let gitStatus = {};
 let logRotateInstalled = false;
 
@@ -84,23 +83,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const urlParams = new URLSearchParams(window.location.search);
   const justUpdated = urlParams.get('updated') === 'true';
+  const justRestarted = urlParams.get('restarted') === 'true';
   
   if (justUpdated) {
     urlParams.delete('updated');
+    showStatus('Update completed successfully!', 'success');
+  }
+  if (justRestarted) {
+    urlParams.delete('restarted');
+    showStatus('Server restarted successfully!', 'success');
+  }
+  if (justUpdated || justRestarted) {
     const url = new URL(window.location);
     url.search = urlParams.toString();
     window.history.replaceState({}, '', url);
-    showStatus('Update completed successfully!', 'success');
   }
   
   const isFirstTimeSetup = ecosystem.default === true;
-  
+  const certStatus = getCertificateStatus();
+  const canProvision = certStatus.needDeprovisioning.length > 0 || certStatus.needProvisioning.length > 0;
+
   if (isFirstTimeSetup) {
     selectItem('management-application');
   } else if (secretsSaved === false) {
     selectItem('management-secrets');
   } else if (config.domain === '' || config.domain.trim() === '') {
     selectItem('config-domain');
+  } else if (canProvision) {
+    selectItem('management-certificates');
   } else {
     const section = urlParams.get('section');
     const type = urlParams.get('type');
@@ -785,9 +795,11 @@ async function saveBlocklist() {
 
     originalBlocklist = JSON.parse(JSON.stringify(blocklist));
     showStatus('✓ Blocklist saved successfully!', 'success');
-    
-    renderBlocklistEditor();
-    
+
+    showLoadingOverlay('Server Restarting...', 'Blocklist saved. Waiting for the server to restart...');
+    await waitForServerRestart();
+
+    reloadPage();
   } catch (error) {
     showStatus('✗ Error saving blocklist: ' + parseErrorMessage(error), 'error');
   } finally {
@@ -826,14 +838,9 @@ async function saveSecrets() {
     
     if (isFirstSecretsSave) {
       selectItem('config-domain');
-    } else {
-      const url = new URL(window.location);
-      window.location.href = url.toString();
     }
 
-    renderServicesList();
-    updateSidebarButtons();
-    
+    reloadPage();
   } catch (error) {
     showStatus('✗ Error saving secrets: ' + parseErrorMessage(error), 'error');
   } finally {
@@ -1134,7 +1141,10 @@ function revertUsers() {
 
 async function saveUsers() {
   try {
-    // Validate users before saving
+    saveBtn = document.getElementById('saveUsersBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
     for (const user of users.users) {
       if (!user.username || user.username.trim() === '') {
         showStatus('All users must have a username', 'error');
@@ -1163,10 +1173,13 @@ async function saveUsers() {
     showLoadingOverlay('Server Restarting...', 'Users saved. Waiting for the server to restart...');
     await waitForServerRestart();
 
-    selectItem('management-users');
+    reloadPage();
   } catch (error) {
     const message = parseErrorMessage(error);
     showStatus('✗ Failed to save users: ' + message, 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save Users';
   }
 }
 
@@ -1307,6 +1320,7 @@ async function saveDdns() {
     showLoadingOverlay('Server Restarting...', 'DDNS config saved. Waiting for the server to restart...');
     await waitForServerRestart();
     
+    reloadPage();
   } catch (error) {
     showStatus('✗ Error saving DDNS config: ' + parseErrorMessage(error), 'error');
   } finally {
@@ -1796,8 +1810,7 @@ async function installLogRotate() {
     showLoadingOverlay('Server Restarting...', 'Log Rotate Module Installed. Waiting for the server to restart...');
     await waitForServerRestart();
 
-    logRotateInstalled = true;
-    renderLogsViewer();
+    reloadPage();
   } catch (error) {
     showStatus('✗ Error installing Log Rotate Module, you may have to do it manually: ' + parseErrorMessage(error), 'error');
     installBtn.disabled = false;
@@ -1904,6 +1917,7 @@ function handleUpdate(force = false) {
 }
 
 async function pullUpdates(force) {
+  const updateBtn = document.getElementById('updateBtn');
   const loadingOverlay = document.getElementById('loadingOverlay');
   const loadingTitle = document.getElementById('loadingTitle');
   const loadingMessage = document.getElementById('loadingMessage');
@@ -1911,7 +1925,8 @@ async function pullUpdates(force) {
   loadingTitle.textContent = 'Updating...';
   loadingMessage.textContent = 'Pulling latest changes and restarting the server. This may take a minute.';
   loadingOverlay.classList.add('active');
-  
+  updateBtn.disabled = true;
+
   try {
     let response;
     if (force) {
@@ -1934,14 +1949,13 @@ async function pullUpdates(force) {
     
     await waitForServerRestart(10000);
     
-    const url = new URL(window.location);
-    url.searchParams.set('updated', 'true');
-    window.location.href = url.toString();
-    
+    reloadPage(true);
   } catch (error) {
     console.error('Update error:', error);
     loadingOverlay.classList.remove('active');
     showStatus('Update failed: ' + error.message, 'error');
+  } finally {
+    updateBtn.disabled = false;
   }
 }
 
@@ -1997,7 +2011,6 @@ async function saveEcosystem() {
     delete ecosystemToSave.default;
     delete ecosystemToSave.resave;
 
-    //remove ignore_watch from all apps in apps array and set watch to false
     if (ecosystemToSave.apps && Array.isArray(ecosystemToSave.apps)) {
       ecosystemToSave.apps = ecosystemToSave.apps.map(app => {
         if (app.ignore_watch) {
@@ -2023,6 +2036,7 @@ async function saveEcosystem() {
 
     delete ecosystem.default;
     delete ecosystem.resave;
+
     originalEcosystem = JSON.parse(JSON.stringify(ecosystem));
     showStatus('✓ Application settings saved successfully!', 'success');
 
@@ -2035,13 +2049,7 @@ async function saveEcosystem() {
       selectItem(currentSelection);
     }
     
-    if (gitStatus && !gitStatus.error) {
-      renderGitStatus(gitStatus);
-      checkForUpdates();
-    }
-
-    renderServicesList();
-    updateSidebarButtons();
+    reloadPage();
   } catch (error) {
     showStatus('✗ Error saving application settings: ' + parseErrorMessage(error), 'error');
     saveBtn.disabled = false;
@@ -2298,13 +2306,13 @@ async function saveAdvanced() {
     
     await waitForServerRestart();
     
-    selectItem('management-advanced');
-    
+    reloadPage();
   } catch (error) {
     console.error('Advanced config save error:', error);
+    showStatus('Save failed: ' + error.message, 'error');
+  } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Advanced Config';
-    showStatus('Save failed: ' + error.message, 'error');
   }
 }
 
@@ -2892,7 +2900,6 @@ function getCertificateStatus() {
     needDeprovisioning: []
   };
   
-  // Get current secure services
   const currentSecureServices = new Set();
   if (originalConfig.services) {
     Object.keys(originalConfig.services).forEach(serviceName => {
@@ -2903,10 +2910,8 @@ function getCertificateStatus() {
     });
   }
   
-  // Get services that have provisioned certificates from certs.json
   const provisionedServices = new Set(certs.services || []);
   
-  // Determine status for each service
   currentSecureServices.forEach(serviceName => {
     if (provisionedServices.has(serviceName)) {
       status.provisioned.push(serviceName);
@@ -3054,10 +3059,7 @@ async function provisionCertificates() {
     showLoadingOverlay('Server Restarting...', 'Certificates provisioned. Waiting for the server to restart...');
     await waitForServerRestart();
     
-    // Reload certificate data after successful provisioning
-    await loadCerts(true);
-
-    selectItem('management-certificates');
+    reloadPage();
   } catch (error) {
     outputEl.innerHTML = `
       <div class="result-error">
@@ -3887,43 +3889,12 @@ async function saveConfig() {
       throw new Error(error);
     }
 
-    const domainHasChanged = originalConfig.domain !== config.domain;
-
-    originalConfig = JSON.parse(JSON.stringify(config));
-    
-    const currentServicesWithSubdomains = new Set();
-    Object.keys(config.services).forEach(serviceName => {
-      if (config.services[serviceName].subdomain && config.services[serviceName].subdomain.protocol === 'secure') {
-        currentServicesWithSubdomains.add(serviceName);
-      }
-    });
-    
-    const hasNewServices = Array.from(currentServicesWithSubdomains).some(
-      service => !servicesWithSubdomainsAtLastSave.has(service)
-    );
-    const hasRemovedServices = Array.from(servicesWithSubdomainsAtLastSave).some(
-      service => !currentServicesWithSubdomains.has(service)
-    );
-    
-    if (hasNewServices || hasRemovedServices) {
-      secureServicesChangedThisSession = true;
-      servicesWithSubdomainsAtLastSave = currentServicesWithSubdomains;
-    }
-    
     showStatus('✓ Config saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'Configuration saved. Waiting for the server to restart...');
     await waitForServerRestart();
-    
-    if (domainHasChanged) {
-      selectItem('management-certificates');
-      const url = new URL(window.location);
-      window.location.href = url.toString();
-    } else if (secureServicesChangedThisSession) {
-      selectItem('management-certificates');
-    } else if (currentSelection) {
-      selectItem(currentSelection);
-    }
+
+    reloadPage();
   } catch (error) {
     showStatus('✗ Error saving config: ' + parseErrorMessage(error), 'error');
   } finally {
@@ -4109,6 +4080,18 @@ function hideLoadingOverlay() {
   }, 300);
 }
 
+function reloadPage(update = false) {
+  const url = new URL(window.location);
+  setTimeout(() => {
+    if (update) {
+      url.searchParams.set('updated', 'true');
+    } else {
+      url.searchParams.set('restarted', 'true');
+    }
+    window.location.href = url.toString()
+  }, 0);
+}
+
 async function waitForServerRestart(delay = 2000) {
   const maxAttempts = 12;
   const pollInterval = 5000;
@@ -4130,7 +4113,6 @@ async function waitForServerRestart(delay = 2000) {
       
       if (response.ok) {
         hideLoadingOverlay();
-        showStatus('✓ Server restarted successfully!', 'success');
         return;
       }
     } catch (error) {
