@@ -58,12 +58,22 @@
   <div class="container">
     <header>
       <h1>🔧 Reverse Proxy Configurator</h1>
+      <div class="mobile-nav-toggle" id="mobileNavToggle">
+        <button class="mobile-nav-btn active" id="navServicesBtn" onclick="showMobilePanel('services')">
+          <span class="mobile-nav-icon">📋</span>
+          <span class="mobile-nav-label">Services</span>
+        </button>
+        <button class="mobile-nav-btn" id="navEditorBtn" onclick="showMobilePanel('editor')">
+          <span class="mobile-nav-icon">✏️</span>
+          <span class="mobile-nav-label">Editor</span>
+        </button>
+      </div>
       <div class="version-info" id="versionInfo">
         <div class="version-details"></div>
       </div>
     </header>
     <div id="statusContainer" class="status-container"></div>
-    <div class="main-content">
+    <div class="main-content" data-mobile-view="services">
       <div class="sidebar">
         <div class="sidebar-scrollable">
           <div id="servicesList"></div>

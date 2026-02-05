@@ -63,6 +63,22 @@ function parseErrorMessage(error) {
   }
 }
 
+function showMobilePanel(panel) {
+  const mainContent = document.querySelector('.main-content');
+  const servicesBtn = document.getElementById('navServicesBtn');
+  const editorBtn = document.getElementById('navEditorBtn');
+  
+  if (panel === 'services') {
+    mainContent.setAttribute('data-mobile-view', 'services');
+    servicesBtn.classList.add('active');
+    editorBtn.classList.remove('active');
+  } else if (panel === 'editor') {
+    mainContent.setAttribute('data-mobile-view', 'editor');
+    servicesBtn.classList.remove('active');
+    editorBtn.classList.add('active');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   await loadConfig(true);
   await loadSecrets(true);
@@ -465,6 +481,7 @@ function getDefaultAdvanced() {
 function renderBlocklistEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
   
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
@@ -502,6 +519,7 @@ function renderBlocklistEditor() {
 function renderSecretsEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
 
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
@@ -843,6 +861,7 @@ function revertSecrets() {
 function renderUsersEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
 
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
@@ -1141,6 +1160,7 @@ async function saveUsers() {
 function renderDdnsEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
 
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
@@ -1593,6 +1613,7 @@ async function saveTheme() {
 function renderThemeEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
 
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
@@ -1917,6 +1938,7 @@ async function pullUpdates(force) {
 function renderApplicationEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
   const appName = ecosystem.apps && ecosystem.apps[0] ? ecosystem.apps[0].name : 'Reverse Proxy';
   const isDefault = ecosystem.default === true;
   const buttonText = isDefault ? 'Generate Application Settings' : 'Save Application Settings';
@@ -2029,6 +2051,7 @@ function revertEcosystem() {
 function renderAdvancedEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
 
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
@@ -2529,6 +2552,7 @@ function renderServicesList() {
 function selectItem(prefixedName, type, folder, path, pushState = true) {
   if (currentSelection && currentSelection !== prefixedName) {
     if (!canNavigateAway(currentSelection, prefixedName)) {
+      showMobilePanel('editor');
       actions = document.getElementById('editorActions');
       actions.insertAdjacentHTML('afterbegin', '<span class="editor-actions-spotlight-text hint" id="spotlightText">Please save your changes or revert them before navigating away.</span>');
       actionsContainer = document.getElementById('editorActionsContainer');
@@ -2582,6 +2606,11 @@ function selectItem(prefixedName, type, folder, path, pushState = true) {
     renderPlaceholderEditor();
   }
 
+  // Switch to editor panel on mobile when an item is selected
+  if (window.innerWidth <= 1024) {
+    showMobilePanel('editor');
+  }
+
   if (prefixedName !== 'monitor-logs' && eventSource) {
     eventSource.close();
   }
@@ -2590,6 +2619,7 @@ function selectItem(prefixedName, type, folder, path, pushState = true) {
 function renderPlaceholderEditor(message = 'Select an item from the sidebar to view or edit its settings.', actionsHtml = '') {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
   panel.classList.remove('scrollable');
   panel.innerHTML = `
     <div class="placeholder-message">
@@ -2609,6 +2639,7 @@ function renderPlaceholderEditor(message = 'Select an item from the sidebar to v
 function renderLogsViewer(type = 'out', pushState = true) {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
   const url = new URL(window.location);
 
   if (pushState) {
@@ -2713,6 +2744,7 @@ function startLogStream(type = 'out') {
 function renderDomainEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
   const isEmpty = !config.domain || config.domain.trim() === '';
 
   actions.classList.remove('hidden');
@@ -3002,6 +3034,7 @@ function getCertificateStatus() {
 function renderCertificatesEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
   const hasChanges = hasUnsavedConfigChanges();
   const certStatus = getCertificateStatus();
   const canProvision = !hasChanges && (certStatus.needDeprovisioning.length > 0 || certStatus.needProvisioning.length > 0);
@@ -3146,6 +3179,7 @@ async function provisionCertificates() {
 function renderServiceEditor(serviceName) {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
+  panel.scrollTop = 0;
   const service = config.services[serviceName];
   const isDefaultService = serviceName === 'api' || serviceName === 'www';
 
