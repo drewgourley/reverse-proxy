@@ -676,17 +676,13 @@ configrouter.put('/ecosystem', (request, response) => {
     }
     let firstrun = true;
     const ecosystemPath = path.join(__dirname, 'ecosystem.config.js');
+    let ecosystem = {};
     if (fs.existsSync(ecosystemPath)) {
       firstrun = false;
+      ecosystem = require(ecosystemPath);
     }
     const fileContent = `module.exports = ${JSON.stringify(updatedEcosystem, null, 2)}\n`;
     fs.writeFileSync(ecosystemPath, fileContent);
-    let ecosystem = {};
-    try {
-      ecosystem = require('./ecosystem.config.js');
-    } catch (e) {
-      // Ignore if doesn't exist yet
-    }
     response.status(200).send({ success: true, message: 'Ecosystem config updated successfully' });
     setTimeout(() => {
       if (firstrun) {
