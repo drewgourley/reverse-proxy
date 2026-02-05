@@ -105,6 +105,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     addServiceBtn.disabled = true;
   }
 
+  // Add click listener to remove spotlight class from actions container
+  document.addEventListener('mousedown', () => {
+    const actionsContainer = document.getElementById('editorActionsContainer');
+    const spotlightText = document.getElementById('spotlightText');
+    if (actionsContainer && actionsContainer.classList.contains('spotlight')) {
+      actionsContainer.classList.remove('spotlight');
+    }
+    if (spotlightText) {
+      spotlightText.remove();
+    }
+  });
+
   if (isFirstTimeSetup) {
     selectItem('management-application');
   } else if (secretsSaved === false) {
@@ -2491,6 +2503,16 @@ function renderServicesList() {
 }
 
 function selectItem(prefixedName, type, folder, path, pushState = true) {
+  if (currentSelection && currentSelection !== prefixedName) {
+    if (!canNavigateAway(currentSelection, prefixedName)) {
+      actions = document.getElementById('editorActions');
+      actions.insertAdjacentHTML('afterbegin', '<span class="editor-actions-spotlight-text hint" id="spotlightText">Please save your changes or revert them before navigating away.</span>');
+      actionsContainer = document.getElementById('editorActionsContainer');
+      actionsContainer.classList.add('spotlight');
+      return;
+    }
+  }
+  
   currentSelection = prefixedName;
   
   if (pushState) {
@@ -2848,6 +2870,72 @@ async function fetchLocalIp() {
 
 function hasUnsavedConfigChanges() {
   return JSON.stringify(config) !== JSON.stringify(originalConfig);
+}
+
+function hasUnsavedSecretsChanges() {
+  return JSON.stringify(secrets) !== JSON.stringify(originalSecrets);
+}
+
+function hasUnsavedUsersChanges() {
+  return JSON.stringify(users) !== JSON.stringify(originalUsers);
+}
+
+function hasUnsavedDdnsChanges() {
+  return JSON.stringify(ddns) !== JSON.stringify(originalDdns);
+}
+
+function hasUnsavedEcosystemChanges() {
+  return JSON.stringify(ecosystem) !== JSON.stringify(originalEcosystem);
+}
+
+function hasUnsavedAdvancedChanges() {
+  return JSON.stringify(advanced) !== JSON.stringify(originalAdvanced);
+}
+
+function hasUnsavedBlocklistChanges() {
+  return JSON.stringify(blocklist) !== JSON.stringify(originalBlocklist);
+}
+
+function hasUnsavedThemeChanges() {
+  return JSON.stringify(colors) !== JSON.stringify(originalColors) || pendingFaviconFile !== null;
+}
+
+function hasUnsavedManagementChanges() {
+  return hasUnsavedSecretsChanges() || 
+         hasUnsavedUsersChanges() || 
+         hasUnsavedDdnsChanges() || 
+         hasUnsavedEcosystemChanges() || 
+         hasUnsavedAdvancedChanges() ||
+         hasUnsavedThemeChanges() ||
+         hasUnsavedBlocklistChanges();
+}
+
+function getSectionType(prefixedName) {
+  if (prefixedName.startsWith('management-') || prefixedName.startsWith('monitor-')) return 'management';
+  if (prefixedName.startsWith('config-')) return 'config';
+  return null;
+}
+
+function canNavigateAway(fromSection, toSection) {
+  const fromType = getSectionType(fromSection);
+  const toType = getSectionType(toSection);
+  
+  if (fromType === 'management') {
+    if (hasUnsavedManagementChanges()) {
+      return false;
+    }
+  }
+  
+  if (fromType === 'config') {
+    if (hasUnsavedConfigChanges()) {
+      if (toType === 'config') {
+        return true;
+      }
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 function getCertificateStatus() {
@@ -3896,15 +3984,28 @@ function cleanConfig(obj) {
 
 function resetEditor() {
   showConfirmModal(
-    'Discard Changes',
+    'Revert Changes',
     'Are you sure you want to discard all changes and reload the original configuration?',
     (confirmed) => {
       if (confirmed) {
         config = JSON.parse(JSON.stringify(originalConfig));
-        currentSelection = null;
-        renderPlaceholderEditor('Changes discarded. Select an item to edit.');
-        renderServicesList();
         showStatus('Changes discarded', 'success');
+        renderServicesList();
+        console.log('Current selection before reset:', currentSelection);
+        if (currentSelection) {
+          const serviceName = currentSelection.startsWith('config-') ? currentSelection.replace('config-', '') : null;
+          
+          if (serviceName && config.services[serviceName]) {
+            renderServiceEditor(serviceName);
+          } else if (currentSelection === 'manage-certificates') {
+            renderCertificatesEditor();
+          } else {
+            renderPlaceholderEditor('Service removed. Select an item to edit.');
+          }
+        } else {
+          currentSelection = null;
+          renderPlaceholderEditor('Changes reverted. Select an item to edit.');
+        }
       }
     }
   );
@@ -4649,13 +4750,11 @@ async function createDirectory(serviceName, folderType, currentPath = '') {
   }
 }
 
-
 async function deleteSelectedFiles() {
   if (!currentFileManagerContext || selectedFiles.size === 0) return;
   
   const { serviceName, folderType, currentPath } = currentFileManagerContext;
   const fileCount = selectedFiles.size;
-  const fileList = Array.from(selectedFiles).map(f => f.split('/').pop()).join(', ');
   
   showConfirmModal(
     'Delete Files',

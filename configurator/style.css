@@ -425,6 +425,24 @@ button {
     padding-bottom: 10px;
 }
 
+.editor-actions-spotlight-text {
+    position: absolute;
+    top: -30px;
+}
+
+.editor-actions-container {
+    position: relative;
+    padding: 0 17px 17px;
+    margin: 0 -17px -17px;
+    border-radius: 15px;
+    box-shadow: 0 0 0 32769px transparent;    
+    transition: box-shadow 0.3s ease;
+}
+
+.editor-actions-container.spotlight {
+    box-shadow: 0 0 0 32769px rgba(0,0,0,0.9);    
+}
+
 .editor-actions {
     display: flex;
     align-items: center;
