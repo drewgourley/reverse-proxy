@@ -73,7 +73,7 @@ h1 {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 5px 10px 5px 6px;
+    padding: 5px 12px 5px 6px;
     background: var(--color-gray-50);
     border-left: 4px solid var(--color-gray-300);
     border-radius: 4px;
@@ -96,9 +96,7 @@ h1 {
 }
 
 .mobile-nav-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 13px;
 }
 
 #servicesList h2 {
@@ -1908,6 +1906,15 @@ input[type="checkbox"] {
 
     .setup-heading, .setup-instructions {
         flex-direction: column;
+    }
+
+    .file-manager-actions button {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .file-manager-actions button .material-icons {
+        margin: -5px 0 0 0;
     }
 }
 
