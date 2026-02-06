@@ -696,7 +696,7 @@ button {
 .service-item .name-container {
     white-space: nowrap;
     overflow: hidden;
-    max-width: 75%;
+    max-width: 65%;
     text-overflow: ellipsis;
     color: #718096;
     margin-right: -10000px;
@@ -1400,9 +1400,8 @@ input[type="checkbox"] {
 
 .multi-select-display {
     width: 100%;
-    min-height: 42px;
-    padding: 8px 12px;
-    padding-right: 32px;
+    min-height: 38px;
+    padding: 4px 32px 4px 4px;
     border: 1px solid var(--color-gray-300);
     border-radius: 4px;
     font-size: 14px;
@@ -1937,6 +1936,94 @@ input[type="checkbox"] {
     opacity: 1;
 }
 
+.material-icons.star {
+    color: #ecc94b;
+    opacity: 1;
+}
+
+.material-icons.error {
+    color: #e53e3e;
+    opacity: 1;
+}
+
+.material-icons.success {
+    color: #48bb78;
+    opacity: 1;
+}
+
+.material-icons.folder {
+    color: #ffe585;
+    opacity: 1;
+}
+.material-icons.file {
+    color: #b7e1ff;
+    opacity: 1;
+}
+.material-icons.image {
+    color: #9b87f6;
+    opacity: 1;
+}
+.material-icons.video {
+    color: #9f7aea;
+    opacity: 1;
+}
+.material-icons.audio {
+    color: #68d391;
+    opacity: 1;
+}
+.material-icons.archive {
+    color: #f6ad55;
+    opacity: 1;
+}
+.material-icons.pdf {
+    color: #fc8181;
+    opacity: 1;
+}
+.material-icons.code {
+    color: #68ed63;
+    opacity: 1;
+}
+.material-icons.html {
+    color: #f56565;
+    opacity: 1;
+}
+.material-icons.css {
+    color: #4299e1;
+    opacity: 1;
+}
+.material-icons.data {
+    color: #ed64a6;
+    opacity: 1;
+}
+.material-icons.text {
+    color: #48bb78;
+    opacity: 1;
+}
+.material-icons.doc {
+    color: #667eea;
+    opacity: 1;
+}
+.material-icons.table {
+    color: #ed8936;
+    opacity: 1;
+}
+.material-icons.font {
+    color: #f6e05e;
+    opacity: 1;
+}
+.material-icons.binary {
+    color: #4fd194;
+    opacity: 1;
+}
+.material-icons.game {
+    color: #64e8ed;
+    opacity: 1;
+}
+.material-icons.manifest {
+    color: #a0aec0;
+    opacity: 1;
+}
+
 /* Material Icons in headings */
 h1 .material-icons {
     font-size: 28px;
@@ -1944,20 +2031,19 @@ h1 .material-icons {
 }
 
 .section-title .material-icons {
-    font-size: 22px;
-    margin-top: -3px;
-    margin-right: 4px;
+    font-size: 24px;
+    margin: -5px 0 0;
 }
 
 /* Material Icons in buttons */
 button .material-icons {
-    font-size: 16px;
-    margin: -3px 2px 0 -8px;
+    font-size: 22px;
+    margin: -5px 2px -3px -8px;
 }
 
 label .material-icons {
     font-size: 16px;
-    margin-top: -2px;
+    margin-top: -4px;
 }
 
 .btn-toggle-password .material-icons {
@@ -1966,8 +2052,8 @@ label .material-icons {
 
 /* Material Icons in sidebar */
 .service-item .material-icons {
-    font-size: 18px;
-    margin-right: 6px;
+    font-size: 22px;
+    margin: -4px 6px -4px -8px;
 }
 
 /* Material Icons in status messages */
@@ -2005,7 +2091,7 @@ label .material-icons {
 }
 
 .cert-status-header .material-icons {
-    font-size: 18px;
+    font-size: 22px;
     margin-top: -3px;
     margin-right: 2px;
 }
@@ -2021,4 +2107,9 @@ label .material-icons {
     font-size: 18px;
     margin-right: 2px;
     margin-top: -3px;
+}
+
+.status-container .status .material-icons {
+    font-size: 22px;
+    margin: -4px 0 0 -8px;
 }

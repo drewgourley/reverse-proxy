@@ -777,7 +777,7 @@ async function saveBlocklist() {
     }
 
     originalBlocklist = JSON.parse(JSON.stringify(blocklist));
-    showStatus('<span class="material-icons">check_circle</span> Blocklist saved successfully!', 'success');
+    showStatus('Blocklist saved successfully!', 'success');
     showLoadingOverlay('Server Restarting...', 'Blocklist saved. Waiting for the server to restart...');
     await waitForServerRestart();
 
@@ -811,7 +811,7 @@ async function saveSecrets() {
 
     originalSecrets = JSON.parse(JSON.stringify(secrets));
     secretsSaved = true;
-    showStatus('<span class="material-icons">check_circle</span> Secrets saved successfully!', 'success');
+    showStatus('Secrets saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'Secrets saved. Waiting for the server to restart...');
     await waitForServerRestart();
@@ -912,7 +912,7 @@ function renderUsersEditor() {
               <div class="multi-select-option all-services ${user.services?.includes('*') ? 'selected' : ''}" 
                   data-value="*" onclick="selectServiceOption(${index}, '*', event)">
                 <div class="multi-select-checkbox"></div>
-                <span class="multi-select-label"><span class="material-icons">star</span> All Services</span>
+                <span class="multi-select-label"><span class="material-icons star">star</span> All Services</span>
               </div>
               ${authServices.map(serviceName => {
                 const nicename = config.services[serviceName]?.nicename || serviceName;
@@ -929,7 +929,7 @@ function renderUsersEditor() {
               ${authServices.length === 0 ? '<div class="multi-select-option disabled"><span class="multi-select-label">No services with "Require Login" configured</span></div>' : ''}
             </div>
           </div>
-          <div class="hint">Choose "<span class="material-icons">star</span> All Services" for full access or select individual services this user can access</div>
+          <div class="hint">Choose "<span class="material-icons star">star</span> All Services" for full access or select individual services this user can access</div>
         </div>
         <div class="secret-actions">
           <button class="btn-remove" onclick="removeUser(${index})"><span class="material-icons">remove_circle</span> Remove User</button>
@@ -1141,7 +1141,7 @@ async function saveUsers() {
     }
     
     originalUsers = JSON.parse(JSON.stringify(users));
-    showStatus('<span class="material-icons">check_circle</span> Users saved successfully!', 'success');
+    showStatus('Users saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'Users saved. Waiting for the server to restart...');
     await waitForServerRestart();
@@ -1289,7 +1289,7 @@ async function saveDdns() {
     }
 
     originalDdns = JSON.parse(JSON.stringify(ddns));
-    showStatus('<span class="material-icons">check_circle</span> DDNS config saved successfully!', 'success');
+    showStatus('DDNS config saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'DDNS config saved. Waiting for the server to restart...');
     await waitForServerRestart();
@@ -1599,9 +1599,9 @@ async function saveTheme() {
     
     if (pendingFaviconFile) {
       await uploadFavicon();
-      showStatus('<span class="material-icons">check_circle</span> Theme and favicon saved successfully!', 'success');
+      showStatus('Theme and favicon saved successfully!', 'success');
     } else {
-      showStatus('<span class="material-icons">check_circle</span> Theme colors saved successfully!', 'success');
+      showStatus('Theme colors saved successfully!', 'success');
     }
   } catch (error) {
     console.error('Failed to save theme:', error);
@@ -1780,7 +1780,7 @@ async function installLogRotate() {
       throw new Error(error);
     }
 
-    showStatus('<span class="material-icons">check_circle</span> Log Rotate Module Installed!', 'success');
+    showStatus('Log Rotate Module Installed!', 'success');
 
     showLoadingOverlay('Server Restarting...', 'Log Rotate Module Installed. Waiting for the server to restart...');
     await waitForServerRestart();
@@ -1950,7 +1950,7 @@ function renderApplicationEditor() {
       <div class="section-title"><span class="material-icons">build</span> Application Settings</div>
       <div class="hint hint-section">Configure your application's display name used by PM2.</div>
       <div class="app-entry">
-        <div class="form-group">
+        <div class="form-group form-group-no-margin">
           <label for="appNameInput">Application Name</label>
           <input type="text" id="appNameInput" placeholder="Enter a nicename for the application (e.g., My Proxy Server)" value="${appName}" onchange="updateEcosystemName(this.value)">
           <div class="hint">This name appears in PM2 process list</div>
@@ -2014,7 +2014,7 @@ async function saveEcosystem() {
     delete ecosystem.resave;
 
     originalEcosystem = JSON.parse(JSON.stringify(ecosystem));
-    showStatus('<span class="material-icons">check_circle</span> Application settings saved successfully!', 'success');
+    showStatus('Application settings saved successfully!', 'success');
 
     showLoadingOverlay('Server Restarting...', 'Application settings saved. Waiting for the server to restart...');
     await waitForServerRestart();
@@ -2459,7 +2459,7 @@ function renderServicesList() {
   const domainItem = document.createElement('div');
   const domainName = config.domain;
   domainItem.className = 'service-item' + (currentSelection === 'config-domain' ? ' active' : '');
-  domainItem.innerHTML = `<span id="domainNameContainer" class="name-container"><span class="subdomain-name-container"><span class="material-icons">public</span> Domain</span>${domainName ? `<span class="nicename-name-container"> - ${domainName}</span>` : ''}</span>`;
+  domainItem.innerHTML = `<span class="material-icons">public</span> <span id="domainNameContainer" class="name-container"><span class="subdomain-name-container">Domain</span>${domainName ? `<span class="nicename-name-container"> - ${domainName}</span>` : ''}</span>`;
   if (isFirstTimeSetup || !secretsSaved) {
     domainItem.style.opacity = '0.5';
     domainItem.style.cursor = 'default';
@@ -2518,7 +2518,7 @@ function renderServicesList() {
       hintParts.push('Not Secure');
     }
 
-    item.innerHTML = `<span id="${serviceName}NameContainer" class="name-container"><span class="subdomain-name-container">${icon} ${serviceName}</span>${nicename ? `<span class="nicename-container"> - ${nicename}</span>` : ''}</span>` + (hintParts.length > 0 ? ' <span class="hint">' + hintParts.join(', ') + '</span>' : '');
+    item.innerHTML = `${icon} <span id="${serviceName}NameContainer" class="name-container"><span class="subdomain-name-container">${serviceName}</span>${nicename ? `<span class="nicename-container"> - ${nicename}</span>` : ''}</span>` + (hintParts.length > 0 ? ' <span class="hint">' + hintParts.join(', ') + '</span>' : '');
 
     if (isFirstTimeSetup || !secretsSaved) {
       item.style.opacity = '0.5';
@@ -3054,7 +3054,7 @@ function renderCertificatesEditor() {
   if (certStatus.provisioned.length > 0) {
     statusHtml += `
       <div class="cert-status-section">
-        <div class="cert-status-header cert-provisioned"><span class="material-icons">check_circle</span> Provisioned Certificates</div>
+        <div class="cert-status-header cert-provisioned"><span class="material-icons success">check_circle</span> Provisioned Certificates</div>
         <div class="cert-status-list">
           ${certStatus.provisioned.map(service => 
             `<div class="cert-status-item"><span class="cert-domain">${service}.${config.domain}</span></div>`
@@ -3067,7 +3067,7 @@ function renderCertificatesEditor() {
   if (certStatus.needProvisioning.length > 0) {
     statusHtml += `
       <div class="cert-status-section">
-        <div class="cert-status-header cert-need-provision"><span class="material-icons">pending</span> Need Provisioning</div>
+        <div class="cert-status-header cert-need-provision"><span class="material-icons warning">pending</span> Need Provisioning</div>
         <div class="cert-status-list">
           ${certStatus.needProvisioning.map(service => 
             `<div class="cert-status-item"><span class="cert-domain">${service}.${config.domain}</span></div>`
@@ -3992,7 +3992,7 @@ async function saveConfig() {
       throw new Error(error);
     }
 
-    showStatus('<span class="material-icons">check_circle</span> Config saved successfully!', 'success');
+    showStatus('Config saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'Configuration saved. Waiting for the server to restart...');
     await waitForServerRestart();
@@ -4071,21 +4071,23 @@ function resetEditor() {
 
 function showStatus(message, type) {
   const container = document.getElementById('statusContainer');
-  
-  // Create new status element
+  let icon;
+  if (type === 'error') {
+    icon = '<span class="material-icons error">error</span>';
+  }
+  if (type === 'success') {
+    icon = '<span class="material-icons success">check_circle</span>';
+  }
   const statusEl = document.createElement('div');
   statusEl.className = 'status ' + type;
-  statusEl.textContent = message;
+  statusEl.innerHTML = icon ? icon + ' ' + message : message;
   
-  // Click to dismiss
   statusEl.addEventListener('click', () => {
     removeStatus(statusEl);
   });
   
-  // Add to container
   container.appendChild(statusEl);
   
-  // Auto-remove after 5 seconds
   setTimeout(() => {
     removeStatus(statusEl);
   }, 5000);
@@ -4240,7 +4242,7 @@ async function waitForServerRestart(delay = 2000) {
   }
   
   hideLoadingOverlay();
-  showStatus('<span class="material-icons warning">warning</span> Server did not restart within expected time. Please check manually.', 'error');
+  showStatus('Server did not restart within expected time. Please check manually.', 'error');
 }
 
 /* FILE MANAGEMENT FUNCTIONS */
@@ -4466,6 +4468,75 @@ function updateFileManagerActions() {
   }
 }
 
+function getFileIcon(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  // Images
+  if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico'].includes(ext)) {
+    return '<span class="material-icons image">image</span>';
+  }
+  // Videos
+  if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm', 'm4v'].includes(ext)) {
+    return '<span class="material-icons video">video_file</span>';
+  }
+  // Audio
+  if (['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'wma'].includes(ext)) {
+    return '<span class="material-icons audio">audio_file</span>';
+  }
+  // Archives
+  if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz'].includes(ext)) {
+    return '<span class="material-icons archive">folder_zip</span>';
+  }
+  // PDFs
+  if (ext === 'pdf') {
+    return '<span class="material-icons pdf">picture_as_pdf</span>';
+  }
+  // Code files
+  if (['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'c', 'cpp', 'h', 'hpp', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt'].includes(ext)) {
+    return '<span class="material-icons code">code</span>';
+  }
+  // Web files
+  if (ext === 'html' || ext === 'htm') {
+    return '<span class="material-icons html">web</span>';
+  }
+  if (ext === 'css' || ext === 'scss' || ext === 'sass' || ext === 'less') {
+    return '<span class="material-icons css">style</span>';
+  }
+  // Data files
+  if (['json', 'xml', 'yaml', 'yml', 'toml'].includes(ext)) {
+    return '<span class="material-icons data">data_object</span>';
+  }
+  // Text/Documents
+  if (['txt', 'md', 'markdown', 'log'].includes(ext)) {
+    return '<span class="material-icons text">article</span>';
+  }
+  if (['doc', 'docx', 'odt', 'rtf'].includes(ext)) {
+    return '<span class="material-icons doc">description</span>';
+  }
+  // Spreadsheets
+  if (['xls', 'xlsx', 'csv', 'ods'].includes(ext)) {
+    return '<span class="material-icons table">table_chart</span>';
+  }
+  // Fonts
+  if (['ttf', 'otf', 'woff', 'woff2', 'eot'].includes(ext)) {
+    return '<span class="material-icons font">font_download</span>';
+  }
+  // Executables/Binary
+  if (['exe', 'dmg', 'app', 'deb', 'rpm', 'apk'].includes(ext)) {
+    return '<span class="material-icons binary">settings_applications</span>';
+  }
+  // Game files
+  if (['wad', 'jsdos', 'rom', 'iso'].includes(ext)) {
+    return '<span class="material-icons game">videogame_asset</span>';
+  }
+  // Web manifests and configs
+  if (['webmanifest', 'manifest'].includes(ext)) {
+    return '<span class="material-icons manifest">web_asset</span>';
+  }
+  
+  // Default file icon
+  return '<span class="material-icons file">insert_drive_file</span>';
+}
+
 function renderFileList(files, serviceName, folderType, currentPath) {
   if (!files || files.length === 0) {
     return '<div class="hint">No files found. Upload files to get started.</div>';
@@ -4489,7 +4560,7 @@ function renderFileList(files, serviceName, folderType, currentPath) {
     const parentPath = currentPath.split('/').slice(0, -1).join('/');
     html += `
       <div class="file-item">
-        <span class="file-icon"><span class="material-icons">folder</span></span>
+        <span class="file-icon"><span class="material-icons folder">folder</span></span>
         <div class="file-info-clickable" onclick="renderFileManager('${serviceName}', '${folderType}', '${parentPath}')">
           <div class="file-name-primary">../</div>
           <div class="hint file-meta">Go up one level</div>
@@ -4500,7 +4571,7 @@ function renderFileList(files, serviceName, folderType, currentPath) {
   }
   
   for (const file of sorted) {
-    const icon = file.type === 'directory' ? '<span class="material-icons">folder</span>' : '<span class="material-icons">description</span>';
+    const icon = file.type === 'directory' ? '<span class="material-icons folder">folder</span>' : getFileIcon(file.name);
     const sizeStr = file.type === 'file' ? formatFileSize(file.size) : '';
     const modified = file.type === 'file' && file.modified ? new Date(file.modified).toLocaleString() : '';
     const fullPath = currentPath ? `${currentPath}/${file.path}` : file.path;
@@ -4623,7 +4694,7 @@ async function uploadFile(serviceName, folderType, currentPath = '', forcedFilen
     hideLoadingOverlay();
     
     if (data.success) {
-      showStatus('<span class="material-icons">check_circle</span> File uploaded successfully', 'success');
+      showStatus('File uploaded successfully', 'success');
       renderFileManager(serviceName, folderType, currentPath);
     } else {
       showStatus(data.error || 'Upload failed', 'error');
@@ -4797,7 +4868,7 @@ async function createDirectory(serviceName, folderType, currentPath = '') {
     hideLoadingOverlay();
     
     if (data.success) {
-      showStatus('<span class="material-icons">check_circle</span> Directory created successfully', 'success');
+      showStatus('Directory created successfully', 'success');
       renderFileManager(serviceName, folderType, currentPath);
     } else {
       showStatus(data.error || 'Creation failed', 'error');
@@ -4848,7 +4919,7 @@ async function deleteSelectedFiles() {
         hideLoadingOverlay();
         
         if (failCount === 0) {
-          showStatus(`<span class="material-icons">check_circle</span> Successfully deleted ${successCount} item${successCount > 1 ? 's' : ''}`, 'success');
+          showStatus(`Successfully deleted ${successCount} item${successCount > 1 ? 's' : ''}`, 'success');
         } else {
           showStatus(`Deleted ${successCount} item${successCount > 1 ? 's' : ''}, ${failCount} failed`, 'error');
         }
@@ -4910,7 +4981,7 @@ async function renameSelectedFile() {
         hideLoadingOverlay();
         
         if (data.success) {
-          showStatus('<span class="material-icons">check_circle</span> Renamed successfully', 'success');
+          showStatus('Renamed successfully', 'success');
           selectedFiles.clear();
           renderFileManager(serviceName, folderType, currentPath);
         } else {
@@ -4981,7 +5052,7 @@ async function performZipExtraction(serviceName, folderType, currentPath, file, 
     hideLoadingOverlay();
     
     if (data.success) {
-      showStatus(`<span class="material-icons">check_circle</span> Extracted ${data.filesExtracted || 'all'} files successfully`, 'success');
+      showStatus(`Extracted ${data.filesExtracted || 'all'} files successfully`, 'success');
       renderFileManager(serviceName, folderType, currentPath);
     } else {
       showStatus(data.error || 'Extraction failed', 'error');
