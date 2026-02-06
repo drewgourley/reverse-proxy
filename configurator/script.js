@@ -20,6 +20,8 @@ let logRotateInstalled = false;
 let currentSelection = null;
 let currentFileManagerContext = null;
 let selectedFiles = new Set();
+let allowPopStateNavigation = false;
+let currentUrl = window.location.href;
 
 function parseErrorMessage(error) {
   try {
@@ -181,8 +183,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       closePromptModal();
     }
   });
-  
-  window.addEventListener('popstate', () => {
+
+  // Prevent navigation away from page if there are unsaved changes
+  window.addEventListener('beforeunload', (event) => {
+    if (hasUnsavedConfigChanges() || hasUnsavedManagementChanges()) {
+      event.preventDefault();
+      event.returnValue = ''; // Required for Chrome
+      return ''; // For older browsers
+    }
+  });
+
+  window.addEventListener('popstate', (event) => {
+    if (allowPopStateNavigation) {
+      allowPopStateNavigation = false;
+      currentUrl = window.location.href;
+    } else if (hasUnsavedConfigChanges() || hasUnsavedManagementChanges()) {
+      history.pushState(null, '', window.currentUrl);
+      showMobilePanel('editor');
+      actions = document.getElementById('editorActions');
+      actions.insertAdjacentHTML('afterbegin', '<span class="editor-actions-spotlight-text hint" id="spotlightText">Please save your changes or revert them before navigating away.</span>');
+      actionsContainer = document.getElementById('editorActionsContainer');
+      actionsContainer.classList.add('spotlight');
+      return;
+    } else {
+      currentUrl = window.location.href;
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const section = urlParams.get('section');
     const type = urlParams.get('type');
@@ -214,7 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  document.documentElement.classList.add('loaded');
+  document.documentElement.classList.add('loaded')
 });
 
 function getDefaultConfig() {
@@ -2565,7 +2591,7 @@ function renderServicesList() {
 }
 
 function selectItem(prefixedName, type, folder, path, pushState = true) {
-  if (currentSelection && currentSelection !== prefixedName) {
+  if (pushState && currentSelection && currentSelection !== prefixedName) {
     if (!canNavigateAway(currentSelection, prefixedName)) {
       showMobilePanel('editor');
       actions = document.getElementById('editorActions');
@@ -2585,6 +2611,10 @@ function selectItem(prefixedName, type, folder, path, pushState = true) {
     url.searchParams.delete('folder');
     url.searchParams.delete('path');
     window.history.pushState({}, '', url);
+    
+    if (currentUrl !== undefined) {
+      currentUrl = window.location.href;
+    }
   }
 
   renderServicesList();
@@ -4077,6 +4107,8 @@ function resetEditor() {
             renderServiceEditor(serviceName);
           } else if (currentSelection === 'manage-certificates') {
             renderCertificatesEditor();
+          } else if (currentSelection === 'config-domain') {
+            renderDomainEditor();
           } else {
             renderPlaceholderEditor('Service removed. Select an item to edit.');
           }
