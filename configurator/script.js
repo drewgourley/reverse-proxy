@@ -488,18 +488,18 @@ function renderBlocklistEditor() {
 
   let html = `
     <div class="section">
-      <div class="section-title">🛡️ Blocklist Management</div>
+      <div class="section-title"><span class="material-icons">shield</span> Blocklist Management</div>
       <div class="hint hint-section">Add or remove IP addresses from the blocklist</div>
-      <button class="btn-add-field on-top" onclick="addBlocklistEntry()">+ Add Blocklist Entry</button>
+      <button class="btn-add-field on-top" onclick="addBlocklistEntry()"><span class="material-icons">add_circle</span> Add Blocklist Entry</button>
   `;
   blocklist.forEach((ip, index) => {
     html += `
       <div class="blocklist-entry">
         <div class="form-group form-group-no-margin">
-          <label for="blocklist_ip_${index}">Blocked IP Address ${index + 1}</label>
+          <label for="blocklist_ip_${index}">Blocked IP Address</label>
           <div class="blocklist-input-group">
             <input type="text" id="blocklist_ip_${index}" value="${ip}" readonly />
-            <button class="btn-remove" onclick="removeBlocklistEntry(${index})">Remove</button>
+            <button class="btn-remove" onclick="removeBlocklistEntry(${index})"><span class="material-icons">remove_circle</span> Remove</button>
           </div>
         </div>
       </div>
@@ -511,8 +511,8 @@ function renderBlocklistEditor() {
   panel.innerHTML = html;
   actions.innerHTML = `
     <div class="flex-spacer"></div>
-    <button class="btn-reset" onclick="revertBlocklist()">Revert</button>
-    <button class="btn-save" id="saveBlocklistBtn" onclick="saveBlocklist()">Save Blocklist</button>
+    <button class="btn-reset" onclick="revertBlocklist()"><span class="material-icons">undo</span> Revert</button>
+    <button class="btn-save" id="saveBlocklistBtn" onclick="saveBlocklist()"><span class="material-icons">save</span> Save Blocklist</button>
   `;
 }
 
@@ -526,7 +526,7 @@ function renderSecretsEditor() {
 
   let html = `
     <div class="section">
-      <div class="section-title">🔑 Secrets Management</div>
+      <div class="section-title"><span class="material-icons">vpn_key</span> Secrets Management</div>
       <div class="hint hint-section">Manage sensitive configuration values</div>
   `;
 
@@ -560,7 +560,7 @@ function renderSecretsEditor() {
       'admin_email_address': 'Admin Email Address',
       'shock_password_hash': 'Wake-on-LAN Password',
       'shock_mac': 'Wake-on-LAN MAC Address',
-      'api_password_hash': `API Password - ${ isExistingHash ? '🔒 API page is secured behind a login' : '⚠️ Providing this will secure the API page behind a login'}`,
+      'api_password_hash': `API Password - ${ isExistingHash ? '<span class="material-icons">lock</span> API page is secured behind a login' : '<span class="material-icons warning">warning</span> Providing this will secure the API page behind a login'}`,
     };
     const displayLabel = labelMap[key] || key;
     
@@ -587,7 +587,7 @@ function renderSecretsEditor() {
                 onchange="updatePasswordHash('${key}', this.value, ${isExistingHash})"
                 placeholder="${placeholderText}"
                 autocomplete="current-password">
-            <button class="btn-toggle-password" onclick="togglePasswordVisibility('secret_${key}', this)">👁️ Show</button>
+            <button class="btn-toggle-password" onclick="togglePasswordVisibility('secret_${key}', this)"><span class="material-icons">visibility</span> Show</button>
           </div>
           <div class="hint">${hintText}</div>`;
     } else {
@@ -598,7 +598,7 @@ function renderSecretsEditor() {
                 onchange="updateSecret('${key}', this.value)"
                 placeholder="Enter MAC address (e.g., 00:1A:2B:3C:4D:5E)"
                 autocomplete="current-password">
-            <button class="btn-toggle-password" onclick="togglePasswordVisibility('secret_${key}', this)">👁️ Show</button>
+            <button class="btn-toggle-password" onclick="togglePasswordVisibility('secret_${key}', this)"><span class="material-icons">visibility</span> Show</button>
           </div>
           <div class="hint">The MAC address of the compute platform device</div>`;
     }
@@ -606,13 +606,13 @@ function renderSecretsEditor() {
     html += `
           ${!isDefaultSecret ? `
           <div class="secret-actions">
-            <button class="btn-remove" onclick="removeSecret('${key}')">Remove Secret</button>
+            <button class="btn-remove" onclick="removeSecret('${key}')"><span class="material-icons">remove_circle</span> Remove Secret</button>
           </div>
           ` : ''}
           ${isExistingHash && key === 'api_password_hash' ? `
           <div class="secret-actions flex-row">
-            <button class="btn-remove" onclick="removeSecret('${key}')">Remove Password</button>
-            <div class="hint margin-left-10">⚠️ This will remove the login requirement to view the API page</div>
+            <button class="btn-remove" onclick="removeSecret('${key}')"><span class="material-icons">remove_circle</span> Remove Password</button>
+            <div class="hint margin-left-10"><span class="material-icons warning">warning</span> This will remove the login requirement to view the API page</div>
           </div>
           ` : ''}
         </div>
@@ -621,14 +621,14 @@ function renderSecretsEditor() {
   });
 
   html += `
-      <button class="btn-add-field" onclick="addNewSecret()" style="display: none;">+ Add New Secret</button>
+      <button class="btn-add-field" onclick="addNewSecret()" style="display: none;"><span class="material-icons">add_circle</span> Add New Secret</button>
     </div>
   `;
   panel.innerHTML = html;
   actions.innerHTML = `
     <div class="flex-spacer"></div>
-    <button class="btn-reset" onclick="revertSecrets()">Revert</button>
-    <button class="btn-save" id="saveSecretsBtn" onclick="saveSecrets()">Save Secrets</button>
+    <button class="btn-reset" onclick="revertSecrets()"><span class="material-icons">undo</span> Revert</button>
+    <button class="btn-save" id="saveSecretsBtn" onclick="saveSecrets()"><span class="material-icons">save</span> Save Secrets</button>
   `;
 }
 
@@ -636,10 +636,10 @@ function togglePasswordVisibility(inputId, button) {
   const input = document.getElementById(inputId);
   if (input.style.webkitTextSecurity === 'disc') {
     input.style.webkitTextSecurity = 'none';
-    button.textContent = '🙈 Hide';
+    button.innerHTML = '<span class="material-icons">visibility_off</span> Hide';
   } else {
     input.style.webkitTextSecurity = 'disc';
-    button.textContent = '👁️ Show';
+    button.innerHTML = '<span class="material-icons">visibility</span> Show';
   }
 }
 
@@ -655,7 +655,7 @@ function updatePasswordHash(key, value, wasExistingHash) {
 
 function confirmClearApi() {
   showConfirmModal(
-    'Clear API Credentials',
+    '<span class="material-icons">delete_sweep</span> Clear API Credentials',
     'Are you sure you want to remove the API Username and API Password? This will immediately disable API authentication and restart the server.',
     async (confirmed) => {
       if (!confirmed) return;
@@ -666,7 +666,7 @@ function confirmClearApi() {
 
 function removeBlocklistEntry(index) {
   showConfirmModal(
-    'Remove Blocklist Entry',
+    '<span class="material-icons">remove_circle</span> Remove Blocklist Entry',
     `Are you sure you want to remove the blocklist entry with IP "${blocklist[index]}"?`,
     (confirmed) => {
       if (confirmed) {
@@ -680,7 +680,7 @@ function removeBlocklistEntry(index) {
 
 function removeSecret(key) {
   showConfirmModal(
-    'Remove Secret',
+    '<span class="material-icons">remove_circle</span> Remove Secret',
     `Are you sure you want to remove the secret "${key}"?`,
     (confirmed) => {
       if (confirmed) {
@@ -698,7 +698,7 @@ function removeSecret(key) {
 
 function addBlocklistEntry() {
   showPromptModal(
-    'Add New Blocklist Entry',
+    '<span class="material-icons">add_circle</span> Add New Blocklist Entry',
     'Enter the ip address to block:',
     'Valid IPv4 address format (e.g., 192.168.1.1)',
     '',
@@ -718,7 +718,7 @@ function addBlocklistEntry() {
         return;
       }
 
-      blocklist.push(blocklistEntry);
+      blocklist.unshift(blocklistEntry);
       renderBlocklistEditor();
       showStatus('Blocklist entry added. Save to apply changes.', 'success');
       closePromptModal();
@@ -728,7 +728,7 @@ function addBlocklistEntry() {
 
 function addNewSecret() {
   showPromptModal(
-    'Add New Secret',
+    '<span class="material-icons">add_circle</span> Add New Secret',
     'Enter the name for the new secret:',
     'Lowercase letters and underscores only, must start and end with a letter',
     '',
@@ -777,14 +777,13 @@ async function saveBlocklist() {
     }
 
     originalBlocklist = JSON.parse(JSON.stringify(blocklist));
-    showStatus('✓ Blocklist saved successfully!', 'success');
-
+    showStatus('<span class="material-icons">check_circle</span> Blocklist saved successfully!', 'success');
     showLoadingOverlay('Server Restarting...', 'Blocklist saved. Waiting for the server to restart...');
     await waitForServerRestart();
 
     reloadPage();
   } catch (error) {
-    showStatus('✗ Error saving blocklist: ' + parseErrorMessage(error), 'error');
+    showStatus('<span class="material-icons">error</span> Error saving blocklist: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Blocklist';
@@ -812,7 +811,7 @@ async function saveSecrets() {
 
     originalSecrets = JSON.parse(JSON.stringify(secrets));
     secretsSaved = true;
-    showStatus('✓ Secrets saved successfully!', 'success');
+    showStatus('<span class="material-icons">check_circle</span> Secrets saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'Secrets saved. Waiting for the server to restart...');
     await waitForServerRestart();
@@ -823,7 +822,7 @@ async function saveSecrets() {
 
     reloadPage();
   } catch (error) {
-    showStatus('✗ Error saving secrets: ' + parseErrorMessage(error), 'error');
+    showStatus('<span class="material-icons">error</span> Error saving secrets: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Secrets';
@@ -832,7 +831,7 @@ async function saveSecrets() {
 
 function revertBlocklist() {
   showConfirmModal(
-    'Revert Blocklist',
+    '<span class="material-icons">undo</span> Revert Blocklist',
     'Are you sure you want to discard all changes to blocklist?',
     (confirmed) => {
       if (confirmed) {
@@ -846,7 +845,7 @@ function revertBlocklist() {
 
 function revertSecrets() {
   showConfirmModal(
-    'Revert Secrets',
+    '<span class="material-icons">undo</span> Revert Secrets',
     'Are you sure you want to discard all changes to secrets?',
     (confirmed) => {
       if (confirmed) {
@@ -873,8 +872,9 @@ function renderUsersEditor() {
 
   let html = `
     <div class="section">
-      <div class="section-title">👥 User Management</div>
+      <div class="section-title"><span class="material-icons">group</span> User Management</div>
       <div class="hint hint-section">Manage users and their service access. Users can log into services that have "Require Login" enabled. The admin account (from Secrets) always has access to all services.</div>
+      <button class="btn-add-field on-top" onclick="addNewUser()"><span class="material-icons">add_circle</span> Add New User</button>
   `;
 
   if (users.users && users.users.length > 0) {
@@ -898,7 +898,7 @@ function renderUsersEditor() {
                 onchange="updateUserPassword(${index}, this.value)"
                 placeholder="${isExistingHash ? 'Password set - enter new to change' : 'Enter password'}"
                 autocomplete="new-password">
-            <button class="btn-toggle-password" onclick="togglePasswordVisibility('user_password_${index}', this)">👁️ Show</button>
+            <button class="btn-toggle-password" onclick="togglePasswordVisibility('user_password_${index}', this)"><span class="material-icons">visibility</span> Show</button>
           </div>
           <div class="hint">${isExistingHash ? 'Leave empty to keep current password' : 'Password will be hashed when saved'}</div>
         </div>
@@ -912,7 +912,7 @@ function renderUsersEditor() {
               <div class="multi-select-option all-services ${user.services?.includes('*') ? 'selected' : ''}" 
                   data-value="*" onclick="selectServiceOption(${index}, '*', event)">
                 <div class="multi-select-checkbox"></div>
-                <span class="multi-select-label">✨ All Services</span>
+                <span class="multi-select-label"><span class="material-icons">star</span> All Services</span>
               </div>
               ${authServices.map(serviceName => {
                 const nicename = config.services[serviceName]?.nicename || serviceName;
@@ -929,10 +929,10 @@ function renderUsersEditor() {
               ${authServices.length === 0 ? '<div class="multi-select-option disabled"><span class="multi-select-label">No services with "Require Login" configured</span></div>' : ''}
             </div>
           </div>
-          <div class="hint">Choose "✨ All Services" for full access or select individual services this user can access</div>
+          <div class="hint">Choose "<span class="material-icons">star</span> All Services" for full access or select individual services this user can access</div>
         </div>
         <div class="secret-actions">
-          <button class="btn-remove" onclick="removeUser(${index})">Remove User</button>
+          <button class="btn-remove" onclick="removeUser(${index})"><span class="material-icons">remove_circle</span> Remove User</button>
         </div>
       </div>
       `;
@@ -944,15 +944,14 @@ function renderUsersEditor() {
   }
 
   html += `
-      <button class="btn-add-field" onclick="addNewUser()">+ Add New User</button>
     </div>
   `;
   
   panel.innerHTML = html;
   actions.innerHTML = `
     <div class="flex-spacer"></div>
-    <button class="btn-reset" onclick="revertUsers()">Revert</button>
-    <button class="btn-save" id="saveUsersBtn" onclick="saveUsers()">Save Users</button>
+    <button class="btn-reset" onclick="revertUsers()"><span class="material-icons">undo</span> Revert</button>
+    <button class="btn-save" id="saveUsersBtn" onclick="saveUsers()"><span class="material-icons">save</span> Save Users</button>
   `;
 }
 
@@ -996,11 +995,11 @@ function renderServiceTags(user, index, authServices) {
     return '<span class="multi-select-placeholder">Select services...</span>';
   }
   if (user.services.includes('*')) {
-    return '<span class="multi-select-tag all-access"><span>✨ All Services</span><span class="multi-select-tag-remove" onclick="removeServiceTag(' + index + ', \'*\', event)">×</span></span>';
+    return '<span class="multi-select-tag all-access"><span><span class="material-icons">star</span> All Services</span><span class="multi-select-tag-remove" onclick="removeServiceTag(' + index + ', \'*\', event)"><span class="material-icons">close</span></span></span>';
   }
   return user.services.map(serviceName => {
     const nicename = config.services[serviceName]?.nicename || serviceName;
-    return `<span class="multi-select-tag"><span>${nicename}</span><span class="multi-select-tag-remove" onclick="removeServiceTag(${index}, '${serviceName}', event)">×</span></span>`;
+    return `<span class="multi-select-tag"><span>${nicename}</span><span class="multi-select-tag-remove" onclick="removeServiceTag(${index}, '${serviceName}', event)"><span class="material-icons">close</span></span></span>`;
   }).join('');
 }
 
@@ -1074,7 +1073,7 @@ function generateUUID() {
 
 function addNewUser() {
   if (!users.users) users.users = [];
-  users.users.push({
+  users.users.unshift({
     uuid: generateUUID(),
     username: '',
     password_hash: '',
@@ -1087,7 +1086,7 @@ function addNewUser() {
 function removeUser(index) {
   const username = users.users[index]?.username || 'this user';
   showConfirmModal(
-    'Remove User',
+    '<span class="material-icons">remove_circle</span> Remove User',
     `Are you sure you want to remove ${username}?`,
     (confirmed) => {
       if (confirmed) {
@@ -1101,7 +1100,7 @@ function removeUser(index) {
 
 function revertUsers() {
   showConfirmModal(
-    'Revert Users',
+    '<span class="material-icons">undo</span> Revert Users',
     'Are you sure you want to discard all changes to users?',
     (confirmed) => {
       if (confirmed) {
@@ -1142,7 +1141,7 @@ async function saveUsers() {
     }
     
     originalUsers = JSON.parse(JSON.stringify(users));
-    showStatus('✓ Users saved successfully!', 'success');
+    showStatus('<span class="material-icons">check_circle</span> Users saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'Users saved. Waiting for the server to restart...');
     await waitForServerRestart();
@@ -1150,7 +1149,7 @@ async function saveUsers() {
     reloadPage();
   } catch (error) {
     const message = parseErrorMessage(error);
-    showStatus('✗ Failed to save users: ' + message, 'error');
+    showStatus('<span class="material-icons">error</span> Failed to save users: ' + message, 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Users';
@@ -1168,7 +1167,7 @@ function renderDdnsEditor() {
   const isActive = ddns.active || false;
   let html = `
     <div class="section">
-      <div class="section-title">🌐 Dynamic DNS Configuration</div>
+      <div class="section-title"><span class="material-icons">public</span> Dynamic DNS Configuration</div>
       <div class="hint hint-section">Configure AWS Route 53 credentials for Dynamic DNS updates. The hostname will be set to your domain from the configuration.</div>
       
       <div class="form-group">
@@ -1211,7 +1210,7 @@ function renderDdnsEditor() {
             <button 
               class="btn-toggle-password" 
               onclick="togglePasswordVisibility('ddns_${key}', this)"
-            >👁️ Show</button>
+            ><span class="material-icons">visibility</span> Show</button>
       `;
     }
     
@@ -1248,9 +1247,9 @@ function renderDdnsEditor() {
   };
 
   html += `
-      <div class="section-title section-title-spaced">📋 Required IAM Policy</div>
+      <div class="section-title section-title-spaced"><span class="material-icons">view_list</span> Required IAM Policy</div>
       <div class="hint hint-section">Use this policy when creating your IAM user in AWS. This grants the minimum permissions needed for Dynamic DNS updates.</div>
-      <div class="setup-box route53">
+      <div class="setup-box iam-roles">
         <pre class="setup-record-content">${JSON.stringify(iamPolicy, null, 2)}</pre>
       </div>
   `;
@@ -1261,8 +1260,8 @@ function renderDdnsEditor() {
   panel.innerHTML = html;
   actions.innerHTML = `
     <div class="flex-spacer"></div>
-    <button class="btn-reset" onclick="revertDdns()">Revert Changes</button>
-    <button class="btn-save" id="saveDdnsBtn" onclick="saveDdns()">Save DDNS Config</button>
+    <button class="btn-reset" onclick="revertDdns()"><span class="material-icons">undo</span> Revert Changes</button>
+    <button class="btn-save" id="saveDdnsBtn" onclick="saveDdns()"><span class="material-icons">save</span> Save DDNS Config</button>
   `;
 }
 
@@ -1290,14 +1289,14 @@ async function saveDdns() {
     }
 
     originalDdns = JSON.parse(JSON.stringify(ddns));
-    showStatus('✓ DDNS config saved successfully!', 'success');
+    showStatus('<span class="material-icons">check_circle</span> DDNS config saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'DDNS config saved. Waiting for the server to restart...');
     await waitForServerRestart();
     
     reloadPage();
   } catch (error) {
-    showStatus('✗ Error saving DDNS config: ' + parseErrorMessage(error), 'error');
+    showStatus('<span class="material-icons">error</span> Error saving DDNS config: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save DDNS Config';
@@ -1306,7 +1305,7 @@ async function saveDdns() {
 
 function revertDdns() {
   showConfirmModal(
-    'Revert DDNS Config',
+    '<span class="material-icons">undo</span> Revert DDNS Config',
     'Are you sure you want to discard all changes to DDNS configuration?',
     (confirmed) => {
       if (confirmed) {
@@ -1600,9 +1599,9 @@ async function saveTheme() {
     
     if (pendingFaviconFile) {
       await uploadFavicon();
-      showStatus('✓ Theme and favicon saved successfully!', 'success');
+      showStatus('<span class="material-icons">check_circle</span> Theme and favicon saved successfully!', 'success');
     } else {
-      showStatus('✓ Theme colors saved successfully!', 'success');
+      showStatus('<span class="material-icons">check_circle</span> Theme colors saved successfully!', 'success');
     }
   } catch (error) {
     console.error('Failed to save theme:', error);
@@ -1620,7 +1619,7 @@ function renderThemeEditor() {
 
   panel.innerHTML = `
     <div class="section">
-      <div class="section-title">🎨 Theme Customization</div>
+      <div class="section-title"><span class="material-icons">palette</span> Theme Customization</div>
       <div class="hint hint-section">Customize colors and favicon for the configurator interface.</div>
       <div class="grid-two-column">
         <div>
@@ -1651,7 +1650,7 @@ function renderThemeEditor() {
           <div class="form-group">
             <label for="faviconUpload">Upload New Favicon</label>
             <input type="file" id="faviconUpload" accept="image/png" class="file-input-hidden">
-            <button class="btn-add-field no-top" onclick="document.getElementById('faviconUpload').click()">Choose File</button>
+            <button class="btn-add-field no-top" onclick="document.getElementById('faviconUpload').click()"><span class="material-icons">image</span> Choose File</button>
             <span id="faviconFileName" class="file-name-display"></span>
             <div class="hint">PNG format only, up to 512x512 pixels</div>
           </div>
@@ -1660,7 +1659,7 @@ function renderThemeEditor() {
             <div id="currentFaviconContainer">
               <img id="currentFavicon" src="/global/favicon/favicon-original.png?t=${new Date().getTime()}" class="favicon-image" onerror="this.style.display='none'; document.getElementById('noFaviconWarning').style.display='flex';">
               <div id="noFaviconWarning" class="favicon-warning">
-                <div class="favicon-warning-icon">⚠️</div>
+                <div class="favicon-warning-icon"><span class="material-icons warning">warning</span></div>
                 <div class="favicon-warning-title">No Favicon</div>
                 <div class="favicon-warning-text">Upload a PNG</div>
               </div>
@@ -1677,8 +1676,8 @@ function renderThemeEditor() {
   
   actions.innerHTML = `
     <div class="flex-spacer"></div>
-    <button class="btn-reset" onclick="revertColors()">Revert</button>
-    <button class="btn-save" id="saveThemeBtn" onclick="saveTheme()">Save Theme</button>
+    <button class="btn-reset" onclick="revertColors()"><span class="material-icons">undo</span> Revert</button>
+    <button class="btn-save" id="saveThemeBtn" onclick="saveTheme()"><span class="material-icons">save</span> Save Theme</button>
   `;
 
   document.getElementById('color1').addEventListener('input', (e) => {
@@ -1781,14 +1780,14 @@ async function installLogRotate() {
       throw new Error(error);
     }
 
-    showStatus('✓ Log Rotate Module Installed!', 'success');
+    showStatus('<span class="material-icons">check_circle</span> Log Rotate Module Installed!', 'success');
 
     showLoadingOverlay('Server Restarting...', 'Log Rotate Module Installed. Waiting for the server to restart...');
     await waitForServerRestart();
 
     reloadPage();
   } catch (error) {
-    showStatus('✗ Error installing Log Rotate Module, you may have to do it manually: ' + parseErrorMessage(error), 'error');
+    showStatus('<span class="material-icons">error</span> Error installing Log Rotate Module, you may have to do it manually: ' + parseErrorMessage(error), 'error');
     installBtn.disabled = false;
     installBtn.textContent = 'Install PM2 Log Rotate Module';
   }
@@ -1812,14 +1811,14 @@ function renderGitStatus(status, showForceUpdate = false) {
   if (showForceUpdate) {
     versionInfo.innerHTML = `
       <button class="btn-update must-force-update" id="updateBtn" onclick="handleUpdate(true)" title="Force Update">
-        <span class="update-icon">↻</span>
+        <span class="update-icon material-icons">sync</span>
         <span class="update-text">Force Update</span>
       </button>
     `;
   } else {
     versionInfo.innerHTML = `
       <button class="btn-update" id="updateBtn" onclick="handleUpdate()" title="${isFirstTimeSetup ? 'Complete application setup first' : 'Check for updates'}" ${isFirstTimeSetup ? 'disabled' : ''}>
-        <span class="update-icon"${isFirstTimeSetup ? ' style="display:none"' : ''}>↻</span>
+        <span class="update-icon material-icons"${isFirstTimeSetup ? ' style="display:none"' : ''}>sync</span>
         <span class="update-text">${isFirstTimeSetup ? 'Initial Setup' : 'Checking...'}</span>
       </button>
     `;
@@ -1877,13 +1876,13 @@ function handleUpdate(force = false) {
   
   if (force) {
     showConfirmModal(
-      'Force Update',
+      '<span class="material-icons">system_update_alt</span> Force Update',
       'Are you sure you want to force an update? This will discard any local changes and pull the latest version from the repository. The server will restart after updating. Continue?',
       () => pullUpdates(true)
     );
   } else if (hasUpdates) {
     showConfirmModal(
-      'Update Available',
+      '<span class="material-icons">update</span> Update Available',
       'A new version is available. The server will restart after updating. Continue?',
       () => pullUpdates()
     );
@@ -1948,7 +1947,7 @@ function renderApplicationEditor() {
 
   panel.innerHTML = `
     <div class="section">
-      <div class="section-title">🛠️ Application Settings</div>
+      <div class="section-title"><span class="material-icons">build</span> Application Settings</div>
       <div class="hint hint-section">Configure your application's display name used by PM2.</div>
       <div class="app-entry">
         <div class="form-group">
@@ -1962,8 +1961,8 @@ function renderApplicationEditor() {
 
   actions.innerHTML = `
     <div class="flex-spacer"></div>
-    <button class="btn-reset" onclick="revertEcosystem()">Revert</button>
-    <button class="btn-save" id="saveEcosystemBtn" onclick="saveEcosystem()">${buttonText}</button>
+    <button class="btn-reset" onclick="revertEcosystem()"><span class="material-icons">undo</span> Revert</button>
+    <button class="btn-save" id="saveEcosystemBtn" onclick="saveEcosystem()"><span class="material-icons">save</span> ${buttonText}</button>
   `;
 }
 
@@ -2015,7 +2014,7 @@ async function saveEcosystem() {
     delete ecosystem.resave;
 
     originalEcosystem = JSON.parse(JSON.stringify(ecosystem));
-    showStatus('✓ Application settings saved successfully!', 'success');
+    showStatus('<span class="material-icons">check_circle</span> Application settings saved successfully!', 'success');
 
     showLoadingOverlay('Server Restarting...', 'Application settings saved. Waiting for the server to restart...');
     await waitForServerRestart();
@@ -2028,7 +2027,7 @@ async function saveEcosystem() {
     
     reloadPage();
   } catch (error) {
-    showStatus('✗ Error saving application settings: ' + parseErrorMessage(error), 'error');
+    showStatus('<span class="material-icons">error</span> Error saving application settings: ' + parseErrorMessage(error), 'error');
     saveBtn.disabled = false;
     saveBtn.textContent = isDefault ? 'Generate Application Settings' : 'Save Application Settings';
   }
@@ -2036,7 +2035,7 @@ async function saveEcosystem() {
 
 function revertEcosystem() {
   showConfirmModal(
-    'Revert Application Settings',
+    '<span class="material-icons">undo</span> Revert Application Settings',
     'Are you sure you want to discard all changes to application settings?',
     (confirmed) => {
       if (confirmed) {
@@ -2064,7 +2063,7 @@ function renderAdvancedEditor() {
         <div class="form-group">
           <label for="parser_${key}">${key}</label>
           <textarea id="parser_${key}" rows="5" onchange="updateAdvancedParser('${key}', this.value)">${advanced.parsers[key] || ''}</textarea>
-          <button class="btn-remove" onclick="removeAdvancedParser('${key}')">Remove</button>
+          <button class="btn-remove" onclick="removeAdvancedParser('${key}')"><span class="material-icons">remove_circle</span> Remove</button>
         </div>
       `;
     });
@@ -2078,7 +2077,7 @@ function renderAdvancedEditor() {
         <div class="form-group">
           <label for="extractor_${key}">${key}</label>
           <textarea id="extractor_${key}" rows="5" onchange="updateAdvancedExtractor('${key}', this.value)">${advanced.extractors[key] || ''}</textarea>
-          <button class="btn-remove" onclick="removeAdvancedExtractor('${key}')">Remove</button>
+          <button class="btn-remove" onclick="removeAdvancedExtractor('${key}')"><span class="material-icons">remove_circle</span> Remove</button>
         </div>
       `;
     });
@@ -2091,7 +2090,7 @@ function renderAdvancedEditor() {
       queryTypesHtml += `
         <div class="form-group">
           <input type="text" id="querytype_${index}" value="${qt}" onchange="updateAdvancedQueryType(${index}, this.value)">
-          <button class="btn-remove advanced-remove-btn" onclick="removeAdvancedQueryType(${index})">Remove</button>
+          <button class="btn-remove advanced-remove-btn" onclick="removeAdvancedQueryType(${index})"><span class="material-icons">remove_circle</span> Remove</button>
         </div>
       `;
     });
@@ -2099,39 +2098,39 @@ function renderAdvancedEditor() {
   
   panel.innerHTML = `
     <div class="section">
-      <div class="section-title">🔬 Advanced Configuration</div>
+      <div class="section-title"><span class="material-icons">science</span> Advanced Configuration</div>
       <div class="hint hint-section">Configure custom parsers, extractors, and GameDig query types. These are advanced features for extending healthcheck functionality.</div>
     </div>
     <div class="section">
       <div class="section-title">HTTP Response Body Parsers</div>
       <div class="hint hint-section">Custom parsers for HTTP healthchecks. Must be valid JavaScript function code that takes (body) as parameter and returns boolean.</div>
       ${parsersHtml}
-      <button class="btn-add-field" onclick="addAdvancedParser()">+ Add Parser</button>
+      <button class="btn-add-field on-top" onclick="addAdvancedParser()"><span class="material-icons">add_circle</span> Add Parser</button>
     </div>
     <div class="section">
       <div class="section-title">Metadata Extractors</div>
       <div class="hint hint-section">Custom extractors for pulling metadata from healthcheck responses. Must be valid JavaScript function code that takes (state) as parameter and returns object with online, max, version properties.</div>
       ${extractorsHtml}
-      <button class="btn-add-field" onclick="addAdvancedExtractor()">+ Add Extractor</button>
+      <button class="btn-add-field on-top" onclick="addAdvancedExtractor()"><span class="material-icons">add_circle</span> Add Extractor</button>
     </div>
     <div class="section">
       <div class="section-title">GameDig Query Types</div>
       <div class="hint hint-section">Supported game types for GameDig healthchecks (e.g., "mbe", "valheim").</div>
       ${queryTypesHtml}
-      <button class="btn-add-field" onclick="addAdvancedQueryType()">+ Add Query Type</button>
+      <button class="btn-add-field on-top" onclick="addAdvancedQueryType()"><span class="material-icons">add_circle</span> Add Query Type</button>
     </div>
   `;
 
   actions.innerHTML = `
     <div class="flex-spacer"></div>
-    <button class="btn-reset" onclick="revertAdvanced()">Revert</button>
-    <button class="btn-save" id="saveAdvancedBtn" onclick="saveAdvanced()">Save Advanced Config</button>
+    <button class="btn-reset" onclick="revertAdvanced()"><span class="material-icons">undo</span> Revert</button>
+    <button class="btn-save" id="saveAdvancedBtn" onclick="saveAdvanced()"><span class="material-icons">save</span> Save Advanced Config</button>
   `;
 }
 
 function addAdvancedParser() {
   showPromptModal(
-    'Add Parser',
+    '<span class="material-icons">add_circle</span> Add Parser',
     'Enter the name for the new parser:',
     'lowercase letters, numbers, and underscores',
     '',
@@ -2155,7 +2154,7 @@ function addAdvancedParser() {
 
 function addAdvancedExtractor() {
   showPromptModal(
-    'Add Extractor',
+    '<span class="material-icons">add_circle</span> Add Extractor',
     'Enter the name for the new extractor:',
     'lowercase letters, numbers, and underscores',
     '',
@@ -2179,9 +2178,9 @@ function addAdvancedExtractor() {
 
 function addAdvancedQueryType() {
   showPromptModal(
-    'Add Query Type',
+    '<span class="material-icons">add_circle</span> Add Query Type',
     'Enter the query type name:',
-    'valid gamedig query type',
+    'Valid gamedig query type',
     '',
     'e.g., mbe, valheim, csgo',
     (name) => {
@@ -2215,7 +2214,7 @@ function updateAdvancedQueryType(index, value) {
 
 function removeAdvancedParser(name) {
   showConfirmModal(
-    'Remove Parser',
+    '<span class="material-icons">remove_circle</span> Remove Parser',
     `Are you sure you want to remove the parser "${name}"?`,
     (confirmed) => {
       if (confirmed) {
@@ -2229,7 +2228,7 @@ function removeAdvancedParser(name) {
 
 function removeAdvancedExtractor(name) {
   showConfirmModal(
-    'Remove Extractor',
+    '<span class="material-icons">remove_circle</span> Remove Extractor',
     `Are you sure you want to remove the extractor "${name}"?`,
     (confirmed) => {
       if (confirmed) {
@@ -2243,7 +2242,7 @@ function removeAdvancedExtractor(name) {
 
 function removeAdvancedQueryType(index) {
   showConfirmModal(
-    'Remove Query Type',
+    '<span class="material-icons">remove_circle</span> Remove Query Type',
     `Are you sure you want to remove the query type "${advanced.queryTypes[index]}"?`,
     (confirmed) => {
       if (confirmed) {
@@ -2296,7 +2295,7 @@ async function saveAdvanced() {
 
 function revertAdvanced() {
   showConfirmModal(
-    'Revert Changes',
+    '<span class="material-icons">undo</span> Revert Changes',
     'Are you sure you want to discard all changes to the advanced configuration?',
     (confirmed) => {
       if (confirmed) {
@@ -2310,11 +2309,11 @@ function revertAdvanced() {
 
 function getServiceIcon(serviceType) {
   switch(serviceType) {
-    case 'index': return '📄';
-    case 'proxy': return '🔀';
-    case 'dirlist': return '📂';
-    case 'spa': return '⚡';
-    default: return '⚙️';
+    case 'index': return '<span class="material-icons">description</span>';
+    case 'proxy': return '<span class="material-icons">swap_horiz</span>';
+    case 'dirlist': return '<span class="material-icons">folder_open</span>';
+    case 'spa': return '<span class="material-icons">flash_on</span>';
+    default: return '<span class="material-icons">settings</span>';
   }
 }
 
@@ -2341,7 +2340,7 @@ function renderServicesList() {
 
   const logsItem = document.createElement('div');
   logsItem.className = 'service-item' + (currentSelection === 'monitor-logs' ? ' active' : '');
-  logsItem.textContent = '📝 Logs';
+  logsItem.innerHTML = '<span class="material-icons">article</span> Logs';
   if (isFirstTimeSetup) {
     logsItem.style.opacity = '0.5';
     logsItem.style.cursor = 'default';
@@ -2354,7 +2353,7 @@ function renderServicesList() {
 
   const blocklistItem = document.createElement('div');
   blocklistItem.className = 'service-item' + (currentSelection === 'monitor-blocklist' ? ' active' : '');
-  blocklistItem.textContent = '🛡️ Blocklist';
+  blocklistItem.innerHTML = '<span class="material-icons">shield</span> Blocklist';
   if (isFirstTimeSetup) {
     blocklistItem.style.opacity = '0.5';
     blocklistItem.style.cursor = 'default';
@@ -2371,13 +2370,13 @@ function renderServicesList() {
 
   const appItem = document.createElement('div');
   appItem.className = 'service-item' + (currentSelection === 'management-application' ? ' active' : '') + (needsApplicationResave ? ' insecure' : '');
-  appItem.innerHTML = '🛠️ Application' + (needsApplicationResave ? ' <span class="hint">Resave to apply PM2 update</span>' : '');;
+  appItem.innerHTML = '<span class="material-icons">build</span> Application' + (needsApplicationResave ? ' <span class="hint">Resave to apply PM2 update</span>' : '');;
   appItem.onclick = () => selectItem('management-application');
   fragment.appendChild(appItem);
 
   const secretsItem = document.createElement('div');
   secretsItem.className = 'service-item' + (currentSelection === 'management-secrets' ? ' active' : '');
-  secretsItem.textContent = '🔑 Secrets';
+  secretsItem.innerHTML = '<span class="material-icons">vpn_key</span> Secrets';
   if (!secretsEnabled) {
     secretsItem.style.opacity = '0.5';
     secretsItem.style.cursor = 'default';
@@ -2390,7 +2389,7 @@ function renderServicesList() {
 
   const usersItem = document.createElement('div');
   usersItem.className = 'service-item' + (currentSelection === 'management-users' ? ' active' : '');
-  usersItem.textContent = '👥 Users';
+  usersItem.innerHTML = '<span class="material-icons">group</span> Users';
   if (!usersEnabled) {
     usersItem.style.opacity = '0.5';
     usersItem.style.cursor = 'default';
@@ -2403,7 +2402,7 @@ function renderServicesList() {
 
   const certsItem = document.createElement('div');
   certsItem.className = 'service-item' + (currentSelection === 'management-certificates' ? ' active' : '') + (canProvision ? ' insecure' : '');
-  certsItem.innerHTML = '🔒 Certificates' + (canProvision ? ' <span class="hint">Provisioning Needed</span>' : '');
+  certsItem.innerHTML = '<span class="material-icons">lock</span> Certificates' + (canProvision ? ' <span class="hint">Provisioning Needed</span>' : '');
   if (!certificatesEnabled) {
     certsItem.style.opacity = '0.5';
     certsItem.style.cursor = 'default';
@@ -2416,7 +2415,7 @@ function renderServicesList() {
 
   const ddnsItem = document.createElement('div');
   ddnsItem.className = 'service-item' + (currentSelection === 'management-ddns' ? ' active' : '');
-  ddnsItem.textContent = '🌐 Dynamic DNS';
+  ddnsItem.innerHTML = '<span class="material-icons">public</span> Dynamic DNS';
   if (!ddnsEnabled) {
     ddnsItem.style.opacity = '0.5';
     ddnsItem.style.cursor = 'default';
@@ -2429,7 +2428,7 @@ function renderServicesList() {
 
   const themeItem = document.createElement('div');
   themeItem.className = 'service-item' + (currentSelection === 'management-theme' ? ' active' : '');
-  themeItem.textContent = '🎨 Theme';
+  themeItem.innerHTML = '<span class="material-icons">palette</span> Theme';
   if (isFirstTimeSetup || !secretsSaved) {
     themeItem.style.opacity = '0.5';
     themeItem.style.cursor = 'default';
@@ -2442,7 +2441,7 @@ function renderServicesList() {
 
   const advancedItem = document.createElement('div');
   advancedItem.className = 'service-item' + (currentSelection === 'management-advanced' ? ' active' : '');
-  advancedItem.textContent = '🔬 Advanced';
+  advancedItem.innerHTML = '<span class="material-icons">science</span> Advanced';
   if (isFirstTimeSetup || !secretsSaved) {
     advancedItem.style.opacity = '0.5';
     advancedItem.style.cursor = 'default';
@@ -2460,7 +2459,7 @@ function renderServicesList() {
   const domainItem = document.createElement('div');
   const domainName = config.domain;
   domainItem.className = 'service-item' + (currentSelection === 'config-domain' ? ' active' : '');
-  domainItem.innerHTML = `<span id="domainNameContainer" class="name-container"><span class="subdomain-name-container">🌐 Domain</span>${domainName ? `<span class="nicename-name-container"> - ${domainName}</span>` : ''}</span>`;
+  domainItem.innerHTML = `<span id="domainNameContainer" class="name-container"><span class="subdomain-name-container"><span class="material-icons">public</span> Domain</span>${domainName ? `<span class="nicename-name-container"> - ${domainName}</span>` : ''}</span>`;
   if (isFirstTimeSetup || !secretsSaved) {
     domainItem.style.opacity = '0.5';
     domainItem.style.cursor = 'default';
@@ -2652,7 +2651,7 @@ function renderLogsViewer(type = 'out', pushState = true) {
 
   let html = `
     <div class="section logs-section">
-      <div class="section-title">📝 Activity Logs</div>
+      <div class="section-title"><span class="material-icons">article</span> Activity Logs</div>
       <div class="hint hint-section">View real-time logs of application activity and healthchecks.</div>
   `;
 
@@ -2668,8 +2667,8 @@ function renderLogsViewer(type = 'out', pushState = true) {
   html += `
       <div class="logs-container">
         <div class="logs-tabs-row">
-          <button class="tab-log-type${type === 'out' ? ' active' : ''}" id="btnLogOut" onclick="selectItem('monitor-logs', 'out')">Standard Output</button>
-          <button class="tab-log-type${type === 'error' ? ' active' : ''}" id="btnLogErr" onclick="selectItem('monitor-logs', 'error')">Error Output</button>
+          <button class="tab-log-type${type === 'out' ? ' active' : ''}" id="btnLogOut" onclick="selectItem('monitor-logs', 'out')"><span class="material-icons">terminal</span> Standard Output</button>
+          <button class="tab-log-type${type === 'error' ? ' active' : ''}" id="btnLogErr" onclick="selectItem('monitor-logs', 'error')"><span class="material-icons">error</span> Error Output</button>
         </div>
         <div id="logsBox" class="logs-box">
           <pre id="logsContent" class="logs-content">Loading logs...</pre>
@@ -2768,7 +2767,7 @@ function renderDomainEditor() {
 
   panel.innerHTML = `
     <div class="section">
-      <div class="section-title">🌐 Domain Settings</div>
+      <div class="section-title"><span class="material-icons">public</span> Domain Settings</div>
       <div class="hint hint-section">Configure your primary domain</div>
       <div class="domain-entry${isEmpty ? ' highlight-required' : ''}">
         <div class="form-group">
@@ -2786,7 +2785,7 @@ function renderDomainEditor() {
       </div>
     </div>
     <div class="section">
-      <div class="section-title">📡 Environment & Setup</div>
+      <div class="section-title"><span class="material-icons">cell_tower</span> Environment & Setup</div>
       <div class="setup-heading">
         <div class="ip-display-row">
           <strong>Public IP Address:</strong>
@@ -2799,7 +2798,7 @@ function renderDomainEditor() {
       </div>
       <div class="setup-instructions">
         <div class="setup-section">
-          <strong class="setup-section-title">🌍 Route53 DNS Configuration</strong>
+          <strong class="setup-section-title"><span class="material-icons">public</span> Route53 DNS Configuration</strong>
           <div class="hint hint-section">Configure these records in your AWS Route53 hosted zone</div>
           <div class="setup-box route53">
             <div class="setup-record">
@@ -2823,7 +2822,7 @@ function renderDomainEditor() {
           </div>
         </div>
         <div class="setup-section">
-          <strong class="setup-section-title">🔌 Router Port Forwarding</strong>
+          <strong class="setup-section-title"><span class="material-icons">router</span> Router Port Forwarding</strong>
           <div class="hint hint-section">Configure these port forwarding rules on your router</div>
           <div class="setup-box router">
             <div class="setup-record">
@@ -2852,8 +2851,8 @@ function renderDomainEditor() {
 
   actions.innerHTML = `
     <div class="flex-spacer"></div>
-    <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
-    <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
+    <button class="btn-reset" id="resetBtn" onclick="resetEditor()"><span class="material-icons">undo</span> Revert</button>
+    <button class="btn-save" id="saveBtn" onclick="saveConfig()"><span class="material-icons">save</span> Save Config</button>
   `;
 
   // Fetch and display public IP and local IP
@@ -3044,9 +3043,9 @@ function renderCertificatesEditor() {
   
   let warningMessage = '';
   if (hasChanges) {
-    warningMessage = '<div class="hint cert-warning">⚠️ Please save your configuration before provisioning certificates</div>';
+    warningMessage = '<div class="hint cert-warning"><span class="material-icons warning">warning</span> Please save your configuration before provisioning certificates</div>';
   } else if (!canProvision) {
-    warningMessage = '<div class="hint cert-info">ℹ️ No certificate changes needed at this time</div>';
+    warningMessage = '<div class="hint cert-info"><span class="material-icons info">info</span> No certificate changes needed at this time</div>';
   }
   
   // Build certificate status readout
@@ -3055,7 +3054,7 @@ function renderCertificatesEditor() {
   if (certStatus.provisioned.length > 0) {
     statusHtml += `
       <div class="cert-status-section">
-        <div class="cert-status-header cert-provisioned">✓ Provisioned Certificates</div>
+        <div class="cert-status-header cert-provisioned"><span class="material-icons">check_circle</span> Provisioned Certificates</div>
         <div class="cert-status-list">
           ${certStatus.provisioned.map(service => 
             `<div class="cert-status-item"><span class="cert-domain">${service}.${config.domain}</span></div>`
@@ -3068,7 +3067,7 @@ function renderCertificatesEditor() {
   if (certStatus.needProvisioning.length > 0) {
     statusHtml += `
       <div class="cert-status-section">
-        <div class="cert-status-header cert-need-provision">⏳ Need Provisioning</div>
+        <div class="cert-status-header cert-need-provision"><span class="material-icons">pending</span> Need Provisioning</div>
         <div class="cert-status-list">
           ${certStatus.needProvisioning.map(service => 
             `<div class="cert-status-item"><span class="cert-domain">${service}.${config.domain}</span></div>`
@@ -3081,7 +3080,7 @@ function renderCertificatesEditor() {
   if (certStatus.needDeprovisioning.length > 0) {
     statusHtml += `
       <div class="cert-status-section">
-        <div class="cert-status-header cert-need-deprovision">⚠ Need Deprovisioning</div>
+        <div class="cert-status-header cert-need-deprovision"><span class="material-icons warning">warning</span> Need Deprovisioning</div>
         <div class="cert-status-list">
           ${certStatus.needDeprovisioning.map(service => 
             `<div class="cert-status-item"><span class="cert-domain">${service}.${config.domain}</span></div>`
@@ -3097,7 +3096,7 @@ function renderCertificatesEditor() {
   
   panel.innerHTML = `
     <div class="section">
-      <div class="section-title">🔒 SSL Certificates</div>
+      <div class="section-title"><span class="material-icons">lock</span> SSL Certificates</div>
       <div class="hint hint-section">Automatically provision SSL certificates for secure routes using Let's Encrypt.</div>
       <div class="cert-status-container">
         ${statusHtml}
@@ -3110,13 +3109,13 @@ function renderCertificatesEditor() {
   if (hasChanges) {
     actions.innerHTML = `
       <div class="flex-spacer"></div>
-      <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
-      <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
+      <button class="btn-reset" id="resetBtn" onclick="resetEditor()"><span class="material-icons">undo</span> Revert</button>
+      <button class="btn-save" id="saveBtn" onclick="saveConfig()"><span class="material-icons">save</span> Save Config</button>
     `;
   } else {
     actions.innerHTML = `
       <div class="flex-spacer"></div>
-      <button class="btn-save" onclick="provisionCertificates()" id="provisionBtn" ${canProvision ? '' : 'disabled'}>Provision Certificates</button>
+      <button class="btn-save" onclick="provisionCertificates()" id="provisionBtn" ${canProvision ? '' : 'disabled'}><span class="material-icons">verified</span> Provision Certificates</button>
     `;
   }
 }
@@ -3152,7 +3151,7 @@ async function provisionCertificates() {
 
     outputEl.innerHTML = `
       <div class="result-success">
-        <strong>✓ Success!</strong>
+        <strong><span class="material-icons">check_circle</span> Success!</strong>
         <p class="result-message">${result.message}</p>
         ${result.output ? `<pre class="result-output-pre">${result.output}</pre>` : ''}
       </div>
@@ -3166,7 +3165,7 @@ async function provisionCertificates() {
   } catch (error) {
     outputEl.innerHTML = `
       <div class="result-error">
-        <strong>✗ Error</strong>
+        <strong><span class="material-icons">error</span> Error</strong>
         <p class="result-message">${parseErrorMessage(error)}</p>
       </div>
     `;
@@ -3191,7 +3190,7 @@ function renderServiceEditor(serviceName) {
   let html = `
     <div class="section">
       <div class="section-title">${icon} ${serviceName}${service.nicename ? ` - ${service.nicename}` : ''}</div>
-      ${!isDefaultService ? `<button class="btn-remove" onclick="removeService('${serviceName}')">Remove Service</button>` : ''}
+      ${!isDefaultService ? `<button class="btn-remove" onclick="removeService('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Service</button>` : ''}
       <div class="form-group">
         <label for="service_nicename_${serviceName}">Display Name</label>
         <input type="text" id="service_nicename_${serviceName}" value="${service.nicename || ''}" 
@@ -3214,7 +3213,7 @@ function renderServiceEditor(serviceName) {
         <div class="section-title">Subdomain Settings</div>
         <div class="form-group">
           <p class="hint">No subdomain configured for this service</p>
-          <button class="btn-add-field" onclick="addSubdomain('${serviceName}')">+ Add Subdomain</button>
+          <button class="btn-add-field" onclick="addSubdomain('${serviceName}')"><span class="material-icons">add_circle</span> Add Subdomain</button>
         </div>
       </div>
     `;
@@ -3233,7 +3232,7 @@ function renderServiceEditor(serviceName) {
           <div class="section-title">Health Check</div>
           <div class="form-group">
             <p class="hint">No health check configured for this service</p>
-            <button class="btn-add-field" onclick="addHealthcheck('${serviceName}')">+ Add Health Check</button>
+            <button class="btn-add-field" onclick="addHealthcheck('${serviceName}')"><span class="material-icons">add_circle</span> Add Health Check</button>
           </div>
         </div>
       `;
@@ -3249,16 +3248,16 @@ function renderServiceEditor(serviceName) {
   const isInitiated = originalConfig.services[serviceName]?.subdomain
   if (isInitiated && isFileManageableType && !isProtectedService) {
     actions.innerHTML = `
-      <button class="btn-add-field" onclick="renderFileManager('${serviceName}', 'public')"><span class="icon-trap">📁</span> Manage Files</button>
+      <button class="btn-add-field" onclick="renderFileManager('${serviceName}', 'public')"><span class="material-icons">folder</span> Manage Files</button>
       <div class="flex-spacer"></div>
-      <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
-      <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
+      <button class="btn-reset" id="resetBtn" onclick="resetEditor()"><span class="material-icons">undo</span> Revert</button>
+      <button class="btn-save" id="saveBtn" onclick="saveConfig()"><span class="material-icons">save</span> Save Config</button>
     `;
   } else {
     actions.innerHTML = `
       <div class="flex-spacer"></div>
-      <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
-      <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
+      <button class="btn-reset" id="resetBtn" onclick="resetEditor()"><span class="material-icons">undo</span> Revert</button>
+      <button class="btn-save" id="saveBtn" onclick="saveConfig()"><span class="material-icons">save</span> Save Config</button>
     `;
   }
 
@@ -3422,7 +3421,7 @@ function renderArrayField(serviceName, fullPath, arr, fieldId, label, depth) {
     }
   });
 
-  html += `<button class="btn-add-field" onclick="addArrayItem('${serviceName}', '${fullPath}')">+ Add Item</button>`;
+  html += `<button class="btn-add-field" onclick="addArrayItem('${serviceName}', '${fullPath}')"><span class="material-icons">add_circle</span> Add Item</button>`;
   html += '</div></div>';
   return html;
 }
@@ -3461,7 +3460,7 @@ function renderSubdomainSection(serviceName, subdomain) {
     <div class="section">
       <div class="section-title">Subdomain Settings</div>
       <div class="nested-object">
-        <button class="btn-remove" onclick="removeSubdomain('${serviceName}')">Remove Subdomain</button>
+        <button class="btn-remove" onclick="removeSubdomain('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Subdomain</button>
         <div class="form-group">
           <label for="subdomain_type_${serviceName}">Type</label>
           <select id="subdomain_type_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'subdomain.type', this.value); toggleFieldVisibility('${serviceName}')">
@@ -3536,7 +3535,7 @@ function renderApiHealthcheckSection(serviceName, healthcheck) {
     <div class="section">
       <div class="section-title">Health Check Configuration</div>
       <div class="nested-object">
-        <button class="btn-remove" onclick="removeHealthcheck('${serviceName}')">Remove Health Check</button>
+        <button class="btn-remove" onclick="removeHealthcheck('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Health Check</button>
         <div class="form-group">
           <label for="hc_id_${serviceName}">Health Check ID (UUID)</label>
           <input type="text" id="hc_id_${serviceName}" value="${healthcheck.id || ''}" 
@@ -3595,7 +3594,7 @@ function renderHealthcheckSection(serviceName, healthcheck) {
     <div class="section">
       <div class="section-title">Health Check Configuration</div>
       <div class="nested-object">
-        <button class="btn-remove" onclick="removeHealthcheck('${serviceName}')">Remove Health Check</button>
+        <button class="btn-remove" onclick="removeHealthcheck('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Health Check</button>
         <div class="form-group">
           <label for="hc_id_${serviceName}">Health Check ID (UUID)</label>
           <input type="text" id="hc_id_${serviceName}" value="${healthcheck.id || ''}" 
@@ -3730,7 +3729,7 @@ function addHealthcheck(serviceName) {
 
 function removeHealthcheck(serviceName) {
   showConfirmModal(
-    'Remove Health Check',
+    '<span class="material-icons">remove_circle</span> Remove Health Check',
     'Are you sure you want to remove the health check configuration?',
     (confirmed) => {
       if (confirmed) {
@@ -3757,7 +3756,7 @@ function addSubdomain(serviceName) {
 
 function removeSubdomain(serviceName) {
   showConfirmModal(
-    'Remove Subdomain',
+    '<span class="material-icons">remove_circle</span> Remove Subdomain',
     'Are you sure you want to remove the subdomain configuration?',
     (confirmed) => {
       if (confirmed) {
@@ -3882,7 +3881,7 @@ function toggleMetaFieldVisibility(serviceName) {
 
 function removeService(serviceName) {
   showConfirmModal(
-    'Remove Service',
+    '<span class="material-icons">remove_circle</span> Remove Service',
     `Are you sure you want to remove the service "${serviceName}"? This action cannot be undone.`,
     (confirmed) => {
       if (confirmed) {
@@ -3896,8 +3895,8 @@ function removeService(serviceName) {
         const message = 'Service removed. Select another item to continue editing.';
         const actions = `
           <div class="flex-spacer"></div>
-          <button class="btn-reset" id="resetBtn" onclick="resetEditor()">Revert</button>
-          <button class="btn-save" id="saveBtn" onclick="saveConfig()">Save Config</button>
+          <button class="btn-reset" id="resetBtn" onclick="resetEditor()"><span class="material-icons">undo</span> Revert</button>
+          <button class="btn-save" id="saveBtn" onclick="saveConfig()"><span class="material-icons">save</span> Save Config</button>
         `
         renderServicesList();
         renderPlaceholderEditor(message, actions);
@@ -3909,7 +3908,7 @@ function removeService(serviceName) {
 
 function addNewService() {
   showPromptModal(
-    'Add New Service',
+    '<span class="material-icons">add_circle</span> Add New Service',
     'Enter a name for the new service:',
     'Lowercase letters, numbers, and hyphens only. Max 63 characters',
     '',
@@ -3993,14 +3992,14 @@ async function saveConfig() {
       throw new Error(error);
     }
 
-    showStatus('✓ Config saved successfully!', 'success');
+    showStatus('<span class="material-icons">check_circle</span> Config saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'Configuration saved. Waiting for the server to restart...');
     await waitForServerRestart();
 
     reloadPage();
   } catch (error) {
-    showStatus('✗ Error saving config: ' + parseErrorMessage(error), 'error');
+    showStatus('<span class="material-icons">error</span> Error saving config: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Config';
@@ -4043,7 +4042,7 @@ function cleanConfig(obj) {
 
 function resetEditor() {
   showConfirmModal(
-    'Revert Changes',
+    '<span class="material-icons">undo</span> Revert Changes',
     'Are you sure you want to discard all changes and reload the original configuration?',
     (confirmed) => {
       if (confirmed) {
@@ -4107,7 +4106,7 @@ let confirmCallback = null;
 let promptCallback = null;
 
 function showConfirmModal(title, message, callback) {
-  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmTitle').innerHTML = title;
   document.getElementById('confirmMessage').textContent = message;
   confirmCallback = callback;
   document.getElementById('confirmModal').classList.add('active');
@@ -4135,8 +4134,8 @@ function showPromptModal(title, message, hint = '', defaultValue = '', placehold
       <div id="promptError" class="hint prompt-error"></div>
     </div>
     <div class="modal-footer">
-      <button class="modal-btn modal-btn-secondary" onclick="closePromptModal()">Cancel</button>
-      <button class="modal-btn modal-btn-primary" onclick="submitPrompt()">Submit</button>
+      <button class="modal-btn modal-btn-secondary" onclick="closePromptModal()"><span class="material-icons">close</span> Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="submitPrompt()"><span class="material-icons">check</span> Submit</button>
     </div>
   `;
   
@@ -4241,7 +4240,7 @@ async function waitForServerRestart(delay = 2000) {
   }
   
   hideLoadingOverlay();
-  showStatus('⚠ Server did not restart within expected time. Please check manually.', 'error');
+  showStatus('<span class="material-icons warning">warning</span> Server did not restart within expected time. Please check manually.', 'error');
 }
 
 /* FILE MANAGEMENT FUNCTIONS */
@@ -4288,7 +4287,7 @@ async function renderFileManager(serviceName, folderType = 'public', currentPath
     const rootUrl = folderType === 'public' 
       ? `${serviceName}.${domain}` 
       : `${serviceName}.${domain}/static`;
-    let breadcrumbs = `<a href="#" onclick="renderFileManager('${serviceName}', '${folderType}', ''); return false;" class="breadcrumb-link">📁 ${rootUrl}</a>`;
+    let breadcrumbs = `<a href="#" onclick="renderFileManager('${serviceName}', '${folderType}', ''); return false;" class="breadcrumb-link"><span class="material-icons">folder</span> ${rootUrl}</a>`;
     
     let accumulatedPath = '';
     for (let i = 0; i < pathParts.length; i++) {
@@ -4299,7 +4298,7 @@ async function renderFileManager(serviceName, folderType = 'public', currentPath
     
     let html = `
       <div class="section">
-        <div class="section-title">📁 File Manager - ${serviceName}</div>
+        <div class="section-title"><span class="material-icons">folder</span> File Manager - ${serviceName}</div>
         <div class="hint hint-section">Manage the files hosted by this service</div>
         ${showFolderTypeSelector ? `
         <div class="form-group">
@@ -4328,11 +4327,11 @@ async function renderFileManager(serviceName, folderType = 'public', currentPath
         <div class="form-group">
           <div class="file-manager-actions" id="file-manager-actions">
             <div class="file-manager-actions-left">
-              <button class="btn-add-field secondary" onclick="showUploadDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="icon-trap">📤</span> Upload File</button>
-              <button class="btn-add-field secondary" onclick="showCreateDirectoryDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="icon-trap">📁</span> Create Directory</button>
-              <button class="btn-add-field secondary" onclick="showUnpackZipDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="icon-trap">📦</span> Unpack Zip</button>
+              <button class="btn-add-field secondary" onclick="showUploadDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="material-icons">upload</span> Upload File</button>
+              <button class="btn-add-field secondary" onclick="showCreateDirectoryDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="material-icons">create_new_folder</span> Create Directory</button>
+              <button class="btn-add-field secondary" onclick="showUnpackZipDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="material-icons">folder_zip</span> Unpack Zip</button>
             </div>
-            <button class="btn-add-field secondary" onclick="selectAllFiles()"><span class="icon-trap">☑</span> Select All</button>
+            <button class="btn-add-field secondary" onclick="selectAllFiles()"><span class="material-icons">check_box</span> Select All</button>
           </div>
         </div>
         
@@ -4344,7 +4343,7 @@ async function renderFileManager(serviceName, folderType = 'public', currentPath
     
     panel.innerHTML = html;
     actions.innerHTML = `
-      <button class="btn-add-field" onclick="backToServiceEditor('${serviceName}')"><span class="icon-trap">🡰</span> Back to Service</button>
+      <button class="btn-add-field" onclick="backToServiceEditor('${serviceName}')"><span class="material-icons">arrow_back</span> Back to Service</button>
     `;
     
     // Initialize file manager context and clear selections
@@ -4441,28 +4440,28 @@ function updateFileManagerActions() {
     // No selection - show default actions
     actionsDiv.innerHTML = `
       <div class="file-manager-actions-left">
-        <button class="btn-add-field secondary" onclick="showUploadDialog('${serviceName}', '${folderType}', '${currentPath}')"><span class="icon-trap">📤</span> Upload File</button>
-        <button class="btn-add-field secondary" onclick="showCreateDirectoryDialog('${serviceName}', '${folderType}', '${currentPath}')"><span class="icon-trap">📁</span> Create Directory</button>
-        <button class="btn-add-field secondary" onclick="showUnpackZipDialog('${serviceName}', '${folderType}', '${currentPath}')"><span class="icon-trap">📦</span> Unpack Zip</button>
+        <button class="btn-add-field secondary" onclick="showUploadDialog('${serviceName}', '${folderType}', '${currentPath}')"><span class="material-icons">upload</span> Upload File</button>
+        <button class="btn-add-field secondary" onclick="showCreateDirectoryDialog('${serviceName}', '${folderType}', '${currentPath}')"><span class="material-icons">create_new_folder</span> Create Directory</button>
+        <button class="btn-add-field secondary" onclick="showUnpackZipDialog('${serviceName}', '${folderType}', '${currentPath}')"><span class="material-icons">folder_zip</span> Unpack Zip</button>
       </div>
-      <button class="btn-add-field secondary" onclick="selectAllFiles()"><span class="icon-trap">☑</span> Select All</button>
+      <button class="btn-add-field secondary" onclick="selectAllFiles()"><span class="material-icons">check_box</span> Select All</button>
     `;
   } else if (selectionCount === 1) {
     // Single selection - show delete and rename buttons
     actionsDiv.innerHTML = `
       <div class="file-manager-actions-left">
-        <button class="btn-remove" onclick="deleteSelectedFiles()"><span class="icon-trap">🗑</span> Delete</button>
-        <button class="btn-add-field secondary" onclick="renameSelectedFile()"><span class="icon-trap">✏️</span> Rename</button>
+        <button class="btn-remove" onclick="deleteSelectedFiles()"><span class="material-icons">delete</span> Delete</button>
+        <button class="btn-add-field secondary" onclick="renameSelectedFile()"><span class="material-icons">edit</span> Rename</button>
       </div>
-      <button class="btn-add-field secondary" onclick="clearFileSelection()"><span class="icon-trap">✖</span> Clear Selection</button>
+      <button class="btn-add-field secondary" onclick="clearFileSelection()"><span class="material-icons">close</span> Clear Selection</button>
     `;
   } else {
     // Multiple selections - show delete and clear buttons
     actionsDiv.innerHTML = `
       <div class="file-manager-actions-left">
-        <button class="btn-remove" onclick="deleteSelectedFiles()"><span class="icon-trap">🗑</span> Delete (${selectionCount})</button>
+        <button class="btn-remove" onclick="deleteSelectedFiles()"><span class="material-icons">delete</span> Delete (${selectionCount})</button>
       </div>
-      <button class="btn-add-field secondary" onclick="clearFileSelection()"><span class="icon-trap">✖</span> Clear Selection</button>
+      <button class="btn-add-field secondary" onclick="clearFileSelection()"><span class="material-icons">close</span> Clear Selection</button>
     `;
   }
 }
@@ -4490,7 +4489,7 @@ function renderFileList(files, serviceName, folderType, currentPath) {
     const parentPath = currentPath.split('/').slice(0, -1).join('/');
     html += `
       <div class="file-item">
-        <span class="file-icon">📁</span>
+        <span class="file-icon"><span class="material-icons">folder</span></span>
         <div class="file-info-clickable" onclick="renderFileManager('${serviceName}', '${folderType}', '${parentPath}')">
           <div class="file-name-primary">../</div>
           <div class="hint file-meta">Go up one level</div>
@@ -4501,7 +4500,7 @@ function renderFileList(files, serviceName, folderType, currentPath) {
   }
   
   for (const file of sorted) {
-    const icon = file.type === 'directory' ? '📁' : '📄';
+    const icon = file.type === 'directory' ? '<span class="material-icons">folder</span>' : '<span class="material-icons">description</span>';
     const sizeStr = file.type === 'file' ? formatFileSize(file.size) : '';
     const modified = file.type === 'file' && file.modified ? new Date(file.modified).toLocaleString() : '';
     const fullPath = currentPath ? `${currentPath}/${file.path}` : file.path;
@@ -4550,12 +4549,12 @@ function formatFileSize(bytes) {
 function showUploadDialog(serviceName, folderType, currentPath = '') {
   const pathDisplay = currentPath ? `/${currentPath}` : '';
   const dialogContent = `
-    <div class="modal-header">Upload File</div>
+    <div class="modal-header"><span class="material-icons">upload</span> Upload File</div>
     ${currentPath ? `<div class="modal-body">Uploading to: <strong>${pathDisplay}</strong></div>` : ''}
     <div class="form-group">
       <label for="fileInput">Select File</label>
       <input type="file" id="fileInput" class="file-input-hidden">
-      <button class="btn-add-field no-top" onclick="document.getElementById('fileInput').click()">Choose File</button>
+      <button class="btn-add-field no-top" onclick="document.getElementById('fileInput').click()"><span class="material-icons">upload_file</span> Choose File</button>
       <span id="fileInputName" class="file-name-display"></span>
     </div>
     <div class="form-group">
@@ -4564,8 +4563,8 @@ function showUploadDialog(serviceName, folderType, currentPath = '') {
       <div class="hint">Specify a filename (with extension) to use a different name</div>
     </div>
     <div class="modal-footer">
-      <button class="btn-reset" onclick="closePromptModal()">Cancel</button>
-      <button class="btn-save" onclick="uploadFile('${serviceName}', '${folderType}', '${currentPath}')">Upload</button>
+      <button class="btn-reset" onclick="closePromptModal()"><span class="material-icons">close</span> Cancel</button>
+      <button class="btn-save" onclick="uploadFile('${serviceName}', '${folderType}', '${currentPath}')"><span class="material-icons">upload</span> Upload</button>
     </div>
   `;
   
@@ -4624,7 +4623,7 @@ async function uploadFile(serviceName, folderType, currentPath = '', forcedFilen
     hideLoadingOverlay();
     
     if (data.success) {
-      showStatus('✓ File uploaded successfully', 'success');
+      showStatus('<span class="material-icons">check_circle</span> File uploaded successfully', 'success');
       renderFileManager(serviceName, folderType, currentPath);
     } else {
       showStatus(data.error || 'Upload failed', 'error');
@@ -4666,7 +4665,7 @@ function showOverwriteDialog(serviceName, folderType, currentPath, file, filenam
   const suggestedName = generateAutoRename(filename, currentFileManagerContext.files);
   
   const dialogContent = `
-    <div class="modal-header">File Already Exists</div>
+    <div class="modal-header"><span class="material-icons">warning</span> File Already Exists</div>
     <div class="modal-body">
       <p>The file <strong>${filename}</strong> already exists in this directory.</p>
     </div>
@@ -4676,10 +4675,10 @@ function showOverwriteDialog(serviceName, folderType, currentPath, file, filenam
       <div class="hint">Enter a new filename or click Overwrite to replace the existing file</div>
     </div>
     <div class="modal-footer">
-      <button class="btn-remove btn-remove-no-margin" onclick="handleOverwrite('${serviceName}', '${folderType}', '${currentPath}')">Overwrite</button>
+      <button class="btn-remove btn-remove-no-margin" onclick="handleOverwrite('${serviceName}', '${folderType}', '${currentPath}')"><span class="material-icons">published_with_changes</span> Overwrite</button>
       <div class="flex-spacer"></div>
-      <button class="btn-reset" onclick="closePromptModal(); window._pendingUploadFile = null;">Cancel</button>
-      <button class="btn-save" onclick="handleRename('${serviceName}', '${folderType}', '${currentPath}')">Rename</button>
+      <button class="btn-reset" onclick="closePromptModal(); window._pendingUploadFile = null;"><span class="material-icons">close</span> Cancel</button>
+      <button class="btn-save" onclick="handleRename('${serviceName}', '${folderType}', '${currentPath}')"><span class="material-icons">edit</span> Rename</button>
     </div>
   `;
   
@@ -4719,7 +4718,7 @@ function handleRename(serviceName, folderType, currentPath) {
 function showCreateDirectoryDialog(serviceName, folderType, currentPath = '') {
   const pathDisplay = currentPath ? `/${currentPath}` : '';
   const dialogContent = `
-    <div class="modal-header">Create Directory</div>
+    <div class="modal-header"><span class="material-icons">create_new_folder</span> Create Directory</div>
     ${currentPath ? `<div class="modal-body">Creating in: <strong>${pathDisplay}</strong></div>` : ''}
     <div class="form-group">
       <label for="directoryNameInput">Directory Name</label>
@@ -4727,8 +4726,8 @@ function showCreateDirectoryDialog(serviceName, folderType, currentPath = '') {
       <div class="hint">Enter the directory name to create</div>
     </div>
     <div class="modal-footer">
-      <button class="btn-reset" onclick="closePromptModal()">Cancel</button>
-      <button class="btn-save" onclick="createDirectory('${serviceName}', '${folderType}', '${currentPath}')">Create</button>
+      <button class="btn-reset" onclick="closePromptModal()"><span class="material-icons">close</span> Cancel</button>
+      <button class="btn-save" onclick="createDirectory('${serviceName}', '${folderType}', '${currentPath}')"><span class="material-icons">create_new_folder</span> Create</button>
     </div>
   `;
   
@@ -4739,12 +4738,12 @@ function showCreateDirectoryDialog(serviceName, folderType, currentPath = '') {
 function showUnpackZipDialog(serviceName, folderType, currentPath = '') {
   const pathDisplay = currentPath ? `/${currentPath}` : '';
   const dialogContent = `
-    <div class="modal-header">Unpack Zip File</div>
+    <div class="modal-header"><span class="material-icons">folder_zip</span> Unpack Zip File</div>
     ${currentPath ? `<div class="modal-body">Extracting to: <strong>${pathDisplay}</strong></div>` : ''}
     <div class="form-group">
       <label for="zipFileInput">Select Zip File</label>
       <input type="file" id="zipFileInput" accept=".zip" class="file-input-hidden">
-      <button class="btn-add-field no-top" onclick="document.getElementById('zipFileInput').click()">Choose File</button>
+      <button class="btn-add-field no-top" onclick="document.getElementById('zipFileInput').click()"><span class="material-icons">folder_zip</span> Choose File</button>
       <span id="zipFileInputName" class="file-name-display"></span>
       <div class="hint">Choose a zip file to extract into the current directory</div>
     </div>
@@ -4756,8 +4755,8 @@ function showUnpackZipDialog(serviceName, folderType, currentPath = '') {
       <div class="hint">Clears the contents of the directory before unpacking the zip file</div>
     </div>
     <div class="modal-footer">
-      <button class="btn-reset" onclick="closePromptModal()">Cancel</button>
-      <button class="btn-save" onclick="unpackZip('${serviceName}', '${folderType}', '${currentPath}')">Extract</button>
+      <button class="btn-reset" onclick="closePromptModal()"><span class="material-icons">close</span> Cancel</button>
+      <button class="btn-save" onclick="unpackZip('${serviceName}', '${folderType}', '${currentPath}')"><span class="material-icons">folder_zip</span> Extract</button>
     </div>
   `;
   
@@ -4798,7 +4797,7 @@ async function createDirectory(serviceName, folderType, currentPath = '') {
     hideLoadingOverlay();
     
     if (data.success) {
-      showStatus('✓ Directory created successfully', 'success');
+      showStatus('<span class="material-icons">check_circle</span> Directory created successfully', 'success');
       renderFileManager(serviceName, folderType, currentPath);
     } else {
       showStatus(data.error || 'Creation failed', 'error');
@@ -4816,7 +4815,7 @@ async function deleteSelectedFiles() {
   const fileCount = selectedFiles.size;
   
   showConfirmModal(
-    'Delete Files',
+    '<span class="material-icons">delete</span> Delete Files',
     `Are you sure you want to delete ${fileCount} item${fileCount > 1 ? 's' : ''}?\n\nThis action cannot be undone.`,
     async (confirmed) => {
       if (!confirmed) return;
@@ -4849,7 +4848,7 @@ async function deleteSelectedFiles() {
         hideLoadingOverlay();
         
         if (failCount === 0) {
-          showStatus(`✓ Successfully deleted ${successCount} item${successCount > 1 ? 's' : ''}`, 'success');
+          showStatus(`<span class="material-icons">check_circle</span> Successfully deleted ${successCount} item${successCount > 1 ? 's' : ''}`, 'success');
         } else {
           showStatus(`Deleted ${successCount} item${successCount > 1 ? 's' : ''}, ${failCount} failed`, 'error');
         }
@@ -4872,7 +4871,7 @@ async function renameSelectedFile() {
   const fileName = filePath.split('/').pop();
   
   showPromptModal(
-    'Rename File',
+    '<span class="material-icons">edit</span> Rename File',
     'Enter new name:',
     '',
     fileName,
@@ -4911,7 +4910,7 @@ async function renameSelectedFile() {
         hideLoadingOverlay();
         
         if (data.success) {
-          showStatus('✓ Renamed successfully', 'success');
+          showStatus('<span class="material-icons">check_circle</span> Renamed successfully', 'success');
           selectedFiles.clear();
           renderFileManager(serviceName, folderType, currentPath);
         } else {
@@ -4948,7 +4947,7 @@ async function unpackZip(serviceName, folderType, currentPath = '') {
   if (!isDeploy && currentFileManagerContext && currentFileManagerContext.files && currentFileManagerContext.files.length > 0) {
     closePromptModal();
     showConfirmModal(
-      'Overwrite Warning',
+      '<span class="material-icons">warning</span> Overwrite Warning',
       'Extracting this zip file may overwrite existing files with the same names in this directory.\n\nDo you want to continue?',
       (confirmed) => {
         if (confirmed) {
@@ -4982,7 +4981,7 @@ async function performZipExtraction(serviceName, folderType, currentPath, file, 
     hideLoadingOverlay();
     
     if (data.success) {
-      showStatus(`✓ Extracted ${data.filesExtracted || 'all'} files successfully`, 'success');
+      showStatus(`<span class="material-icons">check_circle</span> Extracted ${data.filesExtracted || 'all'} files successfully`, 'success');
       renderFileManager(serviceName, folderType, currentPath);
     } else {
       showStatus(data.error || 'Extraction failed', 'error');
