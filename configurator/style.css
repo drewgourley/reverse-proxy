@@ -696,10 +696,10 @@ button {
 .service-item .name-container {
     white-space: nowrap;
     overflow: hidden;
-    max-width: 80%;
+    max-width: 75%;
     text-overflow: ellipsis;
     color: #718096;
-    margin-right: -180px;
+    margin-right: -10000px;
 }
 
 .service-item.active .name-container {
