@@ -15,6 +15,7 @@ let originalCerts = {};
 let gitStatus = {};
 let blocklist = [];
 let originalBlocklist = [];
+let rebooting = false;
 let secretsSaved = false;
 let logRotateInstalled = false;
 let currentSelection = null;
@@ -186,7 +187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Prevent navigation away from page if there are unsaved changes
   window.addEventListener('beforeunload', (event) => {
-    if (hasUnsavedConfigChanges() || hasUnsavedManagementChanges()) {
+    if (hasUnsavedChanges()) {
       event.preventDefault();
       event.returnValue = ''; // Required for Chrome
       return ''; // For older browsers
@@ -2545,15 +2546,16 @@ function renderServicesList() {
   
   sortedServices.forEach(serviceName => {
     const nicename = config.services[serviceName]?.nicename;
+    const rootService = !config.rootservice && serviceName === 'www' || config.rootservice === serviceName;
     const item = document.createElement('div');
     const protocol = config.services[serviceName]?.subdomain?.protocol;
     const serviceType = config.services[serviceName].subdomain?.type;
     const icon = getServiceIcon(serviceType);
 
-    item.className = 'service-item' + (currentSelection === 'config-' + serviceName ? ' active' : '') + (protocol === 'insecure' ? ' insecure' : '');
+    item.className = 'service-item' + (currentSelection === 'config-' + serviceName ? ' active' : '') + (protocol === 'insecure' ? ' insecure' : '') + (rootService ? ' root-service' : '');
 
     const hintParts = [];
-    if (!config.rootservice && serviceName === 'www' || config.rootservice === serviceName) {
+    if (rootService) {
       hintParts.push('Root Service');
     }
     if (config.services[serviceName].subdomain?.protocol === 'insecure') {
@@ -3014,6 +3016,11 @@ function hasUnsavedManagementChanges() {
          hasUnsavedAdvancedChanges() ||
          hasUnsavedThemeChanges() ||
          hasUnsavedBlocklistChanges();
+}
+
+function hasUnsavedChanges() {
+  if (rebooting) return false;
+  return hasUnsavedManagementChanges() || hasUnsavedConfigChanges();
 }
 
 function getSectionType(prefixedName) {
@@ -4251,6 +4258,7 @@ function hideLoadingOverlay() {
 }
 
 function reloadPage(update = false) {
+  rebooting = true;
   const url = new URL(window.location);
   setTimeout(() => {
     if (update) {

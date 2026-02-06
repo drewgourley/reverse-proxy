@@ -694,10 +694,18 @@ button {
 .service-item .name-container {
     white-space: nowrap;
     overflow: hidden;
-    max-width: 65%;
+    max-width: calc(100% - 24px);
     text-overflow: ellipsis;
     color: #718096;
     margin-right: -10000px;
+}
+
+.service-item.insecure .name-container, .service-item.root-service .name-container {
+    max-width: calc(100% - 84px);
+}
+
+.service-item.insecure.root-service .name-container {
+    max-width: calc(100% - 144px);
 }
 
 .service-item.active .name-container {
