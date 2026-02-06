@@ -1010,10 +1010,26 @@ function toggleMultiSelect(index, event) {
   const select = document.getElementById(`user_services_select_${index}`);
   const wasOpen = select.classList.contains('open');
   
-  document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.multi-select.open').forEach(el => {
+    el.classList.remove('open');
+    const dropdown = el.querySelector('.multi-select-dropdown');
+    if (dropdown) dropdown.classList.remove('drop-up');
+  });
   
   if (!wasOpen) {
     select.classList.add('open');
+    const dropdown = select.querySelector('.multi-select-dropdown');
+    if (dropdown) {
+      const rect = select.getBoundingClientRect();
+      const dropdownHeight = Math.min(480, dropdown.scrollHeight); // Max height from CSS
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+        dropdown.classList.add('drop-up');
+      } else {
+        dropdown.classList.remove('drop-up');
+      }
+    }
   }
 }
 
