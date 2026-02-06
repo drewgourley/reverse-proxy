@@ -930,32 +930,32 @@ function renderUsersEditor() {
           <div class="hint">${isExistingHash ? 'Leave empty to keep current password' : 'Password will be hashed when saved'}</div>
         </div>
         <div class="form-group">
-          <p class="label color-primary">Service Access</p>
-          <div class="multi-select" id="user_services_select_${index}" onclick="toggleMultiSelect(${index}, event)">
-            <div class="multi-select-display">
-              ${renderServiceTags(user, index, authServices)}
-            </div>
-            <div class="multi-select-dropdown">
-              <div class="multi-select-option all-services ${user.services?.includes('*') ? 'selected' : ''}" 
-                  data-value="*" onclick="selectServiceOption(${index}, '*', event)">
-                <div class="multi-select-checkbox"></div>
-                <span class="multi-select-label"><span class="material-icons star">star</span> All Services</span>
-              </div>
-              ${authServices.map(serviceName => {
-                const nicename = config.services[serviceName]?.nicename || serviceName;
-                const hasAccess = user.services?.includes(serviceName);
-                const isDisabled = user.services?.includes('*');
-                return `
-              <div class="multi-select-option ${hasAccess && !user.services?.includes('*') ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}" 
-                  data-value="${serviceName}" onclick="selectServiceOption(${index}, '${serviceName}', event)">
-                <div class="multi-select-checkbox"></div>
-                <span class="multi-select-label">${nicename}</span>
-              </div>
-                `;
-              }).join('')}
-              ${authServices.length === 0 ? '<div class="multi-select-option disabled"><span class="multi-select-label">No services with "Require Login" configured</span></div>' : ''}
-            </div>
-          </div>
+          <p class="label color-primary" onclick="toggleDropdown('user_services_select_${index}', event)">Service Access</p>
+          ${createDropdown({
+            id: `user_services_select_${index}`,
+            items: [
+              {
+                value: '*',
+                label: '<span class="material-icons">star</span> All Services',
+                selected: user.services?.includes('*'),
+                special: 'all-services'
+              },
+              ...authServices.map(serviceName => ({
+                value: serviceName,
+                label: config.services[serviceName]?.nicename || serviceName,
+                selected: user.services?.includes(serviceName) && !user.services?.includes('*'),
+                disabled: user.services?.includes('*')
+              })),
+              ...(authServices.length === 0 ? [{
+                value: '_no_services',
+                label: 'No services with "Require Login" configured',
+                disabled: true
+              }] : [])
+            ],
+            multiSelect: true,
+            placeholder: 'Select services...',
+            onChange: `onUserServicesChange_${index}`
+          })}
           <div class="hint">Choose "<span class="material-icons star">star</span> All Services" for full access or select individual services this user can access</div>
         </div>
         <div class="secret-actions">
@@ -980,6 +980,33 @@ function renderUsersEditor() {
     <button class="btn-reset" onclick="revertUsers()"><span class="material-icons">undo</span> Revert</button>
     <button class="btn-save" id="saveUsersBtn" onclick="saveUsers()"><span class="material-icons">save</span> Save Users</button>
   `;
+  
+  // Create onChange handlers for each user's service selector
+  if (users.users && users.users.length > 0) {
+    users.users.forEach((user, index) => {
+      createUserServicesChangeHandler(index);
+    });
+  }
+}
+
+// Create onChange handler for user services dropdown
+function createUserServicesChangeHandler(index) {
+  window[`onUserServicesChange_${index}`] = function(selectedValues) {
+    if (!users.users[index]) return;
+    
+    const hasAllServices = selectedValues.includes('*');
+    
+    if (hasAllServices) {
+      // If "All Services" is selected, set to only that
+      users.users[index].services = ['*'];
+    } else {
+      // Filter out the placeholder and set selected services
+      users.users[index].services = selectedValues.filter(v => v !== '_no_services');
+    }
+    
+    // Re-render to update disabled states when * is selected/deselected
+    renderUsersEditor();
+  };
 }
 
 function updateUser(index, field, value) {
@@ -994,63 +1021,132 @@ function updateUserPassword(index, value) {
   }
 }
 
-function toggleUserAllServices(index, checked) {
-  if (!users.users[index]) return;
-  if (checked) {
-    users.users[index].services = ['*'];
-  } else {
-    users.users[index].services = [];
-  }
-  renderUsersEditor();
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
-function toggleUserService(index, serviceName, checked) {
-  if (!users.users[index]) return;
-  if (!users.users[index].services) users.users[index].services = [];
+document.addEventListener('click', function(event) {
+  if (!event.target.closest('.multi-select')) {
+    document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
+  }
+});
+
+/* REUSABLE DROPDOWN COMPONENT */
+/**
+ * Creates a reusable dropdown component that supports both single-select and multi-select modes
+ * @param {Object} options Configuration object
+ * @param {string} options.id Unique identifier for the dropdown
+ * @param {Array} options.items Array of items with {value, label, [selected], [disabled], [special]} properties
+ * @param {boolean} options.multiSelect Whether to allow multiple selections (default: false)
+ * @param {string} options.placeholder Placeholder text when nothing is selected
+ * @param {string} options.onChange Name of the callback function to call when selection changes
+ * @param {boolean} options.disabled Whether the dropdown is disabled (default: false)
+ * @returns {string} HTML string for the dropdown
+ */
+function createDropdown(options) {
+  const {
+    id,
+    items = [],
+    multiSelect = false,
+    placeholder = 'Select...',
+    onChange = null,
+    disabled = false
+  } = options;
+
+  const selectedItems = items.filter(item => item.selected);
+  const hasSelection = selectedItems.length > 0;
   
-  if (checked) {
-    if (!users.users[index].services.includes(serviceName)) {
-      users.users[index].services.push(serviceName);
-    }
+  // Generate display content
+  let displayContent;
+  if (!hasSelection) {
+    displayContent = `<span class="multi-select-placeholder">${placeholder}</span>`;
+  } else if (multiSelect) {
+    displayContent = selectedItems.map(item => {
+      const specialClass = item.special ? ` ${item.special}` : '';
+      return `<span class="multi-select-tag${specialClass}"><span>${item.label}</span><span class="multi-select-tag-remove" onclick="removeDropdownTag('${id}', '${item.value}', event)"><span class="material-icons">close</span></span></span>`;
+    }).join('');
   } else {
-    users.users[index].services = users.users[index].services.filter(s => s !== serviceName);
+    // Single-select mode: show selected value as plain text
+    displayContent = `<span class="multi-select-selected-text">${selectedItems[0].label}</span>`;
   }
-}
 
-function renderServiceTags(user, index, authServices) {
-  if (!user.services || user.services.length === 0) {
-    return '<span class="multi-select-placeholder">Select services...</span>';
-  }
-  if (user.services.includes('*')) {
-    return '<span class="multi-select-tag all-access"><span><span class="material-icons">star</span> All Services</span><span class="multi-select-tag-remove" onclick="removeServiceTag(' + index + ', \'*\', event)"><span class="material-icons">close</span></span></span>';
-  }
-  return user.services.map(serviceName => {
-    const nicename = config.services[serviceName]?.nicename || serviceName;
-    return `<span class="multi-select-tag"><span>${nicename}</span><span class="multi-select-tag-remove" onclick="removeServiceTag(${index}, '${serviceName}', event)"><span class="material-icons">close</span></span></span>`;
+  // Generate options HTML
+  const optionsHtml = items.map(item => {
+    const isSelected = item.selected ? 'selected' : '';
+    const isDisabled = item.disabled ? 'disabled' : '';
+    const specialClass = item.special ? ` ${item.special}` : '';
+    return `
+      <div class="multi-select-option ${isSelected} ${isDisabled}${specialClass}" 
+          data-value="${item.value}" onclick="selectDropdownOption('${id}', '${item.value}', ${multiSelect}, event)">
+        ${multiSelect ? '<div class="multi-select-checkbox"></div>' : ''}
+        <span class="multi-select-label">${item.label}</span>
+      </div>
+    `;
   }).join('');
-}
 
-function toggleMultiSelect(index, event) {
+  const onchangeAttr = onChange ? ` data-onchange="${onChange}"` : '';
+  const disabledClass = disabled ? ' disabled' : '';
+  const modeClass = multiSelect ? ' multi-select-multi' : ' multi-select-single';
+  
+  return `
+    <div class="multi-select${modeClass}${disabledClass}" id="${id}" onclick="toggleDropdown('${id}', event)"${onchangeAttr}>
+      <div class="multi-select-display">
+        ${displayContent}
+      </div>
+      <div class="multi-select-dropdown">
+        ${optionsHtml}
+      </div>
+    </div>
+  `;
+}
+/**
+ * Toggles a dropdown open/closed
+ */
+function toggleDropdown(id, event) {
+  event.stopPropagation();
+  
   if (event.target.closest('.multi-select-option') || event.target.closest('.multi-select-tag-remove')) {
     return;
   }
-  const select = document.getElementById(`user_services_select_${index}`);
+  
+  const select = document.getElementById(id);
+  if (!select || select.classList.contains('disabled')) return;
+  
   const wasOpen = select.classList.contains('open');
   
+  // Close all other dropdowns
   document.querySelectorAll('.multi-select.open').forEach(el => {
     el.classList.remove('open');
     const dropdown = el.querySelector('.multi-select-dropdown');
     if (dropdown) dropdown.classList.remove('drop-up');
   });
-  
+
   if (!wasOpen) {
     select.classList.add('open');
     const dropdown = select.querySelector('.multi-select-dropdown');
+
     if (dropdown) {
       const rect = select.getBoundingClientRect();
-      const dropdownHeight = Math.min(480, dropdown.scrollHeight); // Max height from CSS
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
+      const dropdownHeight = Math.min(480, dropdown.scrollHeight);
+      
+      // Find the scrollable container (editor panel or other scrollable parent)
+      let scrollableContainer = select.closest('.editor-panel-pane, .sidebar-scrollable');
+      
+      let spaceBelow, spaceAbove;
+      
+      if (scrollableContainer) {
+        const containerRect = scrollableContainer.getBoundingClientRect();
+        spaceBelow = containerRect.bottom - rect.bottom;
+        spaceAbove = rect.top - containerRect.top;
+      } else {
+        spaceBelow = window.innerHeight - rect.bottom;
+        spaceAbove = rect.top;
+      }
+      
       if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
         dropdown.classList.add('drop-up');
       } else {
@@ -1060,58 +1156,156 @@ function toggleMultiSelect(index, event) {
   }
 }
 
-function selectServiceOption(index, value, event) {
+/**
+ * Handles option selection in dropdown
+ */
+function selectDropdownOption(id, value, multiSelect, event) {
   event.stopPropagation();
-  if (!users.users[index]) return;
+  
+  const select = document.getElementById(id);
+  if (!select) return;
   
   const option = event.target.closest('.multi-select-option');
   if (option?.classList.contains('disabled')) return;
   
-  if (!users.users[index].services) users.users[index].services = [];
+  const onchangeCallback = select.getAttribute('data-onchange');
   
-  if (value === '*') {
-    if (users.users[index].services.includes('*')) {
-      users.users[index].services = [];
+  if (multiSelect) {
+    // Multi-select mode: toggle the option
+    if (option.classList.contains('selected')) {
+      option.classList.remove('selected');
     } else {
-      users.users[index].services = ['*'];
+      option.classList.add('selected');
     }
-    renderUsersEditor();
-  } else {
-    if (users.users[index].services.includes('*')) return;
     
-    if (users.users[index].services.includes(value)) {
-      users.users[index].services = users.users[index].services.filter(s => s !== value);
-    } else {
-      users.users[index].services.push(value);
+    // Get all selected values
+    const selectedOptions = select.querySelectorAll('.multi-select-option.selected');
+    const selectedValues = Array.from(selectedOptions).map(opt => opt.getAttribute('data-value'));
+    
+    // Update display
+    updateDropdownDisplay(id, multiSelect);
+    
+    // Call onChange callback if provided
+    if (onchangeCallback) {
+      window[onchangeCallback](selectedValues);
     }
-    renderUsersEditor();
-  }
-}
-
-function removeServiceTag(index, value, event) {
-  event.stopPropagation();
-  if (!users.users[index]) return;
-  
-  if (value === '*') {
-    users.users[index].services = [];
   } else {
-    users.users[index].services = users.users[index].services.filter(s => s !== value);
+    // Single-select mode: select only this option and close dropdown
+    select.querySelectorAll('.multi-select-option').forEach(opt => {
+      opt.classList.remove('selected');
+    });
+    option.classList.add('selected');
+    
+    // Update display
+    updateDropdownDisplay(id, multiSelect);
+    
+    // Close dropdown
+    select.classList.remove('open');
+    
+    // Call onChange callback if provided
+    if (onchangeCallback) {
+      window[onchangeCallback](value);
+    }
   }
-  renderUsersEditor();
 }
 
-document.addEventListener('click', function(event) {
-  if (!event.target.closest('.multi-select')) {
-    document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
+/**
+ * Removes a tag from a multi-select dropdown
+ */
+function removeDropdownTag(id, value, event) {
+  event.stopPropagation();
+  
+  const select = document.getElementById(id);
+  if (!select) return;
+  
+  const option = select.querySelector(`.multi-select-option[data-value="${value}"]`);
+  if (option) {
+    option.classList.remove('selected');
   }
-});
+  
+  // Update display
+  updateDropdownDisplay(id, true);
+  
+  // Call onChange callback if provided
+  const onchangeCallback = select.getAttribute('data-onchange');
+  if (onchangeCallback) {
+    const selectedOptions = select.querySelectorAll('.multi-select-option.selected');
+    const selectedValues = Array.from(selectedOptions).map(opt => opt.getAttribute('data-value'));
+    window[onchangeCallback](selectedValues);
+  }
+}
 
-function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
+/**
+ * Updates the display of a dropdown based on current selection
+ */
+function updateDropdownDisplay(id, multiSelect) {
+  const select = document.getElementById(id);
+  if (!select) return;
+  
+  const display = select.querySelector('.multi-select-display');
+  const selectedOptions = select.querySelectorAll('.multi-select-option.selected');
+  
+  if (selectedOptions.length === 0) {
+    const placeholder = select.getAttribute('data-placeholder') || 'Select...';
+    display.innerHTML = `<span class="multi-select-placeholder">${placeholder}</span>`;
+  } else if (multiSelect) {
+    // Multi-select: show tags
+    const tags = Array.from(selectedOptions).map(option => {
+      const value = option.getAttribute('data-value');
+      const label = option.querySelector('.multi-select-label').textContent;
+      const specialClasses = Array.from(option.classList).filter(c => 
+        c !== 'multi-select-option' && c !== 'selected' && c !== 'disabled'
+      ).join(' ');
+      const specialClass = specialClasses ? ` ${specialClasses}` : '';
+      return `<span class="multi-select-tag${specialClass}"><span>${label}</span><span class="multi-select-tag-remove" onclick="removeDropdownTag('${id}', '${value}', event)"><span class="material-icons">close</span></span></span>`;
+    }).join('');
+    display.innerHTML = tags;
+  } else {
+    // Single-select: show text
+    const label = selectedOptions[0].querySelector('.multi-select-label').textContent;
+    display.innerHTML = `<span class="multi-select-selected-text">${label}</span>`;
+  }
+}
+
+/**
+ * Gets the selected value(s) from a dropdown
+ */
+function getDropdownValue(id) {
+  const select = document.getElementById(id);
+  if (!select) return null;
+  
+  const selectedOptions = select.querySelectorAll('.multi-select-option.selected');
+  const values = Array.from(selectedOptions).map(opt => opt.getAttribute('data-value'));
+  
+  const isMulti = select.classList.contains('multi-select-multi');
+  return isMulti ? values : (values[0] || null);
+}
+
+/**
+ * Sets the selected value(s) for a dropdown
+ */
+function setDropdownValue(id, value) {
+  const select = document.getElementById(id);
+  if (!select) return;
+  
+  const isMulti = select.classList.contains('multi-select-multi');
+  const values = Array.isArray(value) ? value : [value];
+  
+  // Clear all selections
+  select.querySelectorAll('.multi-select-option').forEach(opt => {
+    opt.classList.remove('selected');
   });
+  
+  // Set new selections
+  values.forEach(val => {
+    const option = select.querySelector(`.multi-select-option[data-value="${val}"]`);
+    if (option) {
+      option.classList.add('selected');
+    }
+  });
+  
+  // Update display
+  updateDropdownDisplay(id, isMulti);
 }
 
 function addNewUser() {
@@ -2808,10 +3002,13 @@ function renderDomainEditor() {
     .sort()
     .map(name => {
       const nicename = config.services[name]?.nicename;
-      const selected = (config.rootservice || 'www') === name ? 'selected' : '';
-      return `<option value="${name}" ${selected}>${name}${nicename ? ` - ${nicename}` : ''}</option>`;
-    })
-    .join('');
+      const selected = (config.rootservice || 'www') === name;
+      return {
+        value: name,
+        label: `${name}${nicename ? ` - ${nicename}` : ''}`,
+        selected: selected
+      };
+    });
 
   panel.innerHTML = `
     <div class="section">
@@ -2824,10 +3021,13 @@ function renderDomainEditor() {
           <div class="hint">Primary domain name for your services, without "www" or any subdomains</div>
         </div>
         <div class="form-group form-group-no-margin">
-          <label for="rootServiceSelect">Serve at Root</label>
-          <select id="rootServiceSelect" onchange="updateConfig('rootservice', this.value)">
-            ${serviceOptions}
-          </select>
+          <p class="label" onclick="toggleDropdown('rootServiceSelect', event)">Serve at Root</p>
+          ${createDropdown({
+            id: 'rootServiceSelect',
+            items: serviceOptions,
+            placeholder: 'Select service...',
+            onChange: 'onRootServiceChange'
+          })}
           <div class="hint">The service that will be served at the root domain (e.g., ${config.domain || 'example.com'})</div>
         </div>
       </div>
@@ -2910,6 +3110,10 @@ function renderDomainEditor() {
   // Fetch and display public IP and local IP
   fetchPublicIp();
   fetchLocalIp();
+}
+
+function onRootServiceChange(value) {
+  updateConfig('rootservice', value);
 }
 
 async function fetchPublicIp() {
@@ -3321,10 +3525,12 @@ function renderServiceEditor(serviceName) {
   // Set initial visibility state for conditional fields
   if (service.subdomain) {
     toggleFieldVisibility(serviceName);
+    createSubdomainChangeHandlers(serviceName);
   }
   if (service.healthcheck) {
     toggleHealthcheckFieldVisibility(serviceName);
     toggleMetaFieldVisibility(serviceName);
+    createHealthcheckChangeHandlers(serviceName);
   }
 }
 
@@ -3490,21 +3696,29 @@ function renderDefaultSubdomainSection(serviceName, subdomain) {
       <div class="section-title">Subdomain Settings</div>
       <div class="nested-object">
         <div class="form-group">
-          <label for="subdomain_type_${serviceName}">Type</label>
-          <select id="subdomain_type_${serviceName}" disabled>
-            <option value="index" ${subdomain.type === 'index' ? 'selected' : ''}>Index</option>
-            <option value="spa" ${subdomain.type === 'spa' ? 'selected' : ''}>Single-Page Webapp</option>
-            <option value="dirlist" ${subdomain.type === 'dirlist' ? 'selected' : ''}>Directory List</option>
-            <option value="proxy" ${subdomain.type === 'proxy' ? 'selected' : ''}>Proxy</option>
-          </select>
+          <p class="label" onclick="toggleDropdown('subdomain_type_${serviceName}', event)">Type</p>
+          ${createDropdown({
+            id: `subdomain_type_${serviceName}`,
+            items: [
+              { value: 'index', label: 'Index', selected: subdomain.type === 'index' },
+              { value: 'spa', label: 'Single-Page Webapp', selected: subdomain.type === 'spa' },
+              { value: 'dirlist', label: 'Directory List', selected: subdomain.type === 'dirlist' },
+              { value: 'proxy', label: 'Proxy', selected: subdomain.type === 'proxy' }
+            ],
+            disabled: true
+          })}
           <div class="hint">Determines the behavior of the served assets</div>
         </div>
         <div class="form-group">
-          <label for="subdomain_protocol_${serviceName}">Protocol</label>
-          <select id="subdomain_protocol_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'subdomain.protocol', this.value)">
-            <option ${secrets.admin_email_address ? '' : 'disabled '}value="secure" ${subdomain.protocol === 'secure' ? 'selected' : ''}>Secure (HTTPS)</option>
-            <option value="insecure" ${subdomain.protocol === 'insecure' ? 'selected' : ''}>Not Secure (HTTP)</option>
-          </select>
+          <p class="label" onclick="toggleDropdown('subdomain_protocol_${serviceName}', event)">Protocol</p>
+          ${createDropdown({
+            id: `subdomain_protocol_${serviceName}`,
+            items: [
+              { value: 'secure', label: 'Secure (HTTPS)', selected: subdomain.protocol === 'secure', disabled: !secrets.admin_email_address },
+              { value: 'insecure', label: 'Not Secure (HTTP)', selected: subdomain.protocol === 'insecure' }
+            ],
+            onChange: `onSubdomainProtocolChange_${serviceName}`
+          })}
         </div>
       </div>
       ${isWww ? '<div class="hint">Default www service uses simplified configuration</div>' : '<div class="hint">Default api service uses simplified configuration</div>'}
@@ -3519,21 +3733,29 @@ function renderSubdomainSection(serviceName, subdomain) {
       <div class="nested-object">
         <button class="btn-remove" onclick="removeSubdomain('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Subdomain</button>
         <div class="form-group">
-          <label for="subdomain_type_${serviceName}">Type</label>
-          <select id="subdomain_type_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'subdomain.type', this.value); toggleFieldVisibility('${serviceName}')">
-            <option value="index" ${subdomain.type === 'index' ? 'selected' : ''}>Index</option>
-            <option value="spa" ${subdomain.type === 'spa' ? 'selected' : ''}>Single-Page Webapp</option>
-            <option value="dirlist" ${subdomain.type === 'dirlist' ? 'selected' : ''}>Directory List</option>
-            <option value="proxy" ${subdomain.type === 'proxy' ? 'selected' : ''}>Proxy</option>
-          </select>
+          <p class="label" onclick="toggleDropdown('subdomain_type_${serviceName}', event)">Type</p>
+          ${createDropdown({
+            id: `subdomain_type_${serviceName}`,
+            items: [
+              { value: 'index', label: 'Index', selected: subdomain.type === 'index' },
+              { value: 'spa', label: 'Single-Page Webapp', selected: subdomain.type === 'spa' },
+              { value: 'dirlist', label: 'Directory List', selected: subdomain.type === 'dirlist' },
+              { value: 'proxy', label: 'Proxy', selected: subdomain.type === 'proxy' }
+            ],
+            onChange: `onSubdomainTypeChange_${serviceName}`
+          })}
           <div class="hint">Determines the behavior of the served assets</div>
         </div>
         <div class="form-group">
-          <label for="subdomain_protocol_${serviceName}">Protocol</label>
-          <select id="subdomain_protocol_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'subdomain.protocol', this.value)">
-            <option value="secure" ${subdomain.protocol === 'secure' ? 'selected' : ''}>Secure (HTTPS)</option>
-            <option value="insecure" ${subdomain.protocol === 'insecure' ? 'selected' : ''}>Not Secure (HTTP)</option>
-          </select>
+          <p class="label" onclick="toggleDropdown('subdomain_protocol_${serviceName}', event)">Protocol</p>
+          ${createDropdown({
+            id: `subdomain_protocol_${serviceName}`,
+            items: [
+              { value: 'secure', label: 'Secure (HTTPS)', selected: subdomain.protocol === 'secure' },
+              { value: 'insecure', label: 'Not Secure (HTTP)', selected: subdomain.protocol === 'insecure' }
+            ],
+            onChange: `onSubdomainProtocolChange_${serviceName}`
+          })}
         </div>
         <div class="form-group proxy-field" data-service="${serviceName}">
           <label for="subdomain_path_${serviceName}">IP address and Port to Internal Service</label>
@@ -3617,9 +3839,13 @@ function renderHealthcheckSection(serviceName, healthcheck) {
       }
     });
   }
-  let parserOptionsHtml = parserOptions.map(parser => 
-    `<option value="${parser}" ${healthcheck.parser === parser ? 'selected' : ''}>${parser}</option>`
-  ).join('');
+  const parserItems = [{ value: '', label: '-- Select Parser --' }].concat(
+    parserOptions.map(parser => ({ 
+      value: parser, 
+      label: parser, 
+      selected: healthcheck.parser === parser 
+    }))
+  );
   
   // Build extractor options from both defaults and advanced config
   const extractorOptions = ['doom', 'minecraft', 'valheim', 'radio'];
@@ -3630,9 +3856,13 @@ function renderHealthcheckSection(serviceName, healthcheck) {
       }
     });
   }
-  let extractorOptionsHtml = extractorOptions.map(extractor =>
-    `<option value="${extractor}" ${healthcheck.extractor === extractor ? 'selected' : ''}>${extractor}</option>`
-  ).join('');
+  const extractorItems = [{ value: '', label: '-- Select Extractor --' }].concat(
+    extractorOptions.map(extractor => ({ 
+      value: extractor, 
+      label: extractor, 
+      selected: healthcheck.extractor === extractor 
+    }))
+  );
   
   // Build query type options from both defaults and advanced config
   const queryTypeOptions = ['mbe', 'valheim'];
@@ -3643,9 +3873,27 @@ function renderHealthcheckSection(serviceName, healthcheck) {
       }
     });
   }
-  let queryTypeOptionsHtml = queryTypeOptions.map(qt =>
-    `<option value="${qt}" ${healthcheck.queryType === qt ? 'selected' : ''}>${qt}</option>`
-  ).join('');
+  const queryTypeItems = [{ value: '', label: '-- Select Query Type --' }].concat(
+    queryTypeOptions.map(qt => ({ 
+      value: qt, 
+      label: qt, 
+      selected: healthcheck.queryType === qt 
+    }))
+  );
+  
+  const typeItems = [
+    { value: '', label: '-- Select Type --' },
+    { value: 'http', label: 'HTTP', selected: healthcheck.type === 'http' },
+    { value: 'gamedig', label: 'GameDig', selected: healthcheck.type === 'gamedig' },
+    { value: 'odalpapi', label: 'OdalPAPI', selected: healthcheck.type === 'odalpapi' }
+  ];
+  
+  const platformItems = [
+    { value: '', label: '-- Select Platform --' },
+    { value: 'compute', label: 'compute', selected: healthcheck.platform === 'compute' },
+    { value: 'storage', label: 'storage', selected: healthcheck.platform === 'storage' },
+    { value: 'standalone', label: 'standalone', selected: healthcheck.platform === 'standalone' }
+  ];
   
   let html = `
     <div class="section">
@@ -3667,13 +3915,13 @@ function renderHealthcheckSection(serviceName, healthcheck) {
           <div class="hint">Some services have dedicated ports or routes for this, otherwise you can just check if the service returns its home or login page</div>
         </div>
         <div class="form-group">
-          <label for="hc_type_${serviceName}">Type</label>
-          <select id="hc_type_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.type', this.value); toggleHealthcheckFieldVisibility('${serviceName}')">
-            <option value="">-- Select Type --</option>
-            <option value="http" ${healthcheck.type === 'http' ? 'selected' : ''}>HTTP</option>
-            <option value="gamedig" ${healthcheck.type === 'gamedig' ? 'selected' : ''}>GameDig</option>
-            <option value="odalpapi" ${healthcheck.type === 'odalpapi' ? 'selected' : ''}>OdalPAPI</option>
-          </select>
+          <p class="label" onclick="toggleDropdown('hc_type_${serviceName}', event)">Type</p>
+          ${createDropdown({
+            id: `hc_type_${serviceName}`,
+            items: typeItems,
+            placeholder: '-- Select Type --',
+            onChange: `onHealthcheckTypeChange_${serviceName}`
+          })}
         </div>
         <div class="form-group http-only-field" data-service="${serviceName}">
           <label for="hc_timeout_${serviceName}">Timeout (ms)</label>
@@ -3682,27 +3930,31 @@ function renderHealthcheckSection(serviceName, healthcheck) {
           <div class="hint">Defaults to 1000ms if left blank</div>
         </div>
         <div class="form-group http-only-field" data-service="${serviceName}">
-          <label for="hc_parser_${serviceName}">HTML Body Parser</label>
-          <select id="hc_parser_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.parser', this.value)">
-            <option value="">-- Select Parser --</option>
-            ${parserOptionsHtml}
-          </select>
+          <p class="label" onclick="toggleDropdown('hc_parser_${serviceName}', event)">HTML Body Parser</p>
+          ${createDropdown({
+            id: `hc_parser_${serviceName}`,
+            items: parserItems,
+            placeholder: '-- Select Parser --',
+            onChange: `onHealthcheckParserChange_${serviceName}`
+          })}
         </div>
         <div class="form-group gamedig-only-field" data-service="${serviceName}">
-          <label for="hc_querytype_${serviceName}">Query Type</label>
-          <select id="hc_querytype_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.queryType', this.value)">
-            <option value="">-- Select Query Type --</option>
-            ${queryTypeOptionsHtml}
-          </select>
+          <p class="label" onclick="toggleDropdown('hc_querytype_${serviceName}', event)">Query Type</p>
+          ${createDropdown({
+            id: `hc_querytype_${serviceName}`,
+            items: queryTypeItems,
+            placeholder: '-- Select Query Type --',
+            onChange: `onHealthcheckQueryTypeChange_${serviceName}`
+          })}
         </div>
         <div class="form-group">
-          <label for="hc_platform_${serviceName}">Platform</label>
-          <select id="hc_platform_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.platform', this.value)">
-            <option value="">-- Select Platform --</option>
-            <option value="compute" ${healthcheck.platform === 'compute' ? 'selected' : ''}>compute</option>
-            <option value="storage" ${healthcheck.platform === 'storage' ? 'selected' : ''}>storage</option>
-            <option value="standalone" ${healthcheck.platform === 'standalone' ? 'selected' : ''}>standalone</option>
-          </select>
+          <p class="label" onclick="toggleDropdown('hc_platform_${serviceName}', event)">Platform</p>
+          ${createDropdown({
+            id: `hc_platform_${serviceName}`,
+            items: platformItems,
+            placeholder: '-- Select Platform --',
+            onChange: `onHealthcheckPlatformChange_${serviceName}`
+          })}
           <div class="hint">If Wake-on-LAN secrets are configured, the API page can send a Wake-on-LAN packet if all services on the compute platform are down</div>
         </div>
         <div class="form-group">
@@ -3712,11 +3964,13 @@ function renderHealthcheckSection(serviceName, healthcheck) {
           <div class="hint">How often the API page will poll the service for health status updates, defaults to 30s if left blank</div>
         </div>
         <div class="form-group" data-service="${serviceName}">
-          <label for="hc_extractor_${serviceName}">Meta Data Extractor</label>
-          <select id="hc_extractor_${serviceName}" onchange="updateServiceProperty('${serviceName}', 'healthcheck.extractor', this.value); toggleMetaFieldVisibility('${serviceName}');">
-            <option value="">-- Select Extractor --</option>
-            ${extractorOptionsHtml}
-          </select>
+          <p class="label" onclick="toggleDropdown('hc_extractor_${serviceName}', event)">Meta Data Extractor</p>
+          ${createDropdown({
+            id: `hc_extractor_${serviceName}`,
+            items: extractorItems,
+            placeholder: '-- Select Extractor --',
+            onChange: `onHealthcheckExtractorChange_${serviceName}`
+          })}
         </div>
         ${renderMetaSection(serviceName, healthcheck.meta || {})}
       </div>
@@ -3748,21 +4002,60 @@ function renderMetaSection(serviceName, meta) {
               <label for="meta_${serviceName}_${key}" class="inline-label">Provide Service Link in Metadata</label>
             </div>
           </div>
-        </div>
       `;
     } else {
       html += `
-        <div class="${fieldClass}" data-service="${serviceName}">
-          <label for="meta_${serviceName}_${key}">${key}</label>
+        <div class="${fieldClass}">
+          <label for="meta_${serviceName}_${key}">${key.charAt(0).toUpperCase() + key.slice(1)}</label>
           <input type="${inputType}" id="meta_${serviceName}_${key}" value="${value}" 
-            onchange="updateServiceProperty('${serviceName}', 'healthcheck.meta.${key}', ${inputType === 'number' ? 'parseInt(this.value) || 0' : 'this.value'})">
+              onchange="updateServiceProperty('${serviceName}', 'healthcheck.meta.${key}', ${inputType === 'number' ? 'parseInt(this.value) || null' : 'this.value'})">
         </div>
       `;
     }
   });
-  
   html += '</div></div>';
   return html;
+}
+
+/* Dropdown change handlers for dynamic service fields */
+window.onSubdomainTypeChange = {};
+window.onSubdomainProtocolChange = {};
+
+// Create dynamic onChange handlers for each service
+function createSubdomainChangeHandlers(serviceName) {
+  window[`onSubdomainTypeChange_${serviceName}`] = function(value) {
+    updateServiceProperty(serviceName, 'subdomain.type', value);
+    toggleFieldVisibility(serviceName);
+  };
+  
+  window[`onSubdomainProtocolChange_${serviceName}`] = function(value) {
+    updateServiceProperty(serviceName, 'subdomain.protocol', value);
+  };
+}
+
+// Create dynamic onChange handlers for healthcheck dropdowns
+function createHealthcheckChangeHandlers(serviceName) {
+  window[`onHealthcheckTypeChange_${serviceName}`] = function(value) {
+    updateServiceProperty(serviceName, 'healthcheck.type', value);
+    toggleHealthcheckFieldVisibility(serviceName);
+  };
+  
+  window[`onHealthcheckParserChange_${serviceName}`] = function(value) {
+    updateServiceProperty(serviceName, 'healthcheck.parser', value);
+  };
+  
+  window[`onHealthcheckQueryTypeChange_${serviceName}`] = function(value) {
+    updateServiceProperty(serviceName, 'healthcheck.queryType', value);
+  };
+  
+  window[`onHealthcheckPlatformChange_${serviceName}`] = function(value) {
+    updateServiceProperty(serviceName, 'healthcheck.platform', value);
+  };
+  
+  window[`onHealthcheckExtractorChange_${serviceName}`] = function(value) {
+    updateServiceProperty(serviceName, 'healthcheck.extractor', value);
+    toggleMetaFieldVisibility(serviceName);
+  };
 }
 
 function addHealthcheck(serviceName) {
