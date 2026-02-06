@@ -560,7 +560,7 @@ function renderSecretsEditor() {
       'admin_email_address': 'Admin Email Address',
       'shock_password_hash': 'Wake-on-LAN Password',
       'shock_mac': 'Wake-on-LAN MAC Address',
-      'api_password_hash': `API Password - ${ isExistingHash ? '<span class="material-icons">lock</span> API page is secured behind a login' : '<span class="material-icons warning">warning</span> Providing this will secure the API page behind a login'}`,
+      'api_password_hash': `Admin Password - ${ isExistingHash ? '<span class="material-icons">lock</span> API page is secured behind a login' : '<span class="material-icons warning">warning</span> Providing this will also secure the API page behind a login'}`,
     };
     const displayLabel = labelMap[key] || key;
     
@@ -575,7 +575,7 @@ function renderSecretsEditor() {
               onchange="updateSecret('${key}', this.value)"
               autocomplete="off"
               placeholder="${isEmpty ? 'Required for SSL certificates (https)' : ''}">
-          <div class="hint">The email address to use for provisioning certificates</div>`;
+          <div class="hint">The email address for the admin user, also used for provisioning certificates</div>`;
     } else if (isPasswordHash) {
       const displayValue = isExistingHash ? '' : value;
       const placeholderText = isExistingHash ? 'Password already set - enter new password to change' : 'Enter new password to hash it automatically';
@@ -903,7 +903,7 @@ function renderUsersEditor() {
           <div class="hint">${isExistingHash ? 'Leave empty to keep current password' : 'Password will be hashed when saved'}</div>
         </div>
         <div class="form-group">
-          <label>Service Access</label>
+          <p class="label color-primary">Service Access</p>
           <div class="multi-select" id="user_services_select_${index}" onclick="toggleMultiSelect(${index}, event)">
             <div class="multi-select-display">
               ${renderServiceTags(user, index, authServices)}
@@ -1623,7 +1623,7 @@ function renderThemeEditor() {
       <div class="hint hint-section">Customize colors and favicon for the configurator interface.</div>
       <div class="grid-two-column">
         <div>
-          <h3 class="subsection-heading">Colors</h3>
+          <div class="subsection-heading"><strong><span class="material-icons">brush</span> Colors</strong></div>
           <div class="form-group">
             <label for="color1">Primary Color</label>
             <input type="color" id="color1" value="${colors.primary || '#667eea'}">
@@ -1646,11 +1646,11 @@ function renderThemeEditor() {
           </div>
         </div>
         <div>
-          <h3 class="subsection-heading">Favicon</h3>
+          <div class="subsection-heading"><strong><span class="material-icons">image</span> Favicon</strong></div>
           <div class="form-group">
             <label for="faviconUpload">Upload New Favicon</label>
             <input type="file" id="faviconUpload" accept="image/png" class="file-input-hidden">
-            <button class="btn-add-field no-top" onclick="document.getElementById('faviconUpload').click()"><span class="material-icons">image</span> Choose File</button>
+            <button class="btn-add-field no-top" onclick="document.getElementById('faviconUpload').click()"><span class="material-icons">upload_file</span> Choose File</button>
             <span id="faviconFileName" class="file-name-display"></span>
             <div class="hint">PNG format only, up to 512x512 pixels</div>
           </div>
@@ -2798,8 +2798,10 @@ function renderDomainEditor() {
       </div>
       <div class="setup-instructions">
         <div class="setup-section">
-          <strong class="setup-section-title"><span class="material-icons">public</span> Route53 DNS Configuration</strong>
-          <div class="hint hint-section">Configure these records in your AWS Route53 hosted zone</div>
+          <div class="setup-section-title">
+            <strong><span class="material-icons">public</span> Route53 DNS Configuration</strong>
+          </div>
+          <div class="hint hint-section">Configure these records in your Route53 hosted zone</div>
           <div class="setup-box route53">
             <div class="setup-record">
               <div class="setup-record-label">Record 1:</div>
@@ -2822,7 +2824,9 @@ function renderDomainEditor() {
           </div>
         </div>
         <div class="setup-section">
-          <strong class="setup-section-title"><span class="material-icons">router</span> Router Port Forwarding</strong>
+          <div class="setup-section-title">
+            <strong><span class="material-icons">router</span> Router Port Forwarding</strong>
+          </div>
           <div class="hint hint-section">Configure these port forwarding rules on your router</div>
           <div class="setup-box router">
             <div class="setup-record">
@@ -3449,8 +3453,8 @@ function renderDefaultSubdomainSection(serviceName, subdomain) {
             <option value="insecure" ${subdomain.protocol === 'insecure' ? 'selected' : ''}>Not Secure (HTTP)</option>
           </select>
         </div>
-        ${isWww ? '<div class="hint">Default www service uses simplified configuration</div>' : '<div class="hint">Default api service uses simplified configuration</div>'}
       </div>
+      ${isWww ? '<div class="hint">Default www service uses simplified configuration</div>' : '<div class="hint">Default api service uses simplified configuration</div>'}
     </div>
   `;
 }
@@ -3543,8 +3547,8 @@ function renderApiHealthcheckSection(serviceName, healthcheck) {
               placeholder="UUID for healthchecks.io health check">
           <div class="hint">Optional, used for pinging a healthchecks.io healthcheck</div>
         </div>
-        <div class="hint">Default api service uses simplified configuration</div>
       </div>
+      <div class="hint">Api service healthcheck only supports healthchecks.io</div>
     </div>
   `;
   return html;
@@ -4814,7 +4818,7 @@ function showUnpackZipDialog(serviceName, folderType, currentPath = '') {
     <div class="form-group">
       <label for="zipFileInput">Select Zip File</label>
       <input type="file" id="zipFileInput" accept=".zip" class="file-input-hidden">
-      <button class="btn-add-field no-top" onclick="document.getElementById('zipFileInput').click()"><span class="material-icons">folder_zip</span> Choose File</button>
+      <button class="btn-add-field no-top" onclick="document.getElementById('zipFileInput').click()"><span class="material-icons">upload_file</span> Choose File</button>
       <span id="zipFileInputName" class="file-name-display"></span>
       <div class="hint">Choose a zip file to extract into the current directory</div>
     </div>

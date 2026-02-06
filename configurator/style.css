@@ -755,6 +755,10 @@ label, p.label {
     font-size: 14px;
 }
 
+p.label.color-primary {
+    color: var(--color-text-primary);
+}
+
 input[type="text"],
 input[type="file"],
 input[type="email"],
@@ -1263,18 +1267,15 @@ input[type="checkbox"] {
     flex: 1;
 }
 
-.setup-section-title {
-    font-size: 15px;
-    display: block;
-    margin-bottom: 10px;
-    color: var(--color-text-primary);
-}
-
 .ip-display-row {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 10px;
+}
+
+.ip-display-row strong {
+    color: var(--color-text-secondary);
 }
 
 .ip-value {
@@ -1399,7 +1400,7 @@ input[type="checkbox"] {
 .multi-select-display {
     width: 100%;
     min-height: 38px;
-    padding: 4px 32px 4px 4px;
+    padding: 4px 20px 4px 4px;
     border: 1px solid var(--color-gray-300);
     border-radius: 4px;
     font-size: 14px;
@@ -1413,10 +1414,6 @@ input[type="checkbox"] {
     transition: border-color 0.2s ease;
 }
 
-.multi-select-display:hover {
-    border-color: var(--color-primary);
-}
-
 .multi-select.open .multi-select-display {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -1425,20 +1422,21 @@ input[type="checkbox"] {
 }
 
 .multi-select-display::after {
-    content: '';
+    content: 'more_vert';
+    font-family: 'Material Icons';
+    font-size: 20px;
     position: absolute;
-    right: 12px;
+    right: 0;
     top: 50%;
     transform: translateY(-50%);
-    border: 5px solid transparent;
-    border-top-color: var(--color-gray-500);
+    color: var(--color-text-primary);
     pointer-events: none;
-}
-
-.multi-select.open .multi-select-display::after {
-    border-top-color: transparent;
-    border-bottom-color: var(--color-gray-500);
-    transform: translateY(-80%);
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
 }
 
 .multi-select-placeholder {
@@ -1624,10 +1622,7 @@ input[type="checkbox"] {
 }
 
 .subsection-heading {
-    margin: 0 0 15px 0;
-    color: var(--color-text-primary);
-    font-size: 16px;
-    font-weight: 600;
+    margin: 0 0 10px 0;
 }
 
 /* File Input */
@@ -1648,7 +1643,7 @@ input[type="checkbox"] {
 .favicon-label {
     display: block;
     margin-bottom: 8px;
-    color: var(--color-text-primary);
+    color: var(--color-text-secondary);
     font-weight: 500;
 }
 
@@ -1914,7 +1909,7 @@ input[type="checkbox"] {
     }
 
     .file-manager-actions button .material-icons {
-        margin: -5px 0 0 0;
+        margin: -4px 0 0 0;
     }
 }
 
@@ -2045,16 +2040,12 @@ h1 .material-icons {
 /* Material Icons in buttons */
 button .material-icons {
     font-size: 22px;
-    margin: -5px 2px -3px -8px;
+    margin: -6px 2px -4px -8px;
 }
 
 label .material-icons {
     font-size: 16px;
     margin-top: -4px;
-}
-
-.btn-toggle-password .material-icons {
-    font-size: 16px;
 }
 
 /* Material Icons in sidebar */
@@ -2073,7 +2064,7 @@ label .material-icons {
 .hint .material-icons,
 .favicon-warning-icon .material-icons {
     font-size: 18px;
-    margin-top: -2px;
+    margin-top: -4px;
     margin-right: 2px;
 }
 
@@ -2088,7 +2079,7 @@ label .material-icons {
 .multi-select-label .material-icons {
     font-size: 18px;
     margin-right: 2px;
-    margin-top: -3px;
+    margin-top: -4px;
 }
 
 /* Material Icons in mobile nav */
@@ -2110,10 +2101,10 @@ label .material-icons {
     margin-top: -3px;
 }
 
-.setup-section-title .material-icons {
-    font-size: 18px;
+.setup-section-title .material-icons, .subsection-heading .material-icons {
+    font-size: 22px;
     margin-right: 2px;
-    margin-top: -3px;
+    margin-top: -4px;
 }
 
 .status-container .status .material-icons {
