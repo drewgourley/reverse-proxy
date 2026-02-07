@@ -479,7 +479,7 @@ button {
 .editor-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
 }
 
 .editor-actions, .sidebar-actions {
