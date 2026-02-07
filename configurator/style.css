@@ -165,7 +165,7 @@ h1 {
     color: var(--color-text-primary);
     background: var(--color-gray-100);
     border-radius: 0 0 3px 3px;
-    min-width: 180px;
+    max-width: 180px;
     width: 100%;
     box-sizing: border-box;
 }
@@ -183,7 +183,7 @@ h1 {
     border: none;
     border-radius: 4px 4px 0 0;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     transition: all 0.2s ease;
 }
@@ -221,11 +221,6 @@ h1 {
     border-color: var(--color-gray-300);
     cursor: default;
     transform: none;
-}
-
-.update-icon {
-    font-size: 16px;
-    line-height: 1;
 }
 
 .update-icon.spinning {
@@ -376,7 +371,7 @@ button {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-width: 400px;
+    max-width: 340px;
     pointer-events: none;
 }
 
@@ -468,12 +463,12 @@ button {
     padding: 0 17px 17px;
     margin: 0 -17px -17px;
     border-radius: 15px;
-    box-shadow: 0 0 0 32769px transparent;    
+    box-shadow: 0 0 0 32768px transparent;    
     transition: box-shadow 0.3s ease;
 }
 
 .editor-actions-container.spotlight {
-    box-shadow: 0 0 0 32769px rgba(0,0,0,0.9);    
+    box-shadow: 0 0 0 32768px rgba(0,0,0,0.9);    
 }
 
 .editor-actions {
@@ -698,7 +693,7 @@ button {
     max-width: calc(100% - 24px);
     text-overflow: ellipsis;
     color: #718096;
-    margin-right: -10000px;
+    margin-right: -32768px;
 }
 
 .service-item.insecure .name-container, .service-item.root-service .name-container {
@@ -1151,7 +1146,7 @@ input[type="checkbox"]:disabled {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    max-width: 400px;
+    max-width: 380px;
     width: 90%;
     opacity: 0;
     transform: scale(0.95);
@@ -1277,7 +1272,7 @@ input[type="checkbox"]:disabled {
     border-radius: 12px;
     text-align: center;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    max-width: 400px;
+    max-width: 380px;
     opacity: 0;
     transform: scale(0.95);
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -1557,7 +1552,7 @@ input[type="checkbox"]:disabled {
     color: white;
     border-radius: 3px;
     font-size: 12px;
-    max-width: 180px;
+    max-width: 160px;
     font-family: 'Courier New', monospace;
     position: relative;
     cursor: default;
@@ -2050,7 +2045,7 @@ input[type="checkbox"]:disabled {
 
     header h1 {
         font-size: 16px;
-        margin: 0 0 8px;
+        margin: 0 0 6px;
     }
 
     header h1 .material-icons {
@@ -2059,16 +2054,16 @@ input[type="checkbox"]:disabled {
     }
 
     .btn-update {
-        min-width: 140px;
-        max-width: 140px;
+        min-width: 100px;
+        max-width: 100px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
     .version-number {
-        min-width: 140px;
-        max-width: 140px;
+        min-width: 100px;
+        max-width: 100px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -2216,6 +2211,11 @@ h1 .material-icons {
 button .material-icons {
     font-size: 22px;
     margin: -6px 2px -4px -8px;
+}
+
+button .material-icons.update-icon {
+    font-size:16px;
+    margin-right: 0;
 }
 
 label .material-icons {
