@@ -2066,7 +2066,7 @@ function renderGitStatus(status, showForceUpdate = false) {
   `;
 }
 
-async function checkForUpdates(force = false) {
+async function checkForUpdates() {
   const updateBtn = document.getElementById('updateBtn');
   const isFirstTimeSetup = ecosystem.default === true;
   if (!updateBtn || isFirstTimeSetup) return;

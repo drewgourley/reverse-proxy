@@ -774,12 +774,10 @@ configrouter.get('/git/check', (request, response) => {
           const updatesAvailable = localCommit !== remoteCommit;
           if (updatesAvailable) {
             exec('git rev-list --count HEAD..@{u}', { windowsHide: true }, (countError, countOut) => {
-              const commitsAhead = countError ? 0 : parseInt(countOut.trim());
               response.status(200).send({
                 success: true,
                 updatesAvailable: true,
-                commitsAhead,
-                message: `${commitsAhead} Update${commitsAhead !== 1 ? 's' : ''} Available`
+                message: `Update Available`
               });
             });
           } else {
