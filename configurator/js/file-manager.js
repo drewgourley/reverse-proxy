@@ -77,11 +77,11 @@ export async function renderFileManager(serviceName, folderType = 'public', curr
           <div class="folders-tabs-row">
             <button class="tab-folder-type ${folderType === 'public' ? 'active' : ''}" 
                 onclick="renderFileManager('${serviceName}', 'public', '')">
-              Public
+              <span class="material-icons">public</span> Public
             </button>
             <button class="tab-folder-type ${folderType === 'static' ? 'active' : ''}" 
                 onclick="renderFileManager('${serviceName}', 'static', '')">
-              Static
+              <span class="material-icons">code</span> Static
             </button>
           </div>
           <div class="folders-tabs-spacer"></div>
