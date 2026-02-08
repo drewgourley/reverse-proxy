@@ -3,7 +3,7 @@
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    max-height: calc(100dvh - 160px);
+    height: calc(100dvh - 160px);
     min-height: 480px;
     display: flex;
     flex-direction: column;

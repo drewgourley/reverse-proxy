@@ -20,12 +20,10 @@
 
     .sidebar {
         width: auto;
-        max-height: none;
         height: calc(100dvh - 130px);
     }
     
     .editor-panel {
-        max-height: none;
         height: calc(100dvh - 130px);
     }
 
