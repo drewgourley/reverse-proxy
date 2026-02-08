@@ -231,12 +231,11 @@ const pingHealthcheck = async (name) => {
   const id = config.services?.[name]?.healthcheck?.id;
   if (id) {
     const now = new Date().toISOString();
-    const nicename = name.charAt(0).toUpperCase() + name.slice(1);
     try {
       const ping = await got(`${protocols.secure}${path.join('hc-ping.com', id)}`, {timeout: {request: 5000}});
-      console.log(`${now}: ${nicename} healthcheck ping succeeded. ${ping.body}`);
+      console.log(`${now}: ${name} healthcheck ping succeeded. ${ping.body}`);
     } catch (error) {
-      console.log(`${now}: ${nicename} healthcheck ping failed. ${error}`);
+      console.log(`${now}: ${name} healthcheck ping failed. ${error}`);
     }
   }
 };
@@ -835,7 +834,7 @@ cron.schedule('1 * * * *', () => {
       const now = new Date().toISOString();
       if (service.healthy) {
         if (env === 'production') {
-          console.log(`${now}: ${name} is healthy. Pinging healthcheck...`);
+          console.log(`${now}: ${name} service is up. Pinging healthcheck...`);
           pingHealthcheck(name);
         } else {
           console.log(`${now}: Skipping healthcheck ping for ${name} in non-production environment`);
