@@ -21,6 +21,8 @@ export function renderCertificatesEditor() {
   let warningMessage = '';
   if (hasChanges) {
     warningMessage = '<div class="hint"><span class="material-icons warning">warning</span> Please save your configuration before provisioning certificates</div>';
+  } else if (certStatus.provisioned.length === 0 && certStatus.needProvisioning.length === 0 && certStatus.needDeprovisioning.length === 0) {
+    warningMessage = '<div class="hint"><span class="material-icons info">info</span> No secure services configured. Add services with secure protocol to provision certificates.</div>';
   } else if (!canProvision) {
     warningMessage = '<div class="hint"><span class="material-icons info">info</span> No certificate changes needed at this time</div>';
   }
@@ -65,10 +67,6 @@ export function renderCertificatesEditor() {
         </div>
       </div>
     `;
-  }
-  
-  if (certStatus.provisioned.length === 0 && certStatus.needProvisioning.length === 0 && certStatus.needDeprovisioning.length === 0) {
-    statusHtml = '<div class="hint cert-empty">No secure services configured. Add services with secure protocol to provision certificates.</div>';
   }
   
   panel.innerHTML = `
