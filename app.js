@@ -29,49 +29,56 @@ try {
   config = require('./config.json');
 } catch (e) {
   config = {};
-  console.warn('Initial configuration required')
+  const now = new Date().toISOString();
+  console.warn(`${now}: Initial configuration required`)
 }
 let secrets;
 try {
   secrets = require('./secrets.json');
 } catch (e) {
   secrets = {};
-  console.warn('Secrets not configured');
+  const now = new Date().toISOString();
+  console.warn(`${now}: Secrets not configured`);
 }
 let users;
 try {
   users = require('./users.json');
 } catch (e) {
   users = { users: [] };
-  console.warn('Users not configured');
+  const now = new Date().toISOString();
+  console.warn(`${now}: Users not configured`);
 }
 let ddns;
 try {
   ddns = require('./ddns.json');
 } catch (e) {
   ddns = {};
-  console.warn('DDNS not configured');
+  const now = new Date().toISOString();
+  console.warn(`${now}: DDNS not configured`);
 }
 let advancedConfig;
 try {
   advancedConfig = require('./advanced.json');
 } catch (e) {
   advancedConfig = { parsers: {}, extractors: {}, queryTypes: [] };
-  console.warn('Advanced Options not configured');
+  const now = new Date().toISOString();
+  console.warn(`${now}: Advanced Options not configured`);
 }
 let blocklist;
 try {
   blocklist = require('./blocklist.json');
 } catch (e) {
   blocklist = [];
-  console.warn('Blocklist not established');
+  const now = new Date().toISOString();
+  console.warn(`${now}: Blocklist not established`);
 }
 let ecosystem;
 try {
   ecosystem = require('./ecosystem.config.js');
 } catch (e) {
   ecosystem = {};
-  console.warn('Ecosystem not established');
+  const now = new Date().toISOString();
+  console.warn(`${now}: Ecosystem not established`);
 }
 /* ENVIRONMENT SETUP */
 dotenv.config();
@@ -127,7 +134,8 @@ if (advancedConfig.parsers) {
     try {
       parsers[key] = eval(`(${advancedConfig.parsers[key]})`);
     } catch (error) {
-      console.error(`Error loading custom parser "${key}":`, error);
+      const now = new Date().toISOString();
+      console.error(`${now}: Error loading custom parser "${key}":`, error);
     }
   });
 }
@@ -136,7 +144,8 @@ if (advancedConfig.extractors) {
     try {
       extractors[key] = eval(`(${advancedConfig.extractors[key]})`);
     } catch (error) {
-      console.error(`Error loading custom extractor "${key}":`, error);
+      const now = new Date().toISOString();
+      console.error(`${now}: Error loading custom extractor "${key}":`, error);
     }
   });
 }
@@ -238,7 +247,8 @@ const initApplication = async () => {
     redisClient = createClient({ url: 'redis://127.0.0.1:6379', socket: { connectTimeout: 1000 } });
     await redisClient.connect();
   } catch (error) {
-    console.warn('Redis unavailable, proceeding with in-memory session store.');
+    const now = new Date().toISOString();
+    console.warn(`${now}: Redis unavailable, proceeding with in-memory session store.`);
     redisClient = null;
   }
   const getRedisStore = (serviceName) => {
@@ -374,7 +384,8 @@ const initApplication = async () => {
                 fs.writeFileSync(secretsPath, JSON.stringify(existing, null, 2));
                 secrets.api_session_secret = sessionSecret;
               } catch (e) {
-                console.warn('Failed to persist API session secret:', e.message);
+                const now = new Date().toISOString();
+                console.warn(`${now}: Failed to persist API session secret:`, e.message);
               }
             }
             const serviceName = name;
@@ -483,9 +494,9 @@ const initApplication = async () => {
                   existing.api_session_secret = sessionSecret;
                   fs.writeFileSync(secretsPath, JSON.stringify(existing, null, 2));
                   secrets.api_session_secret = sessionSecret;
-                  console.log('Persisted API session secret to secrets.json');
                 } catch (e) {
-                  console.warn('Failed to persist API session secret:', e.message);
+                  const now = new Date().toISOString();
+                  console.warn(`${now}: Failed to persist API session secret:`, e.message);
                 }
               }
               config.services[name].subdomain.router.use(session({
@@ -653,7 +664,8 @@ const initApplication = async () => {
                 fs.writeFileSync(secretsPath, JSON.stringify(existing, null, 2));
                 secrets.api_session_secret = sessionSecret;
               } catch (e) {
-                console.warn('Failed to persist API session secret:', e.message);
+                const now = new Date().toISOString();
+                console.warn(`${now}: Failed to persist API session secret:`, e.message);
               }
             }
             const serviceName = name; // Capture for closure
@@ -786,7 +798,7 @@ if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key 
         },
       }];
       if (env === 'development') {
-        console.log('DDNS update skipped in development mode:', changes);
+        console.log(`${now}: DDNS update skipped in development mode:`, changes);
         lastKnownIP = publicIP;
         return;
       }
@@ -799,10 +811,9 @@ if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key 
       };
       const command = new ChangeResourceRecordSetsCommand(params);
       await route53.send(command);
-      
-      lastKnownIP = publicIP;
       const now = new Date().toISOString();
       console.log(`${now}: DDNS updated to ${publicIP}`);
+      lastKnownIP = publicIP;
     } catch (error) {
       const now = new Date().toISOString();
       console.error(`${now}: DDNS update failed: ${error}`);
@@ -817,27 +828,28 @@ if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key 
 }
 
 const healthchecks = Object.keys(config.services).filter((name) => config.services[name].healthcheck);
-console.log(`Healthchecks enabled for: ${healthchecks.join(', ')}`);
 cron.schedule('1 * * * *', () => {
   healthchecks.forEach((name) => {
-    if (env === 'production') {
-      checkService(name, (service) => {
-        if (service.healthy) {
+    checkService(name, (service) => {
+      const now = new Date().toISOString();
+      if (service.healthy) {
+        if (env === 'production') {
+          console.log(`${now}: ${name} is healthy. Pinging healthcheck...`);
           pingHealthcheck(name);
+        } else {
+          console.log(`${now}: Skipping healthcheck ping for ${name} in non-production environment`);
         }
-      });
-    } else {
-      console.log(`Skipping healthcheck ping for ${name} in non-production environment`);
-    }
+      }
+    });
   });
 });
-
 
 // Delay for server restarts to avoid port conflicts.
 setTimeout(() => {
   /* CONFIGURATOR SETUP */
   configurator.listen(3000, () => {
-    console.log(`Configurator running on port 3000`);
+    const now = new Date().toISOString();
+    console.log(`${now}: Configurator running on port 3000`);
   });
   /* SERVER SETUP */
   let cert;
@@ -849,7 +861,8 @@ setTimeout(() => {
         ca: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'chain.pem'), 'utf8'),
       };
     } catch (error) {
-      console.error('Error loading SSL certificates, try provisioning certificates using the configurator.');
+      const now = new Date().toISOString();
+      console.error(`${now}: Error loading SSL certificates, try provisioning certificates using the configurator.`);
     }
   }
   if (config.domain) {
@@ -872,18 +885,21 @@ setTimeout(() => {
       const httpServer = http.createServer(app);
       const httpsServer = cert ? https.createServer(cert, app) : null;
       httpServer.listen(port_http, () => {
-        console.log(`HTTP Server running on port ${port_http}`);
+        const now = new Date().toISOString();
+        console.log(`${now}: HTTP Server running on port ${port_http}`);
         httpServer.on('upgrade', handleWebSocketUpgrade);
       });
       if (httpsServer) {
         const port_https = 8443;
         httpsServer.listen(port_https, () => {
-          console.log(`HTTPS Server running on port ${port_https}`);
+          const now = new Date().toISOString();
+          console.log(`${now}: HTTPS Server running on port ${port_https}`);
           httpsServer.on('upgrade', handleWebSocketUpgrade);
         });
       }
     }).catch((err) => {
-      console.error('Failed to initialize application:', err);
+      const now = new Date().toISOString();
+      console.error(`${now}: Failed to initialize application:`, err);
       process.exit(1);
     });
   }
