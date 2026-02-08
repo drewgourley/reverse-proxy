@@ -54,8 +54,3 @@
     font-size: 13px;
     color: var(--color-text-primary);
 }
-
-.cert-empty {
-    padding: 20px;
-    text-align: center;
-}
