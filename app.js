@@ -440,7 +440,7 @@ const initApplication = async () => {
                 const nextUrl = encodeURIComponent(req.originalUrl || req.url || '/');
                 return res.redirect(`/login?next=${nextUrl}`);
               }
-              return res.status(401).sendFile(path.join(__dirname, 'web', 'public', '401.html'));
+              return res.status(401).sendFile(path.join(__dirname, 'web', 'errors', '401.html'));
             };
             config.services[name].subdomain.router.use(serviceAuth);
           }
@@ -548,9 +548,9 @@ const initApplication = async () => {
                     return res.redirect(`/login?next=${nextUrl}`);
                   }
 
-                  return res.status(401).sendFile(path.join(__dirname, 'web', 'public', '401.html'));
+                  return res.status(401).sendFile(path.join(__dirname, 'web', 'errors', '401.html'));
                 } catch (error) {
-                  return res.status(401).sendFile(path.join(__dirname, 'web', 'public', '401.html'));
+                  return res.status(401).sendFile(path.join(__dirname, 'web', 'errors', '401.html'));
                 }
               };
               config.services[name].subdomain.router.use(apiAuth);
@@ -620,7 +620,7 @@ const initApplication = async () => {
             response.sendFile(path.join(__dirname, 'web', 'public', name, 'index.html'));
           });
           config.services[name].subdomain.router.use((request, response) => {
-            response.status(404).sendFile(path.join(__dirname, 'web', 'public', '404.html'));
+            response.status(404).sendFile(path.join(__dirname, 'web', 'errors', '404.html'));
           });
         } else if (config.services[name].subdomain.type === 'dirlist') {
           const protectedFolderPath = path.join(__dirname, 'web', 'public', name, 'protected');
@@ -719,7 +719,7 @@ const initApplication = async () => {
                 const nextUrl = encodeURIComponent(req.originalUrl || req.url || '/');
                 return res.redirect(`/login?next=${nextUrl}`);
               }
-              return res.status(401).sendFile(path.join(__dirname, 'web', 'public', '401.html'));
+              return res.status(401).sendFile(path.join(__dirname, 'web', 'errors', '401.html'));
             };
             config.services[name].subdomain.router.use(serviceAuth);
           }
