@@ -816,18 +816,22 @@ if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key 
   }
 }
 
-if (env === 'production') {
-  cron.schedule('1 * * * *', () => {
-    const services = Object.keys(config.services).filter((name) => config.services[name].healthcheck);
-    services.forEach((name) => {
+const healthchecks = Object.keys(config.services).filter((name) => config.services[name].healthcheck);
+console.log(`Healthchecks enabled for: ${healthchecks.join(', ')}`);
+cron.schedule('1 * * * *', () => {
+  healthchecks.forEach((name) => {
+    if (env === 'production') {
       checkService(name, (service) => {
         if (service.healthy) {
           pingHealthcheck(name);
         }
       });
-    });
+    } else {
+      console.log(`Skipping healthcheck ping for ${name} in non-production environment`);
+    }
   });
-}
+});
+
 
 // Delay for server restarts to avoid port conflicts.
 setTimeout(() => {
