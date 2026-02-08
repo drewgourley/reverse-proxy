@@ -1,0 +1,61 @@
+// Global State Management
+// All application state variables in one place
+
+export let config = {};
+export let originalConfig = {};
+export let secrets = {};
+export let originalSecrets = {};
+export let users = {};
+export let originalUsers = {};
+export let ddns = {};
+export let originalDdns = {};
+export let ecosystem = {};
+export let originalEcosystem = {};
+export let advanced = {};
+export let originalAdvanced = {};
+export let certs = {};
+export let originalCerts = {};
+export let gitStatus = {};
+export let blocklist = [];
+export let originalBlocklist = [];
+export let colors = {};
+export let originalColors = {};
+export let pendingFaviconFile = null;
+export let rebooting = false;
+export let secretsSaved = false;
+export let logRotateInstalled = false;
+export let currentSelection = null;
+export let currentFileManagerContext = null;
+export let selectedFiles = new Set();
+export let allowPopStateNavigation = false;
+export let currentUrl = window.location.href;
+
+// State setters (for updating from other modules)
+export function setConfig(value) { config = value; }
+export function setOriginalConfig(value) { originalConfig = value; }
+export function setSecrets(value) { secrets = value; }
+export function setOriginalSecrets(value) { originalSecrets = value; }
+export function setUsers(value) { users = value; }
+export function setOriginalUsers(value) { originalUsers = value; }
+export function setDdns(value) { ddns = value; }
+export function setOriginalDdns(value) { originalDdns = value; }
+export function setEcosystem(value) { ecosystem = value; }
+export function setOriginalEcosystem(value) { originalEcosystem = value; }
+export function setAdvanced(value) { advanced = value; }
+export function setOriginalAdvanced(value) { originalAdvanced = value; }
+export function setCerts(value) { certs = value; }
+export function setOriginalCerts(value) { originalCerts = value; }
+export function setGitStatus(value) { gitStatus = value; }
+export function setBlocklist(value) { blocklist = value; }
+export function setOriginalBlocklist(value) { originalBlocklist = value; }
+export function setColors(value) { colors = value; }
+export function setOriginalColors(value) { originalColors = value; }
+export function setPendingFaviconFile(value) { pendingFaviconFile = value; }
+export function setRebooting(value) { rebooting = value; }
+export function setSecretsSaved(value) { secretsSaved = value; }
+export function setLogRotateInstalled(value) { logRotateInstalled = value; }
+export function setCurrentSelection(value) { currentSelection = value; }
+export function setCurrentFileManagerContext(value) { currentFileManagerContext = value; }
+export function setSelectedFiles(value) { selectedFiles = value; }
+export function setAllowPopStateNavigation(value) { allowPopStateNavigation = value; }
+export function setCurrentUrl(value) { currentUrl = value; }

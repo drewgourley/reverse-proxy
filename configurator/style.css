@@ -1689,6 +1689,9 @@ input[type="checkbox"]:disabled {
 .text-security {
     -webkit-text-security: disc;
 }
+.text-security.show-password {
+    -webkit-text-security: none;
+}
 
 .flex-row {
     display: flex;
@@ -1804,19 +1807,7 @@ input[type="checkbox"]:disabled {
     margin-top: 4px;
 }
 
-/* Certificate Status */
-.cert-warning {
-    color: #ed8936;
-    margin-bottom: 10px;
-}
-
-.cert-info {
-    color: #718096;
-    margin-bottom: 10px;
-}
-
 .cert-empty {
-    color: #718096;
     padding: 20px;
     text-align: center;
 }
@@ -1994,6 +1985,216 @@ input[type="checkbox"]:disabled {
     margin: 0;
 }
 
+.material-icons {
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;
+    display: inline-block;
+    line-height: 1;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    vertical-align: middle;
+    opacity: 0.5;
+}
+
+.material-icons.warning {
+    color: #ed8936;
+    opacity: 1;
+}
+
+.material-icons.info {
+    color: #4299e1;
+    opacity: 1;
+}
+
+.material-icons.star {
+    color: #ecc94b;
+    opacity: 1;
+}
+
+.material-icons.error {
+    color: #e53e3e;
+    opacity: 1;
+}
+
+.material-icons.success {
+    color: #48bb78;
+    opacity: 1;
+}
+
+.material-icons.folder {
+    color: #ffe585;
+    opacity: 1;
+}
+
+.material-icons.file {
+    color: #b7e1ff;
+    opacity: 1;
+}
+
+.material-icons.image {
+    color: #9b87f6;
+    opacity: 1;
+}
+
+.material-icons.video {
+    color: #9f7aea;
+    opacity: 1;
+}
+
+.material-icons.audio {
+    color: #68d391;
+    opacity: 1;
+}
+
+.material-icons.archive {
+    color: #f6ad55;
+    opacity: 1;
+}
+
+.material-icons.pdf {
+    color: #fc8181;
+    opacity: 1;
+}
+
+.material-icons.code {
+    color: #68ed63;
+    opacity: 1;
+}
+
+.material-icons.html {
+    color: #f56565;
+    opacity: 1;
+}
+
+.material-icons.css {
+    color: #4299e1;
+    opacity: 1;
+}
+
+.material-icons.data {
+    color: #ed64a6;
+    opacity: 1;
+}
+
+.material-icons.text {
+    color: #48bb78;
+    opacity: 1;
+}
+
+.material-icons.doc {
+    color: #667eea;
+    opacity: 1;
+}
+
+.material-icons.table {
+    color: #ed8936;
+    opacity: 1;
+}
+
+.material-icons.font {
+    color: #f6e05e;
+    opacity: 1;
+}
+
+.material-icons.binary {
+    color: #4fd194;
+    opacity: 1;
+}
+
+.material-icons.game {
+    color: #64e8ed;
+    opacity: 1;
+}
+
+.material-icons.manifest {
+    color: #a0aec0;
+    opacity: 1;
+}
+
+h1 .material-icons {
+    font-size: 28px;
+    margin-top: -4px;
+}
+
+.section-title .material-icons {
+    font-size: 24px;
+    margin: -5px 0 0;
+}
+
+/* Material Icons in buttons */
+button .material-icons {
+    font-size: 22px;
+    margin: -6px 2px -4px -8px;
+}
+
+button .material-icons.update-icon {
+    font-size:16px;
+    margin-right: 0;
+}
+
+label .material-icons {
+    font-size: 16px;
+    margin-top: -4px;
+}
+
+.service-item .material-icons {
+    font-size: 22px;
+    margin: -4px 6px -4px -8px;
+}
+
+.status-message .material-icons {
+    font-size: 18px;
+    margin-right: 6px;
+}
+
+.hint .material-icons {
+    font-size: 18px;
+    margin-top: -4px;
+    margin-right: 2px;
+}
+
+.result-success .material-icons, .result-error .material-icons {
+    font-size: 20px;
+    margin-right: 6px;
+}
+
+.multi-select-label .material-icons {
+    font-size: 18px;
+    margin-right: 2px;
+    margin-top: -4px;
+}
+
+.mobile-nav-btn .material-icons {
+    font-size: 20px;
+    margin: 0;
+}
+
+.cert-status-header .material-icons {
+    font-size: 22px;
+    margin-top: -3px;
+    margin-right: 2px;
+}
+
+.modal-header .material-icons {
+    font-size: 22px;
+    margin-right: 4px;
+    margin-top: -3px;
+}
+
+.setup-section-title .material-icons, .subsection-heading .material-icons {
+    font-size: 22px;
+    margin-right: 2px;
+    margin-top: -4px;
+}
+
+.status-container .status .material-icons {
+    font-size: 22px;
+    margin: -4px 0 0 -8px;
+}
+
 @media (max-width: 1024px) {
     body {
         padding:10px;
@@ -2089,207 +2290,4 @@ input[type="checkbox"]:disabled {
     .file-manager-actions button .material-icons {
         margin: -4px 0 0 0;
     }
-}
-
-/* Material Icons Styling */
-.material-icons {
-    font-family: 'Material Icons';
-    font-weight: normal;
-    font-style: normal;
-    font-size: 20px;
-    display: inline-block;
-    line-height: 1;
-    letter-spacing: normal;
-    word-wrap: normal;
-    white-space: nowrap;
-    vertical-align: middle;
-    opacity: 0.5;
-}
-
-.material-icons.warning {
-    color: #ed8936;
-    opacity: 1;
-}
-
-.material-icons.info {
-    color: #4299e1;
-    opacity: 1;
-}
-
-.material-icons.star {
-    color: #ecc94b;
-    opacity: 1;
-}
-
-.material-icons.error {
-    color: #e53e3e;
-    opacity: 1;
-}
-
-.material-icons.success {
-    color: #48bb78;
-    opacity: 1;
-}
-
-.material-icons.folder {
-    color: #ffe585;
-    opacity: 1;
-}
-.material-icons.file {
-    color: #b7e1ff;
-    opacity: 1;
-}
-.material-icons.image {
-    color: #9b87f6;
-    opacity: 1;
-}
-.material-icons.video {
-    color: #9f7aea;
-    opacity: 1;
-}
-.material-icons.audio {
-    color: #68d391;
-    opacity: 1;
-}
-.material-icons.archive {
-    color: #f6ad55;
-    opacity: 1;
-}
-.material-icons.pdf {
-    color: #fc8181;
-    opacity: 1;
-}
-.material-icons.code {
-    color: #68ed63;
-    opacity: 1;
-}
-.material-icons.html {
-    color: #f56565;
-    opacity: 1;
-}
-.material-icons.css {
-    color: #4299e1;
-    opacity: 1;
-}
-.material-icons.data {
-    color: #ed64a6;
-    opacity: 1;
-}
-.material-icons.text {
-    color: #48bb78;
-    opacity: 1;
-}
-.material-icons.doc {
-    color: #667eea;
-    opacity: 1;
-}
-.material-icons.table {
-    color: #ed8936;
-    opacity: 1;
-}
-.material-icons.font {
-    color: #f6e05e;
-    opacity: 1;
-}
-.material-icons.binary {
-    color: #4fd194;
-    opacity: 1;
-}
-.material-icons.game {
-    color: #64e8ed;
-    opacity: 1;
-}
-.material-icons.manifest {
-    color: #a0aec0;
-    opacity: 1;
-}
-
-/* Material Icons in headings */
-h1 .material-icons {
-    font-size: 28px;
-    margin-top: -4px;
-}
-
-.section-title .material-icons {
-    font-size: 24px;
-    margin: -5px 0 0;
-}
-
-/* Material Icons in buttons */
-button .material-icons {
-    font-size: 22px;
-    margin: -6px 2px -4px -8px;
-}
-
-button .material-icons.update-icon {
-    font-size:16px;
-    margin-right: 0;
-}
-
-label .material-icons {
-    font-size: 16px;
-    margin-top: -4px;
-}
-
-/* Material Icons in sidebar */
-.service-item .material-icons {
-    font-size: 22px;
-    margin: -4px 6px -4px -8px;
-}
-
-/* Material Icons in status messages */
-.status-message .material-icons {
-    font-size: 18px;
-    margin-right: 6px;
-}
-
-/* Material Icons in hints/warnings */
-.hint .material-icons {
-    font-size: 18px;
-    margin-top: -4px;
-    margin-right: 2px;
-}
-
-/* Material Icons in results */
-.result-success .material-icons,
-.result-error .material-icons {
-    font-size: 20px;
-    margin-right: 6px;
-}
-
-/* Material Icons in multi-select */
-.multi-select-label .material-icons {
-    font-size: 18px;
-    margin-right: 2px;
-    margin-top: -4px;
-}
-
-/* Material Icons in mobile nav */
-.mobile-nav-btn .material-icons {
-    font-size: 20px;
-    margin: 0;
-}
-
-.cert-status-header .material-icons {
-    font-size: 22px;
-    margin-top: -3px;
-    margin-right: 2px;
-}
-
-/* Material Icons in modal headers */
-.modal-header .material-icons {
-    font-size: 22px;
-    margin-right: 4px;
-    margin-top: -3px;
-}
-
-.setup-section-title .material-icons, .subsection-heading .material-icons {
-    font-size: 22px;
-    margin-right: 2px;
-    margin-top: -4px;
-}
-
-.status-container .status .material-icons {
-    font-size: 22px;
-    margin: -4px 0 0 -8px;
 }

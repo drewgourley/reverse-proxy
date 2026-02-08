@@ -749,130 +749,133 @@ const initApplication = async () => {
   }
   return application;
 }
-/* CONFIGURATOR SETUP */
-configurator.listen(3000, () => {
-  console.log(`Configurator running on port 3000`);
-});
-/* SERVER SETUP */
-let cert;
-if (env === 'production') {
-  try {
-    cert = {
-      key: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'privkey.pem'), 'utf8'),
-      cert: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'cert.pem'), 'utf8'),
-      ca: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'chain.pem'), 'utf8'),
-    };
-  } catch (error) {
-    console.error('Error loading SSL certificates, try provisioning certificates using the configurator.');
+// Delay for server restarts to avoid port conflicts.
+setTimeout(() => {
+  /* CONFIGURATOR SETUP */
+  configurator.listen(3000, () => {
+    console.log(`Configurator running on port 3000`);
+  });
+  /* SERVER SETUP */
+  let cert;
+  if (env === 'production') {
+    try {
+      cert = {
+        key: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'privkey.pem'), 'utf8'),
+        cert: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'cert.pem'), 'utf8'),
+        ca: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'chain.pem'), 'utf8'),
+      };
+    } catch (error) {
+      console.error('Error loading SSL certificates, try provisioning certificates using the configurator.');
+    }
+    cron.schedule('1 * * * *', () => {
+      const services = Object.keys(config.services).filter((name) => config.services[name].healthcheck);
+      services.forEach((name) => {
+        checkService(name, (service) => {
+          if (service.healthy) {
+            pingHealthcheck(name);
+          }
+        });
+      });
+    });
   }
-  cron.schedule('1 * * * *', () => {
-    const services = Object.keys(config.services).filter((name) => config.services[name].healthcheck);
-    services.forEach((name) => {
-      checkService(name, (service) => {
-        if (service.healthy) {
-          pingHealthcheck(name);
+  if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key && ddns.aws_region && ddns.route53_hosted_zone_id) {
+    const { Route53Client, ChangeResourceRecordSetsCommand } = require('@aws-sdk/client-route-53');
+    const route53 = new Route53Client({
+      region: ddns.aws_region,
+      credentials: {
+        accessKeyId: ddns.aws_access_key_id,
+        secretAccessKey: ddns.aws_secret_access_key,
+      },
+    });
+    let lastKnownIP = null;
+    const updateDNSRecord = async () => {
+      try {
+        const response = await got('https://checkip.amazonaws.com/', { timeout: { request: 5000 } });
+        const publicIP = response.body.trim();
+        if (publicIP === lastKnownIP) {
+          return;
+        }
+        const changes = [{
+          Action: 'UPSERT',
+          ResourceRecordSet: {
+            Name: config.domain,
+            Type: 'A',
+            TTL: 300,
+            ResourceRecords: [{ Value: publicIP }],
+          },
+        },
+        {
+          Action: 'UPSERT',
+          ResourceRecordSet: {
+            Name: `*.${config.domain}`,
+            Type: 'A',
+            TTL: 300,
+            ResourceRecords: [{ Value: publicIP }],
+          },
+        }];
+        if (env === 'development') {
+          console.log('DDNS update skipped in development mode:', changes);
+          lastKnownIP = publicIP;
+          return;
+        }
+        const params = {
+          ChangeBatch: {
+            Changes: changes,
+            Comment: 'Updated automatically by Dynamic DNS',
+          },
+          HostedZoneId: ddns.route53_hosted_zone_id,
+        };
+        const command = new ChangeResourceRecordSetsCommand(params);
+        await route53.send(command);
+        
+        lastKnownIP = publicIP;
+        const now = new Date().toISOString();
+        console.log(`${now}: DDNS updated to ${publicIP}`);
+      } catch (error) {
+        const now = new Date().toISOString();
+        console.error(`${now}: DDNS update failed: ${error}`);
+      }
+    };
+    updateDNSRecord();
+    if (env === 'production') {
+      cron.schedule('*/5 * * * *', () => {
+        updateDNSRecord();
+      });
+    }
+  }
+  if (config.domain) {
+    const handleWebSocketUpgrade = (req, socket, head) => {
+      const websockets = Object.keys(config.services).filter(name => config.services[name].subdomain?.proxy?.socket);
+      let found = false;
+      websockets.forEach(name => {
+        if (req.headers.host === `${name}.${config.domain}`) {
+          config.services[name].subdomain.proxy.websocket.upgrade(req, socket, head);
+          found = true;
         }
       });
-    });
-  });
-}
-if (ddns && ddns.active && ddns.aws_access_key_id && ddns.aws_secret_access_key && ddns.aws_region && ddns.route53_hosted_zone_id) {
-  const { Route53Client, ChangeResourceRecordSetsCommand } = require('@aws-sdk/client-route-53');
-  const route53 = new Route53Client({
-    region: ddns.aws_region,
-    credentials: {
-      accessKeyId: ddns.aws_access_key_id,
-      secretAccessKey: ddns.aws_secret_access_key,
-    },
-  });
-  let lastKnownIP = null;
-  const updateDNSRecord = async () => {
-    try {
-      const response = await got('https://checkip.amazonaws.com/', { timeout: { request: 5000 } });
-      const publicIP = response.body.trim();
-      if (publicIP === lastKnownIP) {
-        return;
+      if (!found) {
+        socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+        socket.destroy();
       }
-      const changes = [{
-        Action: 'UPSERT',
-        ResourceRecordSet: {
-          Name: config.domain,
-          Type: 'A',
-          TTL: 300,
-          ResourceRecords: [{ Value: publicIP }],
-        },
-      },
-      {
-        Action: 'UPSERT',
-        ResourceRecordSet: {
-          Name: `*.${config.domain}`,
-          Type: 'A',
-          TTL: 300,
-          ResourceRecords: [{ Value: publicIP }],
-        },
-      }];
-      if (env === 'development') {
-        console.log('DDNS update skipped in development mode:', changes);
-        lastKnownIP = publicIP;
-        return;
+    };
+    initApplication().then((app) => {
+      const port_http = (env === 'development' || env === 'test') ? 80 : 8080;
+      const httpServer = http.createServer(app);
+      const httpsServer = cert ? https.createServer(cert, app) : null;
+      httpServer.listen(port_http, () => {
+        console.log(`HTTP Server running on port ${port_http}`);
+        httpServer.on('upgrade', handleWebSocketUpgrade);
+      });
+      if (httpsServer) {
+        const port_https = 8443;
+        httpsServer.listen(port_https, () => {
+          console.log(`HTTPS Server running on port ${port_https}`);
+          httpsServer.on('upgrade', handleWebSocketUpgrade);
+        });
       }
-      const params = {
-        ChangeBatch: {
-          Changes: changes,
-          Comment: 'Updated automatically by Dynamic DNS',
-        },
-        HostedZoneId: ddns.route53_hosted_zone_id,
-      };
-      const command = new ChangeResourceRecordSetsCommand(params);
-      await route53.send(command);
-      
-      lastKnownIP = publicIP;
-      const now = new Date().toISOString();
-      console.log(`${now}: DDNS updated to ${publicIP}`);
-    } catch (error) {
-      const now = new Date().toISOString();
-      console.error(`${now}: DDNS update failed: ${error}`);
-    }
-  };
-  updateDNSRecord();
-  if (env === 'production') {
-    cron.schedule('*/5 * * * *', () => {
-      updateDNSRecord();
+    }).catch((err) => {
+      console.error('Failed to initialize application:', err);
+      process.exit(1);
     });
   }
-}
-if (config.domain) {
-  const handleWebSocketUpgrade = (req, socket, head) => {
-    const websockets = Object.keys(config.services).filter(name => config.services[name].subdomain?.proxy?.socket);
-    let found = false;
-    websockets.forEach(name => {
-      if (req.headers.host === `${name}.${config.domain}`) {
-        config.services[name].subdomain.proxy.websocket.upgrade(req, socket, head);
-        found = true;
-      }
-    });
-    if (!found) {
-      socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
-      socket.destroy();
-    }
-  };
-  initApplication().then((app) => {
-    const port_http = (env === 'development' || env === 'test') ? 80 : 8080;
-    const httpServer = http.createServer(app);
-    const httpsServer = cert ? https.createServer(cert, app) : null;
-    httpServer.listen(port_http, () => {
-      console.log(`HTTP Server running on port ${port_http}`);
-      httpServer.on('upgrade', handleWebSocketUpgrade);
-    });
-    if (httpsServer) {
-      const port_https = 8443;
-      httpsServer.listen(port_https, () => {
-        console.log(`HTTPS Server running on port ${port_https}`);
-        httpsServer.on('upgrade', handleWebSocketUpgrade);
-      });
-    }
-  }).catch((err) => {
-    console.error('Failed to initialize application:', err);
-    process.exit(1);
-  });
-}
+}, 1000);

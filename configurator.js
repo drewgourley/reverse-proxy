@@ -13,7 +13,7 @@ const os = require('os');
 const path = require('path');
 const sharp = require('sharp');
 const toIco = require('to-ico');
-const { exec, spawn } = require('child_process');
+const { exec } = require('child_process');
 const ajv = new Ajv();
 const faviconUpload = multer({ storage: multer.memoryStorage() });
 /* ENVIRONMENT SETUP */
@@ -55,7 +55,7 @@ const configrouter = express.Router();
 configrouter.use(express.static(path.join(__dirname, 'configurator'), {
   index: false
 }));
-configrouter.use('/global', express.static(path.join(__dirname, 'web', 'global')));
+configrouter.use('/favicon', express.static(path.join(__dirname, 'web', 'global', 'favicon')));
 configrouter.use(express.json());
 configrouter.get('/', (request, response) => {
   response.sendFile(path.join(__dirname, 'configurator', 'index.html'));
@@ -695,20 +695,24 @@ configrouter.put('/ecosystem', (request, response) => {
         });
       }, 2000);
     } else {
-      const child = spawn(process.execPath, ['-e', `
-        setTimeout(() => {
-          const { execSync } = require('child_process');
-          try {
-            execSync('pm2 delete "${originalEcosystem.apps[0].name}"', { stdio: 'inherit', windowsHide: true });
-          } catch (e) {}
-          execSync('pm2 start ecosystem.config.js && pm2 save', { stdio: 'inherit', windowsHide: true });
-        }, 2000);
-      `], {
-        detached: true,
-        stdio: 'ignore',
-        windowsHide: true
-      });
-      child.unref();
+      // Reload from ecosystem.config.js, then clean up old app if name changed
+      setTimeout(() => {
+        exec('pm2 startOrReload ecosystem.config.js', { windowsHide: true }, (err) => {
+          if (err) {
+            console.error('PM2 reload failed:', err);
+            return;
+          }
+          // If app was renamed, delete the old one
+          if (originalEcosystem.apps[0].name !== updatedEcosystem.apps[0].name) {
+            exec(`pm2 delete "${originalEcosystem.apps[0].name}"`, { windowsHide: true }, (delErr) => {
+              if (delErr) console.error('Failed to delete old app:', delErr);
+              exec('pm2 save', { windowsHide: true });
+            });
+          } else {
+            exec('pm2 save', { windowsHide: true });
+          }
+        });
+      }, 2000);
     }
   } catch (error) {
     response.status(500).send({ success: false, error: error.message });
@@ -815,28 +819,16 @@ configrouter.post('/git/pull', (request, response) => {
           } else {
             response.status(200).send({ success: true, message: 'Update successful', output: stdout });
           }
-          if (ecosystem.apps && ecosystem.apps.length > 0) {
-            setTimeout(() => {
-              exec(`pm2 restart '${ecosystem.apps[0].name}'`, { windowsHide: true });
-            }, 2000);
-          } else {
-            setTimeout(() => {
-              process.exit(0);
-            }, 2000);
-          }
+          setTimeout(() => {
+            process.exit(0);
+          }, 2000);
         });
       } else {
         console.log('No dependency changes detected.');
         response.status(200).send({ success: true, message: 'Update successful', output: stdout });
-        if (ecosystem.apps && ecosystem.apps.length > 0) {
-          setTimeout(() => {
-            exec(`pm2 restart '${ecosystem.apps[0].name}'`, { windowsHide: true });
-          }, 2000);
-        } else {
-          setTimeout(() => {
-            process.exit(0);
-          }, 2000);
-        }
+        setTimeout(() => {
+          process.exit(0);
+        }, 2000);
       }
     });
   } catch (error) {
@@ -861,15 +853,9 @@ configrouter.post('/git/force', (request, response) => {
         } else {
           response.status(200).send({ success: true, message: 'Update successful', output: stdout });
         }
-        if (ecosystem.apps && ecosystem.apps.length > 0) {
-          setTimeout(() => {
-            exec(`pm2 restart '${ecosystem.apps[0].name}'`, { windowsHide: true });
-          }, 2000);
-        } else {
-          setTimeout(() => {
-            process.exit(0);
-          }, 2000);
-        }
+        setTimeout(() => {
+          process.exit(0);
+        }, 2000);
       });
     });
   } catch (error) {
