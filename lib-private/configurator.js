@@ -20,20 +20,22 @@ const faviconUpload = multer({ storage: multer.memoryStorage() });
 dotenv.config();
 const env = process.env.NODE_ENV;
 
+const rootDir = path.join(__dirname, '..');
+
 const configapp = express();
 const configrouter = express.Router();
 
-configrouter.use(express.static(path.join(__dirname, 'configurator'), { index: false }));
+configrouter.use(express.static(path.join(rootDir, 'configurator'), { index: false }));
 
-configrouter.use('/favicon', express.static(path.join(__dirname, 'web', 'global', 'favicon')));
+configrouter.use('/favicon', express.static(path.join(rootDir, 'web', 'global', 'favicon')));
 
 configrouter.use(express.json());
 
-configrouter.get('/', (request, response) => { response.sendFile(path.join(__dirname, 'configurator', 'index.html')); });
+configrouter.get('/', (request, response) => { response.sendFile(path.join(rootDir, 'configurator', 'index.html')); });
 
 configrouter.get('/config', (request, response) => {
   try {
-    const config = configManager.readConfig(__dirname, 'config.json');
+    const config = configManager.readConfig(rootDir, 'config.json');
     response.setHeader('Content-Type', 'application/json');
     response.send(config);
   } catch (error) {
@@ -44,7 +46,7 @@ configrouter.get('/config', (request, response) => {
 
 configrouter.get('/blocklist', (request, response) => {
   try {
-    const blocklist = configManager.readConfig(__dirname, 'blocklist.json', []);
+    const blocklist = configManager.readConfig(rootDir, 'blocklist.json', []);
     response.setHeader('Content-Type', 'application/json');
     response.send(blocklist);
   } catch (error) {
@@ -54,7 +56,7 @@ configrouter.get('/blocklist', (request, response) => {
 
 configrouter.get('/secrets', (request, response) => {
   try {
-    const secrets = configManager.readConfig(__dirname, 'secrets.json', {});
+    const secrets = configManager.readConfig(rootDir, 'secrets.json', {});
     response.setHeader('Content-Type', 'application/json');
     response.send(secrets);
   } catch (error) {
@@ -64,7 +66,7 @@ configrouter.get('/secrets', (request, response) => {
 
 configrouter.get('/users', (request, response) => {
   try {
-    const users = configManager.readConfig(__dirname, 'users.json', { users: [] });
+    const users = configManager.readConfig(rootDir, 'users.json', { users: [] });
     response.setHeader('Content-Type', 'application/json');
     response.send(users);
   } catch (error) {
@@ -74,7 +76,7 @@ configrouter.get('/users', (request, response) => {
 
 configrouter.put('/users', async (request, response) => {
   try {
-    await configManager.updateUsers(__dirname, request.body);
+    await configManager.updateUsers(rootDir, request.body);
     response.status(200).send({ success: true, message: 'Users updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -84,7 +86,7 @@ configrouter.put('/users', async (request, response) => {
 
 configrouter.get('/certs', (request, response) => {
   try {
-    const certs = configManager.readConfig(__dirname, 'certs.json', { services: [], provisionedAt: null });
+    const certs = configManager.readConfig(rootDir, 'certs.json', { services: [], provisionedAt: null });
     response.setHeader('Content-Type', 'application/json');
     response.send(certs);
   } catch (error) {
@@ -114,7 +116,7 @@ configrouter.get('/localip', (request, response) => {
 
 configrouter.get('/ecosystem', (request, response) => {
   try {
-    const ecosystem = processManager.readEcosystem(__dirname);
+    const ecosystem = processManager.readEcosystem(rootDir);
     response.setHeader('Content-Type', 'application/json');
     response.send(ecosystem);
   } catch (error) {
@@ -124,11 +126,11 @@ configrouter.get('/ecosystem', (request, response) => {
 
 configrouter.put('/config', (request, response) => {
   try {
-    const result = configManager.updateConfig(__dirname, request.body);
+    const result = configManager.updateConfig(rootDir, request.body);
     if (result.domainChanged) {
       const now = new Date().toISOString();
       console.log(`${now}: Domain change detected, clearing provisioned certificates`);
-      certManager.registerProvisionedCerts(__dirname, [], false, false);
+      certManager.registerProvisionedCerts(rootDir, [], false, false);
     }
     response.status(200).send({ success: true, message: 'Config updated successfully' });
   } catch (error) {
@@ -139,7 +141,7 @@ configrouter.put('/config', (request, response) => {
 
 configrouter.put('/blocklist', (request, response) => {
   try {
-    configManager.updateBlocklist(__dirname, request.body);
+    configManager.updateBlocklist(rootDir, request.body);
     response.status(200).send({ success: true, message: 'Blocklist updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -149,7 +151,7 @@ configrouter.put('/blocklist', (request, response) => {
 
 configrouter.put('/secrets', async (request, response) => {
   try {
-    await configManager.updateSecrets(__dirname, request.body);
+    await configManager.updateSecrets(rootDir, request.body);
     response.status(200).send({ success: true, message: 'Secrets updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -159,7 +161,7 @@ configrouter.put('/secrets', async (request, response) => {
 
 configrouter.get('/colors', (request, response) => {
   try {
-    const colors = themeManager.readColors(__dirname);
+    const colors = themeManager.readColors(rootDir);
     response.setHeader('Content-Type', 'application/json');
     response.send(colors);
   } catch (error) {
@@ -169,7 +171,7 @@ configrouter.get('/colors', (request, response) => {
 
 configrouter.put('/colors', (request, response) => {
   try {
-    themeManager.updateColors(__dirname, request.body);
+    themeManager.updateColors(rootDir, request.body);
     response.status(200).send({ success: true, message: 'Colors updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 400;
@@ -179,7 +181,7 @@ configrouter.put('/colors', (request, response) => {
 
 configrouter.post('/favicon', faviconUpload.single('favicon'), async (request, response) => {
   try {
-    await themeManager.uploadFavicon(__dirname, request.file);
+    await themeManager.uploadFavicon(rootDir, request.file);
     response.status(200).send({ success: true, message: 'Favicon uploaded successfully' });
   } catch (error) {
     console.error('Favicon upload error:', error);
@@ -190,7 +192,7 @@ configrouter.post('/favicon', faviconUpload.single('favicon'), async (request, r
 
 configrouter.get('/ddns', (request, response) => {
   try {
-    const ddns = configManager.readConfig(__dirname, 'ddns.json', {});
+    const ddns = configManager.readConfig(rootDir, 'ddns.json', {});
     response.setHeader('Content-Type', 'application/json');
     response.send(ddns);
   } catch (error) {
@@ -200,7 +202,7 @@ configrouter.get('/ddns', (request, response) => {
 
 configrouter.put('/ddns', (request, response) => {
   try {
-    configManager.updateDDNS(__dirname, request.body);
+    configManager.updateDDNS(rootDir, request.body);
     response.status(200).send({ success: true, message: 'DDNS configuration updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -210,7 +212,7 @@ configrouter.put('/ddns', (request, response) => {
 
 configrouter.get('/advanced', (request, response) => {
   try {
-    const advanced = configManager.readConfig(__dirname, 'advanced.json', { parsers: {}, extractors: {}, queryTypes: [] });  
+    const advanced = configManager.readConfig(rootDir, 'advanced.json', { parsers: {}, extractors: {}, queryTypes: [] });  
     response.setHeader('Content-Type', 'application/json');
     response.send(advanced);
   } catch (error) {
@@ -242,7 +244,7 @@ configrouter.get('/logs/:appName/:type', (request, response) => {
 
 configrouter.put('/advanced', (request, response) => {
   try {
-    configManager.updateAdvanced(__dirname, request.body);
+    configManager.updateAdvanced(rootDir, request.body);
     response.status(200).send({ success: true, message: 'Advanced configuration updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -252,7 +254,7 @@ configrouter.put('/advanced', (request, response) => {
 
 configrouter.put('/ecosystem', async (request, response) => {
   try {
-    await processManager.updateEcosystem(__dirname, request.body);
+    await processManager.updateEcosystem(rootDir, request.body);
     response.status(200).send({ success: true, message: 'Ecosystem config updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -309,8 +311,8 @@ configrouter.put('/certs', async (request, response) => {
       return sendError(response, 400, 'Email address is required');
     }
     
-    const config = configManager.readConfig(__dirname, 'config.json');
-    const result = await certManager.provisionCertificates(__dirname, email, config, env);
+    const config = configManager.readConfig(rootDir, 'config.json');
+    const result = await certManager.provisionCertificates(rootDir, email, config, env);
     
     response.status(200).send({ success: true, message: result.message });
     if (env === 'production') {
@@ -330,7 +332,7 @@ configrouter.get('/files/:serviceName/:folderType', (request, response) => {
     const subPath = request.query.path || '';
     
     const config = require('../config.json');
-    const result = fileOps.listFiles(__dirname, serviceName, folderType, config, subPath);
+    const result = fileOps.listFiles(rootDir, serviceName, folderType, config, subPath);
     
     response.status(200).send({ success: true, ...result });
   } catch (error) {
@@ -345,7 +347,7 @@ configrouter.post('/files/:serviceName/:folderType', fileOps.fileUpload.single('
     const targetPath = request.body.targetPath || '';
     
     const config = require('../config.json');
-    const file = fileOps.uploadFile(__dirname, serviceName, folderType, config, request.file, targetPath);
+    const file = fileOps.uploadFile(rootDir, serviceName, folderType, config, request.file, targetPath);
     
     response.status(200).send({ 
       success: true, 
@@ -364,7 +366,7 @@ configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
     const { filePath } = request.body;
     
     const config = require('../config.json');
-    fileOps.deleteFile(__dirname, serviceName, folderType, config, filePath);
+    fileOps.deleteFile(rootDir, serviceName, folderType, config, filePath);
     
     response.status(200).send({ success: true, message: 'File deleted successfully' });
   } catch (error) {
@@ -379,7 +381,7 @@ configrouter.post('/files/:serviceName/:folderType/directory', (request, respons
     const { directoryPath } = request.body;
     
     const config = require('../config.json');
-    fileOps.createDirectory(__dirname, serviceName, folderType, config, directoryPath);
+    fileOps.createDirectory(rootDir, serviceName, folderType, config, directoryPath);
     
     response.status(200).send({ success: true, message: 'Directory created successfully' });
   } catch (error) {
@@ -394,7 +396,7 @@ configrouter.post('/files/:serviceName/:folderType/rename', (request, response) 
     const { oldPath, newPath } = request.body;
     
     const config = require('../config.json');
-    fileOps.renameFile(__dirname, serviceName, folderType, config, oldPath, newPath);
+    fileOps.renameFile(rootDir, serviceName, folderType, config, oldPath, newPath);
     
     response.status(200).send({ success: true, message: 'Renamed successfully' });
   } catch (error) {
@@ -409,7 +411,7 @@ configrouter.post('/files/:serviceName/:folderType/unpack', fileOps.fileUpload.s
     const { targetPath, deploy } = request.body;
     
     const config = require('../config.json');
-    const result = fileOps.unpackZip(__dirname, serviceName, folderType, config, request.file, targetPath, deploy === 'true');
+    const result = fileOps.unpackZip(rootDir, serviceName, folderType, config, request.file, targetPath, deploy === 'true');
     
     response.status(200).send({ 
       success: true, 
