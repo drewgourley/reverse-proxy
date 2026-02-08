@@ -40,6 +40,9 @@ window.selectItem = editors.selectItem;
 window.renderServicesList = editors.renderServicesList;
 window.renderPlaceholderEditor = editors.renderPlaceholderEditor;
 
+// Logs Viewer
+window.renderLogsViewer = logsViewer.renderLogsViewer;
+
 // Blocklist Editor
 window.renderBlocklistEditor = blocklistEditor.renderBlocklistEditor;
 window.addBlocklistEntry = blocklistEditor.addBlocklistEntry;

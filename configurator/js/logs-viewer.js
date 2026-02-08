@@ -42,8 +42,8 @@ export function renderLogsViewer(type = 'out', pushState = true) {
   html += `
       <div class="logs-container">
         <div class="logs-tabs-row">
-          <button class="tab-log-type${type === 'out' ? ' active' : ''}" id="btnLogOut" onclick="selectItem('monitor-logs', 'out')"><span class="material-icons">terminal</span> Standard Output</button>
-          <button class="tab-log-type${type === 'error' ? ' active' : ''}" id="btnLogErr" onclick="selectItem('monitor-logs', 'error')"><span class="material-icons">error</span> Error Output</button>
+          <button class="tab-log-type${type === 'out' ? ' active' : ''}" id="btnLogOut" onclick="renderLogsViewer('out')"><span class="material-icons">terminal</span> Standard Output</button>
+          <button class="tab-log-type${type === 'error' ? ' active' : ''}" id="btnLogErr" onclick="renderLogsViewer('error')"><span class="material-icons">error</span> Error Output</button>
         </div>
         <div id="logsBox" class="logs-box">
           <pre id="logsContent" class="logs-content">Loading logs...</pre>
