@@ -1,3 +1,10 @@
+"use strict";
+
+/**
+ * WARNING: Functions in this module process data from external services and game servers.
+ * Anything in these functions can and will be publicly facing, so be careful what you expose.
+ */
+
 const dgram = require('dgram');
 
 /** Tag identifier for OdalPapi packets */

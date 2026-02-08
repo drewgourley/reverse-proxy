@@ -1,0 +1,426 @@
+"use strict";
+
+const dotenv = require('dotenv');
+const path = require('path');
+const express = require('express');
+const multer = require('multer');
+
+const configManager = require('./config-manager');
+const fileOps = require('./file-operations');
+const gitManager = require('./git-manager');
+const logsManager = require('./logs-manager');
+const systemInfo = require('./system-info');
+const themeManager = require('./theme-manager');
+const certManager = require('./certificate-manager');
+const processManager = require('./process-manager');
+const { sendError } = require('./helpers');
+
+const faviconUpload = multer({ storage: multer.memoryStorage() });
+
+dotenv.config();
+const env = process.env.NODE_ENV;
+
+const configapp = express();
+const configrouter = express.Router();
+
+configrouter.use(express.static(path.join(__dirname, 'configurator'), { index: false }));
+
+configrouter.use('/favicon', express.static(path.join(__dirname, 'web', 'global', 'favicon')));
+
+configrouter.use(express.json());
+
+configrouter.get('/', (request, response) => { response.sendFile(path.join(__dirname, 'configurator', 'index.html')); });
+
+configrouter.get('/config', (request, response) => {
+  try {
+    const config = configManager.readConfig(__dirname, 'config.json');
+    response.setHeader('Content-Type', 'application/json');
+    response.send(config);
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.get('/blocklist', (request, response) => {
+  try {
+    const blocklist = configManager.readConfig(__dirname, 'blocklist.json', []);
+    response.setHeader('Content-Type', 'application/json');
+    response.send(blocklist);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/secrets', (request, response) => {
+  try {
+    const secrets = configManager.readConfig(__dirname, 'secrets.json', {});
+    response.setHeader('Content-Type', 'application/json');
+    response.send(secrets);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/users', (request, response) => {
+  try {
+    const users = configManager.readConfig(__dirname, 'users.json', { users: [] });
+    response.setHeader('Content-Type', 'application/json');
+    response.send(users);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.put('/users', async (request, response) => {
+  try {
+    await configManager.updateUsers(__dirname, request.body);
+    response.status(200).send({ success: true, message: 'Users updated successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.get('/certs', (request, response) => {
+  try {
+    const certs = configManager.readConfig(__dirname, 'certs.json', { services: [], provisionedAt: null });
+    response.setHeader('Content-Type', 'application/json');
+    response.send(certs);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/publicip', async (request, response) => {
+  try {
+    const ip = await systemInfo.getPublicIP();
+    response.setHeader('Content-Type', 'application/json');
+    response.send({ success: true, ip });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/localip', (request, response) => {
+  try {
+    const ip = systemInfo.getLocalIP();
+    response.setHeader('Content-Type', 'application/json');
+    response.send({ success: true, ip });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/ecosystem', (request, response) => {
+  try {
+    const ecosystem = processManager.readEcosystem(__dirname);
+    response.setHeader('Content-Type', 'application/json');
+    response.send(ecosystem);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.put('/config', (request, response) => {
+  try {
+    const result = configManager.updateConfig(__dirname, request.body);
+    if (result.domainChanged) {
+      const now = new Date().toISOString();
+      console.log(`${now}: Domain change detected, clearing provisioned certificates`);
+      certManager.registerProvisionedCerts(__dirname, [], false, false);
+    }
+    response.status(200).send({ success: true, message: 'Config updated successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.put('/blocklist', (request, response) => {
+  try {
+    configManager.updateBlocklist(__dirname, request.body);
+    response.status(200).send({ success: true, message: 'Blocklist updated successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.put('/secrets', async (request, response) => {
+  try {
+    await configManager.updateSecrets(__dirname, request.body);
+    response.status(200).send({ success: true, message: 'Secrets updated successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.get('/colors', (request, response) => {
+  try {
+    const colors = themeManager.readColors(__dirname);
+    response.setHeader('Content-Type', 'application/json');
+    response.send(colors);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.put('/colors', (request, response) => {
+  try {
+    themeManager.updateColors(__dirname, request.body);
+    response.status(200).send({ success: true, message: 'Colors updated successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 400;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.post('/favicon', faviconUpload.single('favicon'), async (request, response) => {
+  try {
+    await themeManager.uploadFavicon(__dirname, request.file);
+    response.status(200).send({ success: true, message: 'Favicon uploaded successfully' });
+  } catch (error) {
+    console.error('Favicon upload error:', error);
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.get('/ddns', (request, response) => {
+  try {
+    const ddns = configManager.readConfig(__dirname, 'ddns.json', {});
+    response.setHeader('Content-Type', 'application/json');
+    response.send(ddns);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.put('/ddns', (request, response) => {
+  try {
+    configManager.updateDDNS(__dirname, request.body);
+    response.status(200).send({ success: true, message: 'DDNS configuration updated successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.get('/advanced', (request, response) => {
+  try {
+    const advanced = configManager.readConfig(__dirname, 'advanced.json', { parsers: {}, extractors: {}, queryTypes: [] });  
+    response.setHeader('Content-Type', 'application/json');
+    response.send(advanced);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/checklogrotate', async (request, response) => {
+  try {
+    await processManager.checkLogrotate();
+    response.status(200).send({ success: true, message: 'Logrotate module is installed.' });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/installlogrotate', async (request, response) => {
+  try {
+    await processManager.installLogrotate();
+    response.status(200).send({ success: true, message: 'Logrotate module installed successfully.' });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/logs/:appName/:type', (request, response) => {
+  logsManager.streamLogs(request, response);
+});
+
+configrouter.put('/advanced', (request, response) => {
+  try {
+    configManager.updateAdvanced(__dirname, request.body);
+    response.status(200).send({ success: true, message: 'Advanced configuration updated successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.put('/ecosystem', async (request, response) => {
+  try {
+    await processManager.updateEcosystem(__dirname, request.body);
+    response.status(200).send({ success: true, message: 'Ecosystem config updated successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.get('/git/status', async (request, response) => {
+  try {
+    const status = await gitManager.getGitStatus();
+    response.status(200).send({ success: true, ...status });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/git/check', async (request, response) => {
+  try {
+    const result = await gitManager.checkForUpdates();
+    response.status(200).send({ success: true, ...result });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.post('/git/pull', async (request, response) => {
+  try {
+    const result = await gitManager.pullChanges();
+    response.status(200).send({ success: true, message: 'Update successful', output: result.output });
+    setTimeout(() => {
+      process.exit(0);
+    }, 2000);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.post('/git/force', async (request, response) => {
+  try {
+    const result = await gitManager.forceReset();
+    response.status(200).send({ success: true, message: 'Update successful', output: result.output });
+    setTimeout(() => {
+      process.exit(0);
+    }, 2000);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.put('/certs', async (request, response) => {
+  try {
+    const email = request.body.email;
+    if (!email) {
+      return sendError(response, 400, 'Email address is required');
+    }
+    
+    const config = configManager.readConfig(__dirname, 'config.json');
+    const result = await certManager.provisionCertificates(__dirname, email, config, env);
+    
+    response.status(200).send({ success: true, message: result.message });
+    if (env === 'production') {
+      setTimeout(() => {
+        process.exit(0);
+      }, 2000);
+    }
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.get('/files/:serviceName/:folderType', (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const subPath = request.query.path || '';
+    
+    const config = require('../config.json');
+    const result = fileOps.listFiles(__dirname, serviceName, folderType, config, subPath);
+    
+    response.status(200).send({ success: true, ...result });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.post('/files/:serviceName/:folderType', fileOps.fileUpload.single('file'), (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const targetPath = request.body.targetPath || '';
+    
+    const config = require('../config.json');
+    const file = fileOps.uploadFile(__dirname, serviceName, folderType, config, request.file, targetPath);
+    
+    response.status(200).send({ 
+      success: true, 
+      message: 'File uploaded successfully',
+      file
+    });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const { filePath } = request.body;
+    
+    const config = require('../config.json');
+    fileOps.deleteFile(__dirname, serviceName, folderType, config, filePath);
+    
+    response.status(200).send({ success: true, message: 'File deleted successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.post('/files/:serviceName/:folderType/directory', (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const { directoryPath } = request.body;
+    
+    const config = require('../config.json');
+    fileOps.createDirectory(__dirname, serviceName, folderType, config, directoryPath);
+    
+    response.status(200).send({ success: true, message: 'Directory created successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.post('/files/:serviceName/:folderType/rename', (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const { oldPath, newPath } = request.body;
+    
+    const config = require('../config.json');
+    fileOps.renameFile(__dirname, serviceName, folderType, config, oldPath, newPath);
+    
+    response.status(200).send({ success: true, message: 'Renamed successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.post('/files/:serviceName/:folderType/unpack', fileOps.fileUpload.single('zipFile'), (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const { targetPath, deploy } = request.body;
+    
+    const config = require('../config.json');
+    const result = fileOps.unpackZip(__dirname, serviceName, folderType, config, request.file, targetPath, deploy === 'true');
+    
+    response.status(200).send({ 
+      success: true, 
+      message: 'Zip extracted successfully',
+      filesExtracted: result.filesExtracted
+    });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configapp.use(configrouter);
+module.exports = configapp;
