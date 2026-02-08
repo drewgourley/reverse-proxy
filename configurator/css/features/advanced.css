@@ -1,0 +1,14 @@
+.advanced-remove-btn {
+    margin-top: 4px;
+}
+
+.json-viewer {
+    background: #1a202c;
+    color: #68d391;
+    padding: 15px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    overflow-x: auto;
+    margin-top: 10px;
+}

@@ -1,0 +1,96 @@
+.editor-panel {
+    background: var(--color-background);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: calc(100dvh - 160px);
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-panel-pane {
+    padding: 0 20px;
+    flex: 1;
+    margin: 0 -20px;
+}
+
+.editor-panel-pane.scrollable {
+    overflow-y: auto;
+}
+
+.editor-actions-spotlight-text {
+    position: absolute;
+    top: -30px;
+}
+
+.editor-actions-container {
+    position: relative;
+    padding: 0 17px 17px;
+    margin: 0 -17px -17px;
+    border-radius: 15px;
+    box-shadow: 0 0 0 32768px transparent;    
+    transition: box-shadow 0.3s ease;
+}
+
+.editor-actions-container.spotlight {
+    box-shadow: 0 0 0 32768px rgba(0,0,0,0.9);    
+}
+
+.editor-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 15px 0 0 0;
+    border-top: 2px solid var(--color-gray-200);
+}
+
+.editor-actions.hidden {
+    display: none;
+}
+
+.editor-actions button {
+    flex: 0 0 auto;
+}
+
+.editor-actions .btn-save {
+    margin-left: 10px;
+}
+
+.editor-actions .btn-add-field {
+    margin-top: 2px;
+}
+
+.section {
+    margin-bottom: 25px;
+}
+
+.section.logs-section {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 202px);
+    min-height: 438px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--color-gray-200);
+}
+
+.section-title-spaced {
+    margin-top: 2rem;
+}
+
+.placeholder-message {
+    text-align: center;
+    color: var(--color-gray-400);
+    padding: 40px 20px;
+}
+
+.placeholder-message p {
+    font-size: 16px;
+}

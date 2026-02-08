@@ -1,0 +1,115 @@
+.modal {
+    display: flex;
+    position: fixed;
+    z-index: 800;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0);
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: background-color 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal.active {
+    background-color: rgba(0, 0, 0, 0.7);
+    visibility: visible;
+    opacity: 1;
+}
+
+.modal-content {
+    background-color: var(--color-background);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    max-width: 380px;
+    width: 90%;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.modal.active .modal-content {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.modal-header {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--color-gray-100);
+    color: var(--color-text-primary);
+}
+
+.modal-body {
+    font-size: 15px;
+    color: var(--color-text-secondary);
+    margin-bottom: 20px;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+}
+
+.modal-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding-top: 15px;
+    border-top: 2px solid var(--color-gray-100);
+}
+
+.modal-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.modal-btn-primary {
+    background: #48bb78;
+    color: white;
+}
+
+.modal-btn-primary:hover {
+    background: #38a169;
+}
+
+.modal-btn-secondary {
+    background: #ed8936;
+    color: white;
+}
+
+.modal-btn-secondary:hover {
+    background: #dd6b20;
+}
+
+.modal-btn-danger {
+    background: #f56565;
+    color: white;
+}
+
+.modal-btn-danger:hover {
+    background: #e53e3e;
+}

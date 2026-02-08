@@ -1,0 +1,58 @@
+.logs-tabs-row, .folders-tabs-row {
+    display: flex;
+    height: 40px;
+    align-items: flex-end;
+    padding:0 5px;
+}
+
+.logs-tabs-row button, .folders-tabs-row button {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.tab-log-type, .tab-folder-type {
+    background: var(--color-primary);
+    color: white;
+    font-size: 12px;
+}
+
+.tab-log-type:hover, .tab-folder-type:hover {
+    background: var(--color-primary-hover);
+    padding-top: 12px;
+}
+
+.tab-log-type.active, .tab-log-type.active:hover, .tab-folder-type.active, .tab-folder-type.active:hover {
+    background: var(--color-secondary);
+    padding-top: 14px;
+}
+
+.logs-container {
+    position: relative;
+    flex-grow: 1;
+}
+
+.logs-box {
+    background: #2d3748;
+    padding: 15px 15px 5px;
+    border-radius: 6px;
+    border-top: 3px solid var(--color-secondary);
+    font-size: 13px;
+    position: absolute;
+    top: 40px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+}
+
+.folders-tabs-spacer {
+    height:12px;
+    border-radius: 6px;
+    border-top: 3px solid var(--color-secondary);
+}
+
+.logs-content {
+    color: #a0aec0;
+    font-size: 13px;
+    margin-bottom: 4px;
+}

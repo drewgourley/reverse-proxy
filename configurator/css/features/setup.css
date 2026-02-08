@@ -1,0 +1,100 @@
+.setup-heading {
+    margin-bottom: 30px;
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+}
+
+.setup-instructions {
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+}
+
+.ip-display-row, .setup-section {
+    flex: 1;
+}
+
+.ip-display-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.ip-display-row strong {
+    color: var(--color-text-secondary);
+}
+
+.ip-value {
+    font-family: 'Courier New', monospace;
+    color: #48bb78;
+    margin-bottom: -4px;
+}
+
+.ip-value.local {
+    color: #fbb6ce;
+}
+
+.setup-box {
+    background: #2d3748;
+    padding: 15px 15px 5px;
+    border-radius: 6px;
+    border-left: 3px solid var(--color-primary);
+    font-size: 13px;
+}
+
+.setup-box.iam-roles {
+    overflow:hidden;
+}
+
+.setup-box.iam-roles .setup-record-content {
+    width: 0;
+    overflow: visible;
+}
+
+.setup-box.router {
+    border-left-color: var(--color-secondary);
+}
+
+.setup-record {
+    margin-bottom: 12px;
+}
+
+.setup-record:not(:last-child) {
+    padding-bottom: 12px;
+    border-bottom: 1px solid #4a5568;
+    margin-bottom: 12px;
+}
+
+.setup-record-label {
+    color: #a0aec0;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.setup-record-content {
+    font-family: 'Courier New', monospace;
+    color: #e2e8f0;
+}
+
+.setup-record-content strong {
+    color: #e2e8f0;
+}
+
+.setup-value-domain {
+    color: #63b3ed;
+}
+
+.setup-value-ip {
+    color: #48bb78;
+}
+
+.setup-value-local {
+    color: #fbb6ce;
+}
+
+.setup-divider {
+    border-top: 1px solid #4a5568;
+    margin: 12px 0;
+}

@@ -1,0 +1,43 @@
+.sidebar {
+    background: var(--color-background);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: calc(100dvh - 160px);
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar h2 {
+    font-size: 18px;
+    margin-top: 20px;
+    margin-bottom: 15px;
+    color: var(--color-text-primary);
+    border-bottom: 2px solid var(--color-primary);
+    padding-bottom: 10px;
+}
+
+.sidebar-scrollable {
+    padding: 0 20px 10px 20px;
+    flex: 1;
+    margin: 0 -20px;
+    overflow-y: auto;
+}
+
+.sidebar-actions {
+    padding: 15px 0 0 0;
+    border-top: 2px solid var(--color-gray-200);
+}
+
+.sidebar-actions button {
+    flex: 0 0 auto;
+}
+
+.sidebar-actions .btn-add-field {
+    margin-top: 2px;
+}
+
+#servicesList h2:first-child {
+    margin-top: 0;
+}
