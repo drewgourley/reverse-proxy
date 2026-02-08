@@ -89,6 +89,11 @@ export function startLogStream(type = 'out') {
   const maxLines = 10000;
   const logsBox = document.getElementById('logsBox');
   const logsContent = document.getElementById('logsContent');
+  
+  if (!logsBox || !logsContent) {
+    return;
+  }
+  
   let isAtBottom = Math.abs(logsBox.scrollTop + logsBox.clientHeight - logsBox.scrollHeight) < 5;
   if (logType !== type) {
     logLines = [];
@@ -101,6 +106,7 @@ export function startLogStream(type = 'out') {
   }
   eventSource = new EventSource(`logs/${appName}/${type}`);
   eventSource.onmessage = function(event) {
+    if (!logsBox || !logsContent) return;
     // Only auto-scroll if user is already at the bottom
     isAtBottom = Math.abs(logsBox.scrollTop + logsBox.clientHeight - logsBox.scrollHeight) < 5;
     logLines.push(event.data);
@@ -122,6 +128,7 @@ export function startLogStream(type = 'out') {
     }
   };
   eventSource.onerror = function() {
+    if (!logsBox || !logsContent) return;
     isAtBottom = Math.abs(logsBox.scrollTop + logsBox.clientHeight - logsBox.scrollHeight) < 5;
     logLines.push('[Error] Connection lost. Attempting to reconnect...');
     logsContent.textContent = logLines.join('\n') + '\n';
