@@ -42,17 +42,44 @@ export function renderLogsViewer(type = 'out', pushState = true) {
   html += `
       <div class="logs-container">
         <div class="logs-tabs-row">
-          <button class="tab-log-type${type === 'out' ? ' active' : ''}" id="btnLogOut" onclick="renderLogsViewer('out')"><span class="material-icons">terminal</span> Standard Output</button>
-          <button class="tab-log-type${type === 'error' ? ' active' : ''}" id="btnLogErr" onclick="renderLogsViewer('error')"><span class="material-icons">error</span> Error Output</button>
+          <button class="tab-log-type${type === 'out' ? ' active' : ''}" id="btnLogOut" onclick="switchLogType('out')"><span class="material-icons">terminal</span> Standard Output</button>
+          <button class="tab-log-type${type === 'error' ? ' active' : ''}" id="btnLogErr" onclick="switchLogType('error')"><span class="material-icons">error</span> Error Output</button>
         </div>
-        <div id="logsBox" class="logs-box">
-          <pre id="logsContent" class="logs-content">Loading logs...</pre>
-        </div>
+        <div id="logsContentContainer"></div>
       </div>
     </div>
   `;
   panel.innerHTML = html;
   actions.innerHTML = '';
+
+  renderLogsViewerContent(type);
+}
+
+export function switchLogType(type) {
+  const url = new URL(window.location);
+  url.searchParams.set('type', type);
+  window.history.pushState({}, '', url);
+  
+  // Update tab styles
+  const btnOut = document.getElementById('btnLogOut');
+  const btnErr = document.getElementById('btnLogErr');
+  if (btnOut && btnErr) {
+    btnOut.classList.toggle('active', type === 'out');
+    btnErr.classList.toggle('active', type === 'error');
+  }
+  
+  renderLogsViewerContent(type);
+}
+
+export function renderLogsViewerContent(type = 'out') {
+  const container = document.getElementById('logsContentContainer');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div id="logsBox" class="logs-box">
+      <pre id="logsContent" class="logs-content">Loading logs...</pre>
+    </div>
+  `;
 
   startLogStream(type);
 }

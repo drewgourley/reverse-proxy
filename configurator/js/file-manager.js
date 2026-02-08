@@ -36,6 +36,72 @@ export async function renderFileManager(serviceName, folderType = 'public', curr
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
   
+  const service = state.config.services[serviceName];
+  const serviceType = service?.subdomain?.type;
+  const showFolderTypeSelector = serviceType === 'index';
+  
+  let html = `
+    <div class="section">
+      <div class="section-title"><span class="material-icons">folder</span> File Manager - ${serviceName}</div>
+      <div class="hint hint-section">Manage the files hosted by this service</div>
+      ${showFolderTypeSelector ? `
+      <div class="form-group">
+        <label>Folder Type</label>
+        <div class="folders-tabs-row">
+          <button class="tab-folder-type ${folderType === 'public' ? 'active' : ''}" 
+              onclick="switchFolderType('${serviceName}', 'public')">
+            <span class="material-icons">public</span> Public
+          </button>
+          <button class="tab-folder-type ${folderType === 'static' ? 'active' : ''}" 
+              onclick="switchFolderType('${serviceName}', 'static')">
+            <span class="material-icons">code</span> Static
+          </button>
+        </div>
+        <div class="folders-tabs-spacer"></div>
+        <div class="hint" id="folderTypeHint">${folderType === 'public' ? 'Public files are served directly.' : 'Static files are stored differently and are served at the /static path.'}</div>
+      </div>
+      ` : ''}
+      <div id="fileManagerContentContainer"></div>
+    </div>
+  `;
+  
+  panel.innerHTML = html;
+  actions.innerHTML = `
+    <button class="btn-add-field" onclick="backToServiceEditor('${serviceName}')"><span class="material-icons">arrow_back</span> Back to Service</button>
+  `;
+  
+  await renderFileManagerContent(serviceName, folderType, currentPath);
+}
+
+export async function switchFolderType(serviceName, folderType) {
+  const url = new URL(window.location);
+  url.searchParams.set('folder', folderType);
+  url.searchParams.delete('path');
+  window.history.pushState({}, '', url);
+  
+  // Update tab styles
+  const tabs = document.querySelectorAll('.tab-folder-type');
+  tabs.forEach(tab => {
+    const isPublic = tab.textContent.includes('Public');
+    const isActive = (isPublic && folderType === 'public') || (!isPublic && folderType === 'static');
+    tab.classList.toggle('active', isActive);
+  });
+  
+  // Update hint text
+  const hintEl = document.getElementById('folderTypeHint');
+  if (hintEl) {
+    hintEl.textContent = folderType === 'public' 
+      ? 'Public files are served directly.' 
+      : 'Static files are stored differently and are served at the /static path.';
+  }
+  
+  await renderFileManagerContent(serviceName, folderType, '');
+}
+
+export async function renderFileManagerContent(serviceName, folderType, currentPath = '') {
+  const container = document.getElementById('fileManagerContentContainer');
+  if (!container) return;
+  
   try {
     const queryPath = currentPath ? `?path=${encodeURIComponent(currentPath)}` : '';
     const response = await fetch(`/files/${serviceName}/${folderType}${queryPath}`);
@@ -49,73 +115,45 @@ export async function renderFileManager(serviceName, folderType = 'public', curr
     const files = data.files || [];
     const pathFromServer = data.currentPath || '';
     
-    const service = state.config.services[serviceName];
-    const serviceType = service?.subdomain?.type;
-    const showFolderTypeSelector = serviceType === 'index';
-    
     const pathParts = pathFromServer ? pathFromServer.split('/').filter(p => p) : [];
     const domain = state.config.domain || 'domain.com';
     const rootUrl = folderType === 'public' 
       ? `${serviceName}.${domain}` 
       : `${serviceName}.${domain}/static`;
-    let breadcrumbs = `<a href="#" onclick="renderFileManager('${serviceName}', '${folderType}', ''); return false;" class="breadcrumb-link"><span class="material-icons">folder</span> ${rootUrl}</a>`;
+    let breadcrumbs = `<a href="#" onclick="navigateFileManager('${serviceName}', '${folderType}', '')" class="breadcrumb-link"><span class="material-icons">folder</span> ${rootUrl}</a>`;
     
     let accumulatedPath = '';
     for (let i = 0; i < pathParts.length; i++) {
       accumulatedPath += (accumulatedPath ? '/' : '') + pathParts[i];
       const displayPath = accumulatedPath;
-      breadcrumbs += ` / <a href="#" onclick="renderFileManager('${serviceName}', '${folderType}', '${displayPath}'); return false;" class="breadcrumb-link">${pathParts[i]}</a>`;
+      breadcrumbs += ` / <a href="#" onclick="navigateFileManager('${serviceName}', '${folderType}', '${displayPath}')" class="breadcrumb-link">${pathParts[i]}</a>`;
     }
     
     let html = `
-      <div class="section">
-        <div class="section-title"><span class="material-icons">folder</span> File Manager - ${serviceName}</div>
-        <div class="hint hint-section">Manage the files hosted by this service</div>
-        ${showFolderTypeSelector ? `
-        <div class="form-group">
-          <label>Folder Type</label>
-          <div class="folders-tabs-row">
-            <button class="tab-folder-type ${folderType === 'public' ? 'active' : ''}" 
-                onclick="renderFileManager('${serviceName}', 'public', '')">
-              <span class="material-icons">public</span> Public
-            </button>
-            <button class="tab-folder-type ${folderType === 'static' ? 'active' : ''}" 
-                onclick="renderFileManager('${serviceName}', 'static', '')">
-              <span class="material-icons">code</span> Static
-            </button>
+      <div class="form-group">
+        <label>Current Path</label>
+        <div class="breadcrumb-container">
+          ${breadcrumbs}
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <div class="file-manager-actions" id="file-manager-actions">
+          <div class="file-manager-actions-left">
+            <button class="btn-add-field secondary" onclick="showUploadDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="material-icons">upload</span> Upload File</button>
+            <button class="btn-add-field secondary" onclick="showCreateDirectoryDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="material-icons">create_new_folder</span> Create Directory</button>
+            <button class="btn-add-field secondary" onclick="showUnpackZipDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="material-icons">folder_zip</span> Unpack Zip</button>
           </div>
-          <div class="folders-tabs-spacer"></div>
-          <div class="hint">${folderType === 'public' ? 'Public files are served directly.' : 'Static files are stored differently and are served at the /static path.'}</div>
+          <button class="btn-add-field secondary" onclick="selectAllFiles()"><span class="material-icons">check_box</span> Select All</button>
         </div>
-        ` : ''}
-        <div class="form-group">
-          <label>Current Path</label>
-          <div class="breadcrumb-container">
-            ${breadcrumbs}
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <div class="file-manager-actions" id="file-manager-actions">
-            <div class="file-manager-actions-left">
-              <button class="btn-add-field secondary" onclick="showUploadDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="material-icons">upload</span> Upload File</button>
-              <button class="btn-add-field secondary" onclick="showCreateDirectoryDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="material-icons">create_new_folder</span> Create Directory</button>
-              <button class="btn-add-field secondary" onclick="showUnpackZipDialog('${serviceName}', '${folderType}', '${pathFromServer}')"><span class="material-icons">folder_zip</span> Unpack Zip</button>
-            </div>
-            <button class="btn-add-field secondary" onclick="selectAllFiles()"><span class="material-icons">check_box</span> Select All</button>
-          </div>
-        </div>
-        
-        <div class="file-list-container">
-          ${renderFileList(files, serviceName, folderType, pathFromServer)}
-        </div>
+      </div>
+      
+      <div class="file-list-container">
+        ${renderFileList(files, serviceName, folderType, pathFromServer)}
       </div>
     `;
     
-    panel.innerHTML = html;
-    actions.innerHTML = `
-      <button class="btn-add-field" onclick="backToServiceEditor('${serviceName}')"><span class="material-icons">arrow_back</span> Back to Service</button>
-    `;
+    container.innerHTML = html;
     
     currentFileManagerContext = { serviceName, folderType, currentPath: pathFromServer, files };
     selectedFiles.clear();
@@ -123,6 +161,18 @@ export async function renderFileManager(serviceName, folderType = 'public', curr
   } catch (error) {
     showStatus('Failed to load files: ' + error.message, 'error');
   }
+}
+
+export async function navigateFileManager(serviceName, folderType, currentPath) {
+  const url = new URL(window.location);
+  if (currentPath) {
+    url.searchParams.set('path', currentPath);
+  } else {
+    url.searchParams.delete('path');
+  }
+  window.history.pushState({}, '', url);
+  
+  await renderFileManagerContent(serviceName, folderType, currentPath);
 }
 
 export async function backToServiceEditor(serviceName) {
@@ -253,7 +303,7 @@ function renderFileList(files, serviceName, folderType, currentPath) {
     html += `
       <div class="file-item">
         <span class="file-icon"><span class="material-icons folder">folder</span></span>
-        <div class="file-info-clickable" onclick="renderFileManager('${serviceName}', '${folderType}', '${parentPath}')">
+        <div class="file-info-clickable" onclick="navigateFileManager('${serviceName}', '${folderType}', '${parentPath}')">
           <div class="file-name-primary">../</div>
           <div class="hint file-meta">Go up one level</div>
         </div>
@@ -294,7 +344,7 @@ function renderFileList(files, serviceName, folderType, currentPath) {
       html += `
         <div class="file-item ${isSelected ? 'file-item-selected' : ''}">
           <span class="file-icon">${icon}</span>
-          <div class="file-info-clickable" onclick="renderFileManager('${serviceName}', '${folderType}', '${fullPath}')">
+          <div class="file-info-clickable" onclick="navigateFileManager('${serviceName}', '${folderType}', '${fullPath}')">
             <div class="file-name-primary">${file.name}</div>
             <div class="hint file-meta">Click to open</div>
           </div>

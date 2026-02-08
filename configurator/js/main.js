@@ -42,6 +42,7 @@ window.renderPlaceholderEditor = editors.renderPlaceholderEditor;
 
 // Logs Viewer
 window.renderLogsViewer = logsViewer.renderLogsViewer;
+window.switchLogType = logsViewer.switchLogType;
 
 // Blocklist Editor
 window.renderBlocklistEditor = blocklistEditor.renderBlocklistEditor;
@@ -135,6 +136,8 @@ window.cleanConfig = serviceEditor.cleanConfig;
 
 // File Manager Module - Core
 window.renderFileManager = fileManager.renderFileManager;
+window.navigateFileManager = fileManager.navigateFileManager;
+window.switchFolderType = fileManager.switchFolderType;
 window.backToServiceEditor = fileManager.backToServiceEditor;
 
 // File Manager Module - File Selection
