@@ -21,7 +21,7 @@ const { createClient } = require('redis');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { GameDig } = require('gamedig');
 const { RedisStore } = require('connect-redis');
-const { OdalPapiService } = require('./odalpapi.js')
+const { OdalPapiMainService } = require('./odalpapi.js')
 const configurator = require('./configurator.js');
 /* CONFIGURED DEPENDENCY SETUP */
 let config;
@@ -191,7 +191,7 @@ const checkService = (name, callback) => {
       });
     } else if (check.type === 'odalpapi') {
       const hostParts = check.path.split(':');
-      OdalPapiService.queryGameServer({
+      OdalPapiMainService.queryGameServer({
         ip: hostParts[0],
         port: hostParts[1],
       }, true)
