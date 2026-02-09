@@ -150,13 +150,13 @@ async function initApplication(options) {
       }
       
       // Check for suspicious bot/vulnerability scanner patterns
-      const suspicionCheck = checkSuspiciousRequest(ip, request.url);
+      const suspicionCheck = checkSuspiciousRequest(ip, request.url, host);
       if (suspicionCheck.suspicious) {
         const now = new Date().toISOString();
-        console.log(`${now}: [bot-detector] Suspicious request from ${ip} (score: ${suspicionCheck.score}, cumulative: ${suspicionCheck.cumulativeScore}, patterns: ${suspicionCheck.patterns.join(', ')})`);
+        console.log(`${now}: [bot-detector] Suspicious request from ${ip} (score: ${suspicionCheck.score}, cumulative: ${suspicionCheck.cumulativeScore}, patterns: ${suspicionCheck.patterns.join(', ')}, host: ${host})`);
         
         if (suspicionCheck.shouldBlock) {
-          await addToBlocklist(ip, `Cumulative suspicion score: ${suspicionCheck.cumulativeScore}, patterns: ${suspicionCheck.patterns.join(', ')}`);
+          blocklist = await addToBlocklist(ip, `Cumulative suspicion score: ${suspicionCheck.cumulativeScore}, patterns: ${suspicionCheck.patterns.join(', ')}, host: ${host}`, blocklist);
           return response.status(403).send('Access Denied');
         }
       }
