@@ -130,24 +130,28 @@ async function initApplication(options) {
     // ========== Request Logging, Security, and Routing Middleware ==========
     application.use((request, response, next) => {
       const services = Object.keys(config.services);
-      const now = new Date().toISOString();
       
       // Extract real client IP (handles proxy forwarding)
       const address = request.socket?.remoteAddress?.split(':');
       const ip = address ? address[address.length - 1] : 'unknown';
       const host = request.headers.host;
       
-      // Log all incoming requests with timestamp and source IP
-      console.log(`${now}: ${protocols[request.secure ? 'secure' : 'insecure']}${host}${request.url} by ${ip}`);
+      // Log all incoming requests with timestamp and source IP and response status code (after response is sent)
+      response.on('finish', () => {
+        const now = new Date().toISOString();
+        console.log(`${now}: ${protocols[request.secure ? 'secure' : 'insecure']}${host}${request.url} by ${ip} - ${response.statusCode}`);
+      });
       
       // Block requests from blacklisted IPs
       if (ip !== 'unknown' && blocklist && blocklist.includes(ip)) {
+        const now = new Date().toISOString();
         console.log(`${now}: [blocklist] Blocking request from ${ip}`);
         return response.status(403).send('Access Denied');
       }
       
       // Block WordPress vulnerability scanners and bots
       if (ip !== 'unknown' && request.url.match(/wp-admin|wp-login|wp-content|wp-includes|wp-atom.php/i)) {
+        const now = new Date().toISOString();
         console.log(`${now}: [bot-blocker] WordPress bot detected, blocking request from ${ip}`);
         return response.status(403).send('Access Denied');
       }
