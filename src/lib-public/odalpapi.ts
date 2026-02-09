@@ -1,52 +1,27 @@
-"use strict";
+import dgram from 'dgram';
 
-/**
- * WARNING: Functions in this module process data from external services and game servers.
- * Anything in these functions can and will be publicly facing, so be careful what you expose.
- */
+export const TAG_ID = 0xad0;
+export const PROTOCOL_VERSION = 9;
 
-const dgram = require('dgram');
+export function VERSIONMAJOR(V: number) {
+  return Math.floor(V / 256);
+}
+export function VERSIONMINOR(V: number) {
+  return Math.floor((V % 256) / 10);
+}
+export function VERSIONPATCH(V: number) {
+  return Math.floor((V % 256) % 10);
+}
+export function VERSION() {
+  return Math.floor(0 * 256 + PROTOCOL_VERSION * 10);
+}
 
-/** Tag identifier for OdalPapi packets */
-const TAG_ID = 0xAD0;
-
-/** Current OdalPapi protocol version */
-const PROTOCOL_VERSION = 9;
-
-/** Extract major version number from protocol version */
-function VERSIONMAJOR(V) { return Math.floor(V / 256); }
-
-/** Extract minor version number from protocol version */
-function VERSIONMINOR(V) { return Math.floor((V % 256) / 10); }
-
-/** Extract patch version number from protocol version */
-function VERSIONPATCH(V) { return Math.floor((V % 256) % 10); }
-
-/** Calculate full version number for protocol */
-function VERSION() { return Math.floor(0 * 256 + (PROTOCOL_VERSION*10)); }
-
-/**
- * OdalPapi protocol constants
- */
-const OdalPapi = {
-  /** Challenge value sent to master server */
+export const OdalPapi = {
   MASTER_CHALLENGE: 777123,
-  
-  /** Expected response value from master server */
   MASTER_RESPONSE: 777123,
-  
-  /** Challenge value for querying game server information */
-  SERVER_CHALLENGE: 0xAD011002,
-  
-  /** Challenge value for querying server version */
-  SERVER_VERSION_CHALLENGE: 0xAD011001,
-  
-  /** Challenge value for pinging a server */
+  SERVER_CHALLENGE: 0xad011002,
+  SERVER_VERSION_CHALLENGE: 0xad011001,
   PING_CHALLENGE: 1,
-
-  /**
-   * Console variable (cvar) data types
-   */
   CvarType: {
     CVARTYPE_NONE: 0,
     CVARTYPE_BOOL: 1,
@@ -55,73 +30,40 @@ const OdalPapi = {
     CVARTYPE_INT: 4,
     CVARTYPE_FLOAT: 5,
     CVARTYPE_STRING: 6,
-    CVARTYPE_MAX: 255
+    CVARTYPE_MAX: 255,
   },
-
-  /**
-   * Game mode types
-   */
   GameType: {
-    /** Cooperative gameplay against monsters */
     GT_Cooperative: 0,
-    /** Free-for-all deathmatch */
     GT_Deathmatch: 1,
-    /** Team-based deathmatch */
     GT_TeamDeathmatch: 2,
-    /** Capture the flag */
     GT_CaptureTheFlag: 3,
-    GT_Max: 4
-  }
+    GT_Max: 4,
+  },
 };
 
-/**
- * Custom error class for OdalPapi processing errors
- */
-class OdalPapiProcessError extends Error {
-  /**
-   * @param {string} message Error message
-   * @param {boolean} removeServer Whether to remove the server from the list
-   */
-  constructor(message, removeServer = false) {
+export class OdalPapiProcessError extends Error {
+  removeServer: boolean;
+  constructor(message: string, removeServer = false) {
     super(message);
     this.removeServer = removeServer;
   }
 }
 
-/**
- * OdalPapi main service for querying Odamex master and game servers
- * 
- * Handles UDP socket communication for:
- * - Querying master server for list of game servers
- * - Querying individual game servers for detailed information
- * - Pinging servers for latency measurement
- * 
- * @example
- * const service = new OdalPapiMainService();
- * const servers = await service.queryMasterServer('master1.odamex.net:15000');
- */
-class OdalPapiMainService {
+export type ServerIdentity = { ip: string; port: number };
+
+export class OdalPapiMainService {
+  currentIndex: number;
+
   constructor() {
     this.currentIndex = 0;
   }
 
-  /**
-   * Query the master server for a list of active game servers
-   * 
-   * @param {string} ip Master server address in format "hostname:port" or "ip:port"
-   * @returns {Promise<Array>} Promise resolving to array of server addresses
-   * @throws {Error} If query times out or fails
-   * 
-   * @example
-   * const servers = await service.queryMasterServer('master1.odamex.net:15000');
-   * console.log(`Found ${servers.length} servers`);
-   */
-  queryMasterServer(ip) {
+  queryMasterServer(ip: string): Promise<Array<ServerIdentity>> {
     return new Promise((resolve, reject) => {
       const timeout = 10000;
       const socket = dgram.createSocket('udp4');
       const cb = Buffer.alloc(4);
-      let timeoutId = null;
+      let timeoutId: NodeJS.Timeout | null = null;
       let isResolved = false;
 
       const cleanup = () => {
@@ -132,7 +74,7 @@ class OdalPapiMainService {
         try {
           socket.close();
         } catch (err) {
-          // Socket may already be closed
+          /* ignore */
         }
       };
 
@@ -140,13 +82,13 @@ class OdalPapiMainService {
         if (!isResolved) {
           isResolved = true;
           cleanup();
-          reject(new Error("Master server query timed out"));
+          reject(new Error('Master server query timed out'));
         }
       }, timeout);
 
       cb.writeUInt32LE(OdalPapi.MASTER_CHALLENGE, 0);
 
-      socket.on('message', (response) => {
+      socket.on('message', (response: Buffer) => {
         if (!isResolved) {
           isResolved = true;
           try {
@@ -163,13 +105,13 @@ class OdalPapiMainService {
       socket.on('error', (err) => {
         if (!isResolved) {
           isResolved = true;
-          console.error("Master server error:", err);
+          console.error('Master server error:', err);
           cleanup();
           reject(err);
         }
       });
 
-      socket.send(cb, 15000, ip, err => {
+      socket.send(cb, 15000, ip, (err) => {
         if (err && !isResolved) {
           isResolved = true;
           cleanup();
@@ -179,13 +121,13 @@ class OdalPapiMainService {
     });
   }
 
-  queryGameServer(serverIdentity) {
+  queryGameServer(serverIdentity: ServerIdentity): Promise<any> {
     return new Promise((resolve, reject) => {
       const timeout = 10000;
       const socket = dgram.createSocket('udp4');
       const cb = Buffer.alloc(4);
       const pingStart = Date.now();
-      let timeoutId = null;
+      let timeoutId: NodeJS.Timeout | null = null;
       let isResolved = false;
 
       const cleanup = () => {
@@ -196,7 +138,7 @@ class OdalPapiMainService {
         try {
           socket.close();
         } catch (err) {
-          // Socket may already be closed
+          /* ignore */
         }
       };
 
@@ -204,25 +146,31 @@ class OdalPapiMainService {
         if (!isResolved) {
           isResolved = true;
           cleanup();
-          reject(new Error(`Query timeout for ${serverIdentity.ip}:${serverIdentity.port} after ${timeout}ms`));
+          reject(
+            new Error(
+              `Query timeout for ${serverIdentity.ip}:${serverIdentity.port} after ${timeout}ms`,
+            ),
+          );
         }
       }, timeout);
 
       cb.writeUInt32LE(OdalPapi.SERVER_CHALLENGE, 0);
 
-      socket.on('message', (response) => {
+      socket.on('message', (response: Buffer) => {
         if (!isResolved) {
           isResolved = true;
           try {
             const pingResponse = Math.ceil((Date.now() - pingStart) / 2);
             const server = this.processGameServerResponse(response, serverIdentity);
-            
-            if (server.responded) {
+
+            if ((server as any).responded) {
               cleanup();
-              resolve({server, pong: pingResponse});
+              resolve({ server, pong: pingResponse });
             } else {
               cleanup();
-              reject(new Error(`Invalid response from ${serverIdentity.ip}:${serverIdentity.port}`));
+              reject(
+                new Error(`Invalid response from ${serverIdentity.ip}:${serverIdentity.port}`),
+              );
             }
           } catch (err) {
             cleanup();
@@ -236,28 +184,36 @@ class OdalPapiMainService {
           isResolved = true;
           console.error(`Server query error for ${serverIdentity.ip}:${serverIdentity.port}:`, err);
           cleanup();
-          reject(new Error(`Query error for ${serverIdentity.ip}:${serverIdentity.port}: ${err.message}`));
+          reject(
+            new Error(
+              `Query error for ${serverIdentity.ip}:${serverIdentity.port}: ${err.message}`,
+            ),
+          );
         }
       });
 
-      socket.send(cb, serverIdentity.port, serverIdentity.ip, err => {
+      socket.send(cb, serverIdentity.port, serverIdentity.ip, (err) => {
         if (err && !isResolved) {
           isResolved = true;
           cleanup();
-          reject(new Error(`Failed to send query to ${serverIdentity.ip}:${serverIdentity.port}: ${err.message}`));
+          reject(
+            new Error(
+              `Failed to send query to ${serverIdentity.ip}:${serverIdentity.port}: ${err.message}`,
+            ),
+          );
         }
       });
     });
   }
 
-  pingGameServer(serverIdentity) {
+  pingGameServer(serverIdentity: ServerIdentity): Promise<number> {
     return new Promise((resolve, reject) => {
       const pingStart = Date.now();
       const pingBuf = Buffer.alloc(4);
       pingBuf.writeUInt32LE(OdalPapi.PING_CHALLENGE, 0);
 
       const socket = dgram.createSocket('udp4');
-      let timeoutId = null;
+      let timeoutId: NodeJS.Timeout | null = null;
       let isResolved = false;
 
       const cleanup = () => {
@@ -268,7 +224,7 @@ class OdalPapiMainService {
         try {
           socket.close();
         } catch (err) {
-          // Socket may already be closed
+          /* ignore */
         }
       };
 
@@ -293,7 +249,9 @@ class OdalPapiMainService {
         if (!isResolved) {
           isResolved = true;
           cleanup();
-          reject(new Error(`Ping error for ${serverIdentity.ip}:${serverIdentity.port}: ${err.message}`));
+          reject(
+            new Error(`Ping error for ${serverIdentity.ip}:${serverIdentity.port}: ${err.message}`),
+          );
         }
       });
 
@@ -301,14 +259,18 @@ class OdalPapiMainService {
         if (err && !isResolved) {
           isResolved = true;
           cleanup();
-          reject(new Error(`Failed to send ping to ${serverIdentity.ip}:${serverIdentity.port}: ${err.message}`));
+          reject(
+            new Error(
+              `Failed to send ping to ${serverIdentity.ip}:${serverIdentity.port}: ${err.message}`,
+            ),
+          );
         }
       });
     });
   }
 
-  processGameServerResponse(response, serverAddr) {
-    const server = {
+  processGameServerResponse(response: Buffer, serverAddr: ServerIdentity): any {
+    const server: any = {
       address: serverAddr,
       patches: [],
       cvars: [],
@@ -336,19 +298,22 @@ class OdalPapiMainService {
       lives: null,
       sides: null,
       responded: false,
-      ping: 0
+      ping: 0,
     };
 
     try {
       this.currentIndex = 0;
 
       const r = this.read32(response);
-      const tagId = ((r >> 20) & 0x0FFF);
-      const tagApplication = ((r >> 16) & 0x0F);
-      const tagQRId = ((r >> 12) & 0x0F);
-      const tagPacketType = (r & 0xFFFF0FFF);
+      const tagId = (r >> 20) & 0x0fff;
+      const tagApplication = (r >> 16) & 0x0f;
+      const tagQRId = (r >> 12) & 0x0f;
+      const tagPacketType = r & 0xffff0fff;
 
-      if (tagId !== TAG_ID || !this.translateResponse(tagId, tagApplication, tagQRId, tagPacketType)) {
+      if (
+        tagId !== TAG_ID ||
+        !this.translateResponse(tagId, tagApplication, tagQRId, tagPacketType)
+      ) {
         throw new OdalPapiProcessError(`Invalid response from ${serverAddr.ip}:${serverAddr.port}`);
       }
 
@@ -364,11 +329,14 @@ class OdalPapiMainService {
       server.versionPatch = VERSIONPATCH(SvVersion);
       server.versionProtocol = SvProtocolVersion;
 
-      if ((VERSIONMAJOR(SvVersion) < VERSIONMAJOR(VERSION())) ||
-        (VERSIONMAJOR(SvVersion) <= VERSIONMAJOR(VERSION()) && VERSIONMINOR(SvVersion) < VERSIONMINOR(VERSION()))) {
+      if (
+        VERSIONMAJOR(SvVersion) < VERSIONMAJOR(VERSION()) ||
+        (VERSIONMAJOR(SvVersion) <= VERSIONMAJOR(VERSION()) &&
+          VERSIONMINOR(SvVersion) < VERSIONMINOR(VERSION()))
+      ) {
         throw new OdalPapiProcessError(
           `Server ${serverAddr.ip}:${serverAddr.port} is version ${VERSIONMAJOR(SvVersion)}.${VERSIONMINOR(SvVersion)}.${VERSIONPATCH(SvVersion)} which is not supported`,
-          true
+          true,
         );
       }
 
@@ -380,7 +348,7 @@ class OdalPapiMainService {
       // Process CVARs
       const cvarCount = this.read8(response);
       for (let i = 0; i < cvarCount; i++) {
-        const cvar = { name: '', value: '', cType: 0 };
+        const cvar: any = { name: '', value: '', cType: 0 };
         cvar.name = this.readString(response);
         cvar.cType = this.read8(response);
 
@@ -423,14 +391,16 @@ class OdalPapiMainService {
       }
 
       // Teams
-      if (server.gameType === OdalPapi.GameType.GT_TeamDeathmatch || 
-          server.gameType === OdalPapi.GameType.GT_CaptureTheFlag) {
+      if (
+        server.gameType === OdalPapi.GameType.GT_TeamDeathmatch ||
+        server.gameType === OdalPapi.GameType.GT_CaptureTheFlag
+      ) {
         const teamCount = this.read8(response);
         for (let i = 0; i < teamCount; i++) {
           server.teams.push({
             name: this.readString(response),
             color: this.read32(response),
-            score: this.read16(response)
+            score: this.read16(response),
           });
         }
       }
@@ -446,14 +416,14 @@ class OdalPapiMainService {
       for (let i = 0; i < wadCount; i++) {
         server.wads.push({
           name: this.readString(response),
-          hash: this.readHexString(response)
+          hash: this.readHexString(response),
         });
       }
 
       // Players
       const playerCount = this.read8(response);
       for (let i = 0; i < playerCount; i++) {
-        const player = {
+        const player: any = {
           name: this.readString(response),
           color: this.read32(response),
           kills: 0,
@@ -462,11 +432,13 @@ class OdalPapiMainService {
           frags: 0,
           ping: 0,
           team: 0,
-          spectator: false
+          spectator: false,
         };
 
-        if (server.gameType === OdalPapi.GameType.GT_TeamDeathmatch || 
-            server.gameType === OdalPapi.GameType.GT_CaptureTheFlag) {
+        if (
+          server.gameType === OdalPapi.GameType.GT_TeamDeathmatch ||
+          server.gameType === OdalPapi.GameType.GT_CaptureTheFlag
+        ) {
           player.team = this.read8(response);
         }
 
@@ -476,19 +448,19 @@ class OdalPapiMainService {
         player.frags = this.read16(response);
         player.kills = this.read16(response);
         player.deaths = this.read16(response);
-        
+
         server.players.push(player);
       }
     } catch (e) {
-      console.error("Server response parsing error:", e);
+      console.error('Server response parsing error:', e);
     }
 
     return server;
   }
 
-  processMasterResponse(response) {
+  processMasterResponse(response: Buffer) {
     let start = 0;
-    const baseList = [];
+    const baseList: Array<ServerIdentity> = [];
 
     const masterResponse = response.readUInt32LE(start);
     start += 4;
@@ -496,15 +468,18 @@ class OdalPapiMainService {
     start += 2;
 
     while (start + 4 < response.length) {
-      const serverIPstring = 
-        response.readUInt8(start + 0) + '.' +
-        response.readUInt8(start + 1) + '.' +
-        response.readUInt8(start + 2) + '.' +
+      const serverIPstring =
+        response.readUInt8(start + 0) +
+        '.' +
+        response.readUInt8(start + 1) +
+        '.' +
+        response.readUInt8(start + 2) +
+        '.' +
         response.readUInt8(start + 3);
 
       baseList.push({
         ip: serverIPstring,
-        port: response.readUInt16LE(start + 4)
+        port: response.readUInt16LE(start + 4),
       });
 
       start += 6;
@@ -513,15 +488,15 @@ class OdalPapiMainService {
     return baseList;
   }
 
-  translateResponse(tagId, tagApplication, tagQRId, tagPacketType) {
+  translateResponse(tagId: number, tagApplication: number, tagQRId: number, tagPacketType: number) {
     if (tagQRId !== 2) return false;
     if (tagApplication !== 3) return false;
     if (tagPacketType === 2) return false;
     return true;
   }
 
-  readString(buffer) {
-    const r = [];
+  readString(buffer: Buffer) {
+    const r: string[] = [];
     let ch = buffer.toString('utf8', this.currentIndex, this.currentIndex + 1);
     this.currentIndex++;
 
@@ -534,37 +509,30 @@ class OdalPapiMainService {
     return r.join('');
   }
 
-  read8(buffer) {
+  read8(buffer: Buffer) {
     const r = buffer.readUInt8(this.currentIndex);
     this.currentIndex += 1;
     return r;
   }
 
-  read16(buffer) {
+  read16(buffer: Buffer) {
     const r = buffer.readUInt16LE(this.currentIndex);
     this.currentIndex += 2;
     return r;
   }
 
-  read32(buffer) {
+  read32(buffer: Buffer) {
     const r = buffer.readUInt32LE(this.currentIndex);
     this.currentIndex += 4;
     return r;
   }
 
-  readHexString(buffer) {
+  readHexString(buffer: Buffer) {
     const size = this.read8(buffer);
     if (size === 0) return '';
-    
+
     const r = buffer.toString('hex', this.currentIndex, this.currentIndex + size);
     this.currentIndex += size;
     return r;
   }
 }
-
-module.exports = {
-  TAG_ID,
-  PROTOCOL_VERSION,
-  OdalPapi,
-  OdalPapiMainService
-};

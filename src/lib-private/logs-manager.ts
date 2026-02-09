@@ -1,26 +1,19 @@
-"use strict";
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-
-/**
- * Stream PM2 log file via Server-Sent Events
- * @param {object} request - Express request object
- * @param {object} response - Express response object
- */
-function streamLogs(request, response) {
+export function streamLogs(request: any, response: any) {
   const appName = request.params.appName;
   const type = request.params.type || 'out';
 
-  const setSSEHeaders = (res) => {
+  const setSSEHeaders = (res: any) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders && res.flushHeaders();
   };
 
-  const sendLogLines = (res, data) => {
+  const sendLogLines = (res: any, data: string) => {
     const lines = data.split(/\r?\n/);
     for (const line of lines) {
       if (line) res.write(`data: ${line}\n\n`);
@@ -29,8 +22,13 @@ function streamLogs(request, response) {
 
   setSSEHeaders(response);
 
-  const logPath = path.join(os.homedir(), '.pm2', 'logs', `${appName.replace(' ', '-')}-${type}.log`);
-  
+  const logPath = path.join(
+    os.homedir(),
+    '.pm2',
+    'logs',
+    `${appName.replace(' ', '-')}-${type}.log`,
+  );
+
   if (!fs.existsSync(logPath)) {
     response.write(`data: Log file not found\n\n`);
     response.end();
@@ -45,10 +43,9 @@ function streamLogs(request, response) {
   let fileDescriptor = fs.openSync(logPath, 'r');
   let isClosed = false;
 
-  // Send last 100 lines initially
   try {
     const fileContent = fs.readFileSync(logPath, 'utf8');
-    const lines = fileContent.split(/\r?\n/).filter(line => line.trim());
+    const lines = fileContent.split(/\r?\n/).filter((line) => line.trim());
     const last100Lines = lines.slice(-100).join('\n');
     if (last100Lines) {
       sendLogLines(response, last100Lines);
@@ -57,7 +54,6 @@ function streamLogs(request, response) {
     response.write(`data: Error reading log file\n\n`);
   }
 
-  // Watch for new log entries
   const watcher = fs.watch(logPath, (eventType) => {
     if (eventType === 'change') {
       try {
@@ -75,7 +71,6 @@ function streamLogs(request, response) {
     }
   });
 
-  // Cleanup on disconnect
   request.on('close', () => {
     if (isClosed) return;
     isClosed = true;
@@ -84,7 +79,3 @@ function streamLogs(request, response) {
     fs.closeSync(fileDescriptor);
   });
 }
-
-module.exports = {
-  streamLogs
-};

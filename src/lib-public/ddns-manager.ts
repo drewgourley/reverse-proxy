@@ -1,25 +1,31 @@
-"use strict";
+import got from 'got';
 
-/**
- * WARNING: Functions in this module update DNS records automatically.
- * Anything in these functions can and will be publicly facing, so be careful what you expose.
- */
+export type DDNSConfig = {
+  active?: boolean;
+  aws_access_key_id?: string;
+  aws_secret_access_key?: string;
+  aws_region?: string;
+  route53_hosted_zone_id?: string;
+};
 
-const got = require('got');
-
-/**
- * Initialize DDNS updates if configured
- * @param {object} ddns - DDNS configuration
- * @param {object} config - Main configuration
- * @param {string} env - Environment (production, development, etc.)
- * @param {object} cron - Node-cron instance
- */
-function initializeDDNS(ddns, config, env, cron) {
-  if (!ddns || !ddns.active || !ddns.aws_access_key_id || !ddns.aws_secret_access_key || 
-      !ddns.aws_region || !ddns.route53_hosted_zone_id) {
+export function initializeDDNS(
+  ddns: DDNSConfig | undefined,
+  config: any,
+  env: string | undefined,
+  cron: any,
+) {
+  if (
+    !ddns ||
+    !ddns.active ||
+    !ddns.aws_access_key_id ||
+    !ddns.aws_secret_access_key ||
+    !ddns.aws_region ||
+    !ddns.route53_hosted_zone_id
+  ) {
     return;
   }
 
+  // Import SDK lazily to avoid loading it when DDNS is not configured
   const { Route53Client, ChangeResourceRecordSetsCommand } = require('@aws-sdk/client-route-53');
   const route53 = new Route53Client({
     region: ddns.aws_region,
@@ -29,7 +35,7 @@ function initializeDDNS(ddns, config, env, cron) {
     },
   });
 
-  let lastKnownIP = null;
+  let lastKnownIP: string | null = null;
 
   const updateDNSRecord = async () => {
     try {
@@ -40,27 +46,29 @@ function initializeDDNS(ddns, config, env, cron) {
         return;
       }
 
-      const changes = [{
-        Action: 'UPSERT',
-        ResourceRecordSet: {
-          Name: config.domain,
-          Type: 'A',
-          TTL: 300,
-          ResourceRecords: [{ Value: publicIP }],
+      const changes = [
+        {
+          Action: 'UPSERT',
+          ResourceRecordSet: {
+            Name: config.domain,
+            Type: 'A',
+            TTL: 300,
+            ResourceRecords: [{ Value: publicIP }],
+          },
         },
-      },
-      {
-        Action: 'UPSERT',
-        ResourceRecordSet: {
-          Name: `*.${config.domain}`,
-          Type: 'A',
-          TTL: 300,
-          ResourceRecords: [{ Value: publicIP }],
+        {
+          Action: 'UPSERT',
+          ResourceRecordSet: {
+            Name: `*.${config.domain}`,
+            Type: 'A',
+            TTL: 300,
+            ResourceRecords: [{ Value: publicIP }],
+          },
         },
-      }];
+      ];
 
       const now = new Date().toISOString();
-      
+
       if (env === 'development') {
         console.log(`${now}: DDNS update skipped in development mode:`, changes);
         lastKnownIP = publicIP;
@@ -95,7 +103,3 @@ function initializeDDNS(ddns, config, env, cron) {
     });
   }
 }
-
-module.exports = {
-  initializeDDNS
-};

@@ -1,29 +1,31 @@
-"use strict";
+import path from 'path';
 
-/**
- * WARNING: Functions in this module handle configuration loading for the reverse proxy.
- * Anything in these functions can and will be publicly facing, so be careful what you expose.
- */
-
-const path = require('path');
+export type LoadedConfigs = {
+  config: any;
+  secrets: any;
+  users: any;
+  ddns: any;
+  advancedConfig: any;
+  blocklist: any;
+};
 
 /**
  * Load all configuration files with error handling
- * @param {string} baseDir - Base directory path
- * @returns {object} Object containing all loaded configs
+ * @param baseDir - Base directory path
  */
-function loadConfigs(baseDir) {
+export function loadConfigs(baseDir: string): LoadedConfigs {
   const now = new Date().toISOString();
-  
-  let config;
+
+  let config: any;
   try {
+    // Use require so JSON can be loaded relative to runtime baseDir
     config = require(path.join(baseDir, 'config.json'));
   } catch (e) {
     config = {};
     console.warn(`${now}: Initial configuration required`);
   }
 
-  let secrets;
+  let secrets: any;
   try {
     secrets = require(path.join(baseDir, 'secrets.json'));
   } catch (e) {
@@ -31,7 +33,7 @@ function loadConfigs(baseDir) {
     console.warn(`${now}: Secrets not configured`);
   }
 
-  let users;
+  let users: any;
   try {
     users = require(path.join(baseDir, 'users.json'));
   } catch (e) {
@@ -39,7 +41,7 @@ function loadConfigs(baseDir) {
     console.warn(`${now}: Users not configured`);
   }
 
-  let ddns;
+  let ddns: any;
   try {
     ddns = require(path.join(baseDir, 'ddns.json'));
   } catch (e) {
@@ -47,7 +49,7 @@ function loadConfigs(baseDir) {
     console.warn(`${now}: DDNS not configured`);
   }
 
-  let advancedConfig;
+  let advancedConfig: any;
   try {
     advancedConfig = require(path.join(baseDir, 'advanced.json'));
   } catch (e) {
@@ -55,7 +57,7 @@ function loadConfigs(baseDir) {
     console.warn(`${now}: Advanced Options not configured`);
   }
 
-  let blocklist;
+  let blocklist: any;
   try {
     blocklist = require(path.join(baseDir, 'blocklist.json'));
   } catch (e) {
@@ -69,10 +71,6 @@ function loadConfigs(baseDir) {
     users,
     ddns,
     advancedConfig,
-    blocklist
+    blocklist,
   };
 }
-
-module.exports = {
-  loadConfigs
-};

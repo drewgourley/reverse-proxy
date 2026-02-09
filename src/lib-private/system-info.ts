@@ -1,27 +1,17 @@
-"use strict";
+const got: any = require('got');
+import os from 'os';
 
-const got = require('got');
-const os = require('os');
-
-/**
- * Get public IP address
- * @returns {Promise<string>} Public IP address
- */
-async function getPublicIP() {
+export async function getPublicIP(): Promise<string> {
   const response = await got('https://checkip.amazonaws.com/', { timeout: { request: 5000 } });
   return response.body.trim();
 }
 
-/**
- * Get local IP address
- * @returns {string} Local IP address
- */
-function getLocalIP() {
+export function getLocalIP(): string {
   const networkInterfaces = os.networkInterfaces();
-  let localIP = null;
-  
+  let localIP: string | null = null;
+
   for (const interfaceName in networkInterfaces) {
-    const interfaces = networkInterfaces[interfaceName];
+    const interfaces = (networkInterfaces as any)[interfaceName];
     for (const iface of interfaces) {
       if (iface.family === 'IPv4' && !iface.internal) {
         localIP = iface.address;
@@ -30,11 +20,6 @@ function getLocalIP() {
     }
     if (localIP) break;
   }
-  
+
   return localIP || '127.0.0.1';
 }
-
-module.exports = {
-  getPublicIP,
-  getLocalIP
-};
