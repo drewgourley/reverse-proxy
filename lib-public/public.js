@@ -22,6 +22,7 @@ const { RedisStore } = require('connect-redis');
 
 const authHelpers = require('./auth-helpers');
 const { sendError } = require('./helpers');
+const { checkSuspiciousRequest, addToBlocklist } = require('./bot-blocker');
 
 /**
  * Initializes the Express application with all configured services, middleware, and routing
@@ -124,11 +125,10 @@ async function initApplication(options) {
     
     // ========== Global Middleware ==========
     // Trust X-Forwarded-* headers from localhost (for reverse proxy setups)
-    // Trust X-Forwarded-* headers from localhost (for reverse proxy setups)
     application.set('trust proxy', 'loopback')
     
     // ========== Request Logging, Security, and Routing Middleware ==========
-    application.use((request, response, next) => {
+    application.use(async (request, response, next) => {
       const services = Object.keys(config.services);
       
       // Extract real client IP (handles proxy forwarding)
@@ -149,11 +149,16 @@ async function initApplication(options) {
         return response.status(403).send('Access Denied');
       }
       
-      // Block WordPress vulnerability scanners and bots
-      if (ip !== 'unknown' && request.url.match(/wp-admin|wp-login|wp-content|wp-includes|wp-atom.php/i)) {
+      // Check for suspicious bot/vulnerability scanner patterns
+      const suspicionCheck = checkSuspiciousRequest(ip, request.url);
+      if (suspicionCheck.suspicious) {
         const now = new Date().toISOString();
-        console.log(`${now}: [bot-blocker] WordPress bot detected, blocking request from ${ip}`);
-        return response.status(403).send('Access Denied');
+        console.log(`${now}: [bot-detector] Suspicious request from ${ip} (score: ${suspicionCheck.score}, cumulative: ${suspicionCheck.cumulativeScore}, patterns: ${suspicionCheck.patterns.join(', ')})`);
+        
+        if (suspicionCheck.shouldBlock) {
+          await addToBlocklist(ip, `Cumulative suspicion score: ${suspicionCheck.cumulativeScore}, patterns: ${suspicionCheck.patterns.join(', ')}`);
+          return response.status(403).send('Access Denied');
+        }
       }
       
       // Set forwarded IP header for downstream services
