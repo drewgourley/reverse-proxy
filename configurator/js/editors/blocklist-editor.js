@@ -19,7 +19,7 @@ export async function renderBlocklistEditor(reload = true) {
 
   let html = `
     <div class="section">
-      <div class="section-title"><span class="material-icons">shield</span> Blocklist Management</div>
+      <div class="section-title"><span class="material-icons">shield</span> Blocklist Management (${state.blocklist.length} IPs)</div>
       <div class="hint hint-section">Add or remove IP addresses from the blocklist</div>
       <button class="btn-add-field on-top" onclick="addBlocklistEntry()"><span class="material-icons">add_circle</span> Add Blocklist Entry</button>
   `;
@@ -27,7 +27,6 @@ export async function renderBlocklistEditor(reload = true) {
     html += `
       <div class="blocklist-entry">
         <div class="form-group form-group-no-margin">
-          <label for="blocklist_ip_${index}">Blocked IP Address</label>
           <div class="blocklist-input-group">
             <input type="text" id="blocklist_ip_${index}" value="${ip}" readonly />
             <button class="btn-remove" onclick="removeBlocklistEntry(${index})"><span class="material-icons">remove_circle</span> Remove</button>

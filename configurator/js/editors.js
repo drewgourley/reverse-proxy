@@ -129,7 +129,7 @@ export function renderServicesList() {
 
   const blocklistItem = document.createElement('div');
   blocklistItem.className = 'service-item' + (state.currentSelection === 'monitor-blocklist' ? ' active' : '');
-  blocklistItem.innerHTML = '<span class="material-icons">shield</span> Blocklist';
+  blocklistItem.innerHTML = `<span class="material-icons">shield</span> Blocklist`;
   if (isFirstTimeSetup) {
     blocklistItem.style.opacity = '0.5';
     blocklistItem.style.cursor = 'default';
