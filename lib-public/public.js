@@ -30,11 +30,11 @@ const { checkSuspiciousRequest, addToBlocklist } = require('./bot-blocker');
  * @returns {Express.Application} Configured Express application instance
  */
 async function initApplication(options) {
+  let blocklist = options.blocklist || []; // IPs to block from accessing services
   const { 
     config,        // Main configuration (services, domain, etc.)
     secrets,       // Sensitive data (passwords, API keys, etc.)
     users,         // User authentication data
-    blocklist,     // IPs to block from accessing services
     env,           // Runtime environment (production, development, test)
     protocols,     // HTTP/HTTPS protocol mappings
     parsers,       // Health check response parsers
