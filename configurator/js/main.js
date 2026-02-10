@@ -178,7 +178,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await api.loadConfig(true);
   await api.loadSecrets(true);
   await api.loadUsers(true);
-  await api.loadBlocklist(true);
   await api.loadDdns(true);
   await api.loadEcosystem(true);
   await api.loadAdvanced(true);
@@ -186,6 +185,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await api.loadGitStatus(true);
   await api.loadLogRotateStatus(true);
   await api.loadColors(true);
+  // Blocklist is loaded on demand when navigating to blocklist editor 
+  // because the system can write to it outside of the configurator.
   
   // Initialize theme after colors are loaded
   themeEditor.initializeTheme();

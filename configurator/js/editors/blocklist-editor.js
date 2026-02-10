@@ -6,7 +6,10 @@ import * as utils from '../utils.js';
 import * as api from '../api.js';
 import { reloadPage, waitForServerRestart, showPromptModal, showPromptError, showStatus, closePromptModal, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
 
-export function renderBlocklistEditor() {
+export async function renderBlocklistEditor(reload = true) {
+  if (reload) {
+    await api.loadBlocklist(true);
+  }
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
   panel.scrollTop = 0;
@@ -67,7 +70,7 @@ export function addBlocklistEntry() {
       }
 
       state.blocklist.unshift(blocklistEntry);
-      renderBlocklistEditor();
+      renderBlocklistEditor(false);
       closePromptModal();
     },
   );
@@ -80,7 +83,7 @@ export function removeBlocklistEntry(index) {
     (confirmed) => {
       if (confirmed) {
         state.blocklist.splice(index, 1);
-        renderBlocklistEditor();
+        renderBlocklistEditor(false);
         showStatus(`Blocklist entry removed`, 'success');
       }
     }
@@ -115,7 +118,6 @@ export function revertBlocklist() {
     'Are you sure you want to discard all changes to blocklist?',
     (confirmed) => {
       if (confirmed) {
-        state.setBlocklist(JSON.parse(JSON.stringify(state.originalBlocklist)));
         renderBlocklistEditor();
         showStatus('Blocklist changes reverted', 'success');
       }
