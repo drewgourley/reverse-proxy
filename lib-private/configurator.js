@@ -29,9 +29,20 @@ configrouter.use(express.static(path.join(rootDir, 'configurator'), { index: fal
 
 configrouter.use('/favicon', express.static(path.join(rootDir, 'web', 'global', 'favicon')));
 
-configrouter.use(express.json());
+configrouter.get('/', (request, response) => {
+  response.sendFile(path.join(rootDir, 'configurator', 'index.html'));
+});
+configrouter.get('/config/*', (request, response) => {
+  response.sendFile(path.join(rootDir, 'configurator', 'index.html'));
+});
+configrouter.get('/management/*', (request, response) => {
+  response.sendFile(path.join(rootDir, 'configurator', 'index.html'));
+});
+configrouter.get('/monitor/*', (request, response) => {
+  response.sendFile(path.join(rootDir, 'configurator', 'index.html'));
+});
 
-configrouter.get('/', (request, response) => { response.sendFile(path.join(rootDir, 'configurator', 'index.html')); });
+configrouter.use(express.json());
 
 configrouter.get('/config', (request, response) => {
   try {

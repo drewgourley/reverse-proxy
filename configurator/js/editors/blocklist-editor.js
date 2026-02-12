@@ -6,6 +6,23 @@ import * as utils from '../utils.js';
 import * as api from '../api.js';
 import { reloadPage, waitForServerRestart, showPromptModal, showPromptError, showStatus, closePromptModal, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
 
+let blocklistSearchTerm = '';
+
+function filterBlocklist() {
+  const searchInput = document.getElementById('blocklistSearchInput');
+  if (!searchInput) return;
+  
+  blocklistSearchTerm = searchInput.value.toLowerCase().trim();
+  const entries = document.querySelectorAll('.blocklist-entry');
+  
+  entries.forEach((entry) => {
+    const ipInput = entry.querySelector('input[type="text"]');
+    const ip = ipInput.value.toLowerCase();
+    const matches = blocklistSearchTerm === '' || ip.includes(blocklistSearchTerm);
+    entry.style.display = matches ? '' : 'none';
+  });
+}
+
 export async function renderBlocklistEditor(reload = true) {
   if (reload) {
     await api.loadBlocklist(true);
@@ -21,7 +38,10 @@ export async function renderBlocklistEditor(reload = true) {
     <div class="section">
       <div class="section-title"><span class="material-icons">shield</span> Blocklist Management (${state.blocklist.length} IPs)</div>
       <div class="hint hint-section">Add or remove IP addresses from the blocklist</div>
-      <button class="btn-add-field on-top" onclick="addBlocklistEntry()"><span class="material-icons">add_circle</span> Add Blocklist Entry</button>
+      <div class="blocklist-controls">
+        <button class="btn-add-field no-top" onclick="addBlocklistEntry()"><span class="material-icons">add_circle</span> Add Blocklist Entry</button>
+        <input type="text" id="blocklistSearchInput" class="blocklist-search" placeholder="Filter IPs..." />
+      </div>
   `;
   state.blocklist.forEach((ip, index) => {
     html += `
@@ -39,6 +59,13 @@ export async function renderBlocklistEditor(reload = true) {
     </div>
   `;
   panel.innerHTML = html;
+  
+  // Attach search input event listener after rendering
+  const searchInput = document.getElementById('blocklistSearchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', filterBlocklist);
+  }
+  
   actions.innerHTML = `
     <div class="flex-spacer"></div>
     <button class="btn-reset" onclick="revertBlocklist()"><span class="material-icons">undo</span> Revert</button>

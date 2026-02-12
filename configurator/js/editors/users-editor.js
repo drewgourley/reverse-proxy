@@ -6,6 +6,56 @@ import * as utils from '../utils.js';
 import * as api from '../api.js';
 import { reloadPage, waitForServerRestart, createDropdown, showStatus, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
 
+// Search filter state
+let usersSearchUsername = '';
+let usersSearchServices = [];
+
+function filterUsers() {
+  const entries = document.querySelectorAll('.user-entry');
+  entries.forEach((entry) => {
+    const usernameInput = entry.querySelector('input[type="text"][id*="user_username_"]');
+    const username = usernameInput ? usernameInput.value.toLowerCase() : '';
+    const indexMatch = usernameInput?.id.match(/user_username_(\d+)/);
+    const userIndex = indexMatch ? parseInt(indexMatch[1]) : -1;
+    const user = userIndex >= 0 ? state.users.users[userIndex] : null;
+    const userServices = user ? (user.services || []) : [];
+    const uuid = (user && user.uuid) ? String(user.uuid).toLowerCase() : '';
+
+    // Always show new/unsaved users (no uuid or no password_hash)
+    const isNew = user && (!user.uuid || !user.password_hash);
+    if (isNew) {
+      entry.style.display = '';
+      return;
+    }
+
+    // Check username or uuid match
+    const search = usersSearchUsername;
+    const matches =
+      search === '' ||
+      username.includes(search) ||
+      uuid.includes(search);
+
+    // Check service match
+    let serviceMatches = usersSearchServices.length === 0;
+    if (usersSearchServices.length > 0) {
+      serviceMatches = usersSearchServices.some(service => userServices.includes(service));
+    }
+
+    entry.style.display = (matches && serviceMatches) ? '' : 'none';
+  });
+}
+
+export function filterUsersUsername() {
+  const searchInput = document.getElementById('usersSearchInput');
+  usersSearchUsername = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  filterUsers();
+}
+
+export function onUsersServiceFilterChange(selectedValues) {
+  usersSearchServices = selectedValues.filter(v => v !== '_no_services');
+  filterUsers();
+}
+
 export function renderUsersEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -23,7 +73,29 @@ export function renderUsersEditor() {
     <div class="section">
       <div class="section-title"><span class="material-icons">group</span> User Management</div>
       <div class="hint hint-section">Manage users and their service access. Users can log into services that have "Require Login" enabled. The admin account (from Secrets) always has access to all services.</div>
-      <button class="btn-add-field on-top" onclick="addNewUser()"><span class="material-icons">add_circle</span> Add New User</button>
+      <div class="users-controls">
+        <button class="btn-add-field no-top" onclick="addNewUser()"><span class="material-icons">add_circle</span> Add New User</button>
+        <input type="text" id="usersSearchInput" class="users-search-input" placeholder="Filter by username or UUID..." oninput="filterUsersUsername()" />
+        <div class="flex-break"></div>
+        ${createDropdown({
+          id: 'usersServiceFilter',
+          items: [
+            ...authServices.map(serviceName => ({
+              value: serviceName,
+              label: state.config.services[serviceName]?.nicename || serviceName,
+              selected: false
+            })),
+            ...(authServices.length === 0 ? [{
+              value: '_no_services',
+              label: 'No services with "Require Login" configured',
+              disabled: true
+            }] : [])
+          ],
+          multiSelect: true,
+          placeholder: 'Filter by services...',
+          onChange: 'onUsersServiceFilterChange'
+        })}
+      </div>
   `;
 
   if (state.users.users && state.users.users.length > 0) {
@@ -109,6 +181,10 @@ export function renderUsersEditor() {
       createUserServicesChangeHandler(index);
     });
   }
+  
+  // Reset search filters when re-rendering
+  usersSearchUsername = '';
+  usersSearchServices = [];
 }
 
 // Create onChange handler for user services dropdown

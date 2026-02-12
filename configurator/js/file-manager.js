@@ -20,26 +20,19 @@ let selectedFiles = new Set();
 export async function renderFileManager(serviceName, folderType = 'public', currentPath = '', pushState = true) {
   const panel = document.getElementById('editorPanel');
   const actions = document.getElementById('editorActions');
-  
+
   if (pushState) {
-    const url = new URL(window.location);
-    url.searchParams.set('section', `config-${serviceName}`);
-    url.searchParams.set('folder', folderType);
-    if (currentPath) {
-      url.searchParams.set('path', currentPath);
-    } else {
-      url.searchParams.delete('path');
-    }
-    window.history.pushState({}, '', url);
+    const routePath = window.buildAppRoute({ section: `config-${serviceName}`, folder: folderType, path: currentPath });
+    window.history.pushState({}, '', routePath);
   }
-  
+
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
-  
+
   const service = state.config.services[serviceName];
   const serviceType = service?.subdomain?.type;
   const showFolderTypeSelector = serviceType === 'index';
-  
+
   let html = `
     <div class="section">
       <div class="section-title"><span class="material-icons">folder</span> File Manager - ${serviceName}</div>
@@ -64,21 +57,19 @@ export async function renderFileManager(serviceName, folderType = 'public', curr
       <div id="fileManagerContentContainer"></div>
     </div>
   `;
-  
+
   panel.innerHTML = html;
   actions.innerHTML = `
     <button class="btn-add-field" onclick="backToServiceEditor('${serviceName}')"><span class="material-icons">arrow_back</span> Back to Service</button>
   `;
-  
+
   await renderFileManagerContent(serviceName, folderType, currentPath);
 }
 
 export async function switchFolderType(serviceName, folderType) {
-  const url = new URL(window.location);
-  url.searchParams.set('folder', folderType);
-  url.searchParams.delete('path');
-  window.history.pushState({}, '', url);
-  
+  const routePath = window.buildAppRoute({ section: `config-${serviceName}`, folder: folderType });
+  window.history.pushState({}, '', routePath);
+
   // Update tab styles
   const tabs = document.querySelectorAll('.tab-folder-type');
   tabs.forEach(tab => {
@@ -86,7 +77,7 @@ export async function switchFolderType(serviceName, folderType) {
     const isActive = (isPublic && folderType === 'public') || (!isPublic && folderType === 'static');
     tab.classList.toggle('active', isActive);
   });
-  
+
   // Update hint text
   const hintEl = document.getElementById('folderTypeHint');
   if (hintEl) {
@@ -94,7 +85,7 @@ export async function switchFolderType(serviceName, folderType) {
       ? 'Public files are served directly.' 
       : 'Static files are stored differently and are served at the /static path.';
   }
-  
+
   await renderFileManagerContent(serviceName, folderType, '');
 }
 

@@ -41,7 +41,7 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    padding: 15px 0 0 0;
+    padding: 10px 0 0 0;
     border-top: 2px solid var(--color-gray-200);
 }
 
@@ -93,4 +93,19 @@
 
 .placeholder-message p {
     font-size: 16px;
+}
+
+.blocklist-controls, .users-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.users-controls {
+    flex-wrap: wrap;
+}
+
+.blocklist-controls input, .users-controls input {
+    flex: 1;
 }

@@ -209,7 +209,7 @@ export function createDropdown(options) {
   const modeClass = multiSelect ? ' multi-select-multi' : ' multi-select-single';
   
   return `
-    <div class="multi-select${modeClass}${disabledClass}" id="${id}" onclick="toggleDropdown('${id}', event)"${onchangeAttr}>
+    <div class="multi-select${modeClass}${disabledClass}" id="${id}" onclick="toggleDropdown('${id}', event)"${onchangeAttr} data-placeholder="${placeholder}">
       <div class="multi-select-display">
         ${displayContent}
       </div>

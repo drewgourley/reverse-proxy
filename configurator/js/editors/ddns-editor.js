@@ -43,7 +43,7 @@ export function renderDdnsEditor() {
     
     html += `
         <div class="entry-field">
-          <label>${label}</label>
+          <label for="ddns_${key}">${label}</label>
           <div class="password-input-group">
             <input 
               type="text" 

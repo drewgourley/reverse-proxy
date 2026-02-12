@@ -92,4 +92,12 @@
     .file-manager-actions button .material-icons {
         margin: -4px 0 0 0;
     }
+
+    .blocklist-controls, .users-controls {
+        flex-direction: column;
+    }
+
+    .blocklist-controls button, .users-controls button {
+        width: 100%;
+    }
 }

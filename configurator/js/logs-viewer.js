@@ -14,11 +14,10 @@ export function renderLogsViewer(type = 'out', pushState = true) {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
   panel.scrollTop = 0;
-  const url = new URL(window.location);
 
   if (pushState) {
-    url.searchParams.set('type', type);
-    window.history.pushState({}, '', url);
+    const routePath = window.buildAppRoute({ section: 'monitor-logs', type });
+    window.history.pushState({}, '', routePath);
   }
 
   actions.classList.add('hidden');
@@ -56,10 +55,9 @@ export function renderLogsViewer(type = 'out', pushState = true) {
 }
 
 export function switchLogType(type) {
-  const url = new URL(window.location);
-  url.searchParams.set('type', type);
-  window.history.pushState({}, '', url);
-  
+  const routePath = window.buildAppRoute({ section: 'monitor-logs', type });
+  window.history.pushState({}, '', routePath);
+
   // Update tab styles
   const btnOut = document.getElementById('btnLogOut');
   const btnErr = document.getElementById('btnLogErr');
@@ -67,7 +65,7 @@ export function switchLogType(type) {
     btnOut.classList.toggle('active', type === 'out');
     btnErr.classList.toggle('active', type === 'error');
   }
-  
+
   renderLogsViewerContent(type);
 }
 
@@ -104,7 +102,7 @@ export function startLogStream(type = 'out') {
   if (eventSource) {
     eventSource.close();
   }
-  eventSource = new EventSource(`logs/${appName}/${type}`);
+  eventSource = new EventSource(`/logs/${appName}/${type}`);
   eventSource.onmessage = function(event) {
     if (!logsBox || !logsContent) return;
     // Only auto-scroll if user is already at the bottom

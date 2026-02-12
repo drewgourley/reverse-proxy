@@ -47,26 +47,20 @@ export function selectItem(prefixedName, type, folder, path, pushState = true) {
       return;
     }
   }
-  
+
   state.setCurrentSelection(prefixedName);
-  
+
   if (pushState) {
-    const url = new URL(window.location);
-    url.searchParams.set('section', prefixedName);
-    url.searchParams.delete('type');
-    url.searchParams.delete('folder');
-    url.searchParams.delete('path');
-    window.history.pushState({}, '', url);
-    
+    const routePath = window.buildAppRoute({ section: prefixedName, type, folder, path });
+    window.history.pushState({}, '', routePath);
     if (state.currentUrl !== undefined) {
       state.setCurrentUrl(window.location.href);
     }
   }
 
   renderServicesList();
-  
   const itemName = prefixedName.replace(/^(management-|config-)/, '');
-  
+
   if (prefixedName === 'config-domain') {
     renderDomainEditor();
   } else if (prefixedName === 'management-application') {

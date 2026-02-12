@@ -2,8 +2,7 @@
 // All server communication and data persistence operations
 
 import { 
-  secrets, colors,
-  setConfig, setOriginalConfig, setSecrets, setOriginalSecrets,
+  secrets, setConfig, setOriginalConfig, setSecrets, setOriginalSecrets,
   setUsers, setOriginalUsers, setDdns, setOriginalDdns,
   setEcosystem, setOriginalEcosystem, setAdvanced, setOriginalAdvanced,
   setCerts, setOriginalCerts, setBlocklist, setOriginalBlocklist,
@@ -73,7 +72,7 @@ export function getDefaultAdvanced() {
 // Load operations
 export async function loadConfig(suppressStatus = false) {
   try {
-    const response = await fetch('config');
+    const response = await fetch('/config');
     
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load config`);
     
@@ -109,7 +108,7 @@ export async function loadConfig(suppressStatus = false) {
 
 export async function loadSecrets(suppressStatus = false) {
   try {
-    const response = await fetch('secrets');
+    const response = await fetch('/secrets');
     
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load secrets`);
     
@@ -142,7 +141,7 @@ export async function loadSecrets(suppressStatus = false) {
 
 export async function loadUsers(suppressStatus = false) {
   try {
-    const response = await fetch('users');
+    const response = await fetch('/users');
     
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load users`);
     
@@ -167,7 +166,7 @@ export async function loadUsers(suppressStatus = false) {
 
 export async function loadBlocklist(suppressStatus = false) {
   try {
-    const response = await fetch('blocklist');
+    const response = await fetch('/blocklist');
     
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load blocklist`);
     
@@ -189,7 +188,7 @@ export async function loadBlocklist(suppressStatus = false) {
 
 export async function loadDdns(suppressStatus = false) {
   try {
-    const response = await fetch('ddns');
+    const response = await fetch('/ddns');
     
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load DDNS config`);
     
@@ -221,7 +220,7 @@ export async function loadDdns(suppressStatus = false) {
 
 export async function loadEcosystem(suppressStatus = false) {
   try {
-    const response = await fetch('ecosystem');
+    const response = await fetch('/ecosystem');
     
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load ecosystem config`);
     
@@ -241,7 +240,7 @@ export async function loadEcosystem(suppressStatus = false) {
 
 export async function loadAdvanced(suppressStatus = false) {
   try {
-    const response = await fetch('advanced');
+    const response = await fetch('/advanced');
     
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load Advanced config`);
     
@@ -273,7 +272,7 @@ export async function loadAdvanced(suppressStatus = false) {
 
 export async function loadCerts(suppressStatus = false) {
   try {
-    const response = await fetch('certs');
+    const response = await fetch('/certs');
     
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load certificate data`);
     
@@ -299,7 +298,7 @@ export async function loadCerts(suppressStatus = false) {
 export async function loadGitStatus(suppressStatus = false, showForceUpdate = false) {
   const { renderGitStatus, checkForUpdates } = await import('./update.js');
   try {
-    const response = await fetch('git/status');
+    const response = await fetch('/git/status');
     if (!response.ok) {
       renderGitStatus({ error: 'Version Unavailable' });
       return;
@@ -321,7 +320,7 @@ export async function loadGitStatus(suppressStatus = false, showForceUpdate = fa
 
 export async function loadLogRotateStatus(suppressStatus = false) {
   try {
-    const response = await fetch('checklogrotate');
+    const response = await fetch('/checklogrotate');
     if (!response.ok) {
       throw new Error((await response.json()).error || 'Log rotate check failed');
     }
@@ -334,7 +333,7 @@ export async function loadLogRotateStatus(suppressStatus = false) {
 
 export async function loadColors(suppressStatus = false) {
   try {
-    const response = await fetch('colors');
+    const response = await fetch('/colors');
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load colors`);
     
     const loadedColors = await response.json();
@@ -356,7 +355,7 @@ export async function loadColors(suppressStatus = false) {
 
 // Save operations
 export async function saveBlocklist(blocklist) {
-  const response = await fetch('blocklist', {
+  const response = await fetch('/blocklist', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(blocklist)
@@ -371,7 +370,7 @@ export async function saveBlocklist(blocklist) {
 }
 
 export async function saveSecrets(secrets) {
-  const response = await fetch('secrets', {
+  const response = await fetch('/secrets', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(secrets)
@@ -386,7 +385,7 @@ export async function saveSecrets(secrets) {
 }
 
 export async function saveUsers(users) {
-  const response = await fetch('users', {
+  const response = await fetch('/users', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(users)
@@ -401,7 +400,7 @@ export async function saveUsers(users) {
 }
 
 export async function saveDdns(ddns) {
-  const response = await fetch('ddns', {
+  const response = await fetch('/ddns', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(ddns)
@@ -416,7 +415,7 @@ export async function saveDdns(ddns) {
 }
 
 export async function saveEcosystem(ecosystem) {
-  const response = await fetch('ecosystem', {
+  const response = await fetch('/ecosystem', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(ecosystem)
@@ -431,7 +430,7 @@ export async function saveEcosystem(ecosystem) {
 }
 
 export async function saveAdvanced(advanced) {
-  const response = await fetch('advanced', {
+  const response = await fetch('/advanced', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(advanced)
@@ -446,7 +445,7 @@ export async function saveAdvanced(advanced) {
 }
 
 export async function saveConfig(config) {
-  const response = await fetch('config', {
+  const response = await fetch('/config', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config)
@@ -461,7 +460,7 @@ export async function saveConfig(config) {
 }
 
 export async function saveColors(colors) {
-  const response = await fetch('colors', {
+  const response = await fetch('/colors', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(colors)
@@ -476,7 +475,7 @@ export async function saveColors(colors) {
 }
 
 export async function provisionCertificates(email) {
-  const response = await fetch('certs', {
+  const response = await fetch('/certs', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email })
@@ -494,7 +493,7 @@ export async function provisionCertificates(email) {
 // IP fetching utilities
 export async function fetchPublicIp() {
   try {
-    const response = await fetch('publicip');
+    const response = await fetch('/publicip');
     const data = await response.json();
     
     if (data.success && data.ip) {
@@ -509,7 +508,7 @@ export async function fetchPublicIp() {
 
 export async function fetchLocalIp() {
   try {
-    const response = await fetch('localip');
+    const response = await fetch('/localip');
     const data = await response.json();
     
     if (data.success && data.ip) {

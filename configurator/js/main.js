@@ -19,10 +19,80 @@ import * as domainEditor from './editors/domain-editor.js';
 import * as themeEditor from './editors/theme-editor.js';
 import { showMobilePanel, closeConfirmModal, confirmAction, closePromptModal, submitPrompt, toggleDropdown, selectDropdownOption, removeDropdownTag, togglePasswordVisibility, showStatus } from './ui-components.js';
 
+// =====================
+// Path-based Routing Utils
+// =====================
+function parseAppRoute(path) {
+  // Remove leading/trailing slashes
+  const clean = path.replace(/^\/+|\/+$/g, '');
+  const parts = clean.split('/');
+  // Map to section/type/folder/path
+  if (parts[0] === 'config' && parts[1]) {
+    if (parts[2] === 'files') {
+      // /config/:service/files(/static)?
+      return {
+        section: `config-${parts[1]}`,
+        folder: parts[3] === 'static' ? 'static' : 'public',
+        path: parts.length > 4 ? parts.slice(4).join('/') : '',
+      };
+    }
+    // /config/:service
+    return { section: `config-${parts[1]}` };
+  }
+  if (parts[0] === 'management' && parts[1]) {
+    return { section: `management-${parts[1]}` };
+  }
+  if (parts[0] === 'monitor' && parts[1]) {
+    if (parts[1] === 'logs') {
+      // /monitor/logs(/error)?
+      return { section: 'monitor-logs', type: parts[2] === 'error' ? 'error' : 'out' };
+    }
+    if (parts[1] === 'blocklist') {
+      return { section: 'monitor-blocklist' };
+    }
+  }
+  if (parts[0] === 'config-domain') {
+    return { section: 'config-domain' };
+  }
+  return {};
+}
+
+function buildAppRoute({ section, type, folder, path }) {
+  // Returns a path string for pushState
+  if (!section) return '/';
+  if (section.startsWith('config-')) {
+    const service = section.replace('config-', '');
+    if (folder) {
+      let base = `/config/${service}/files`;
+      if (folder === 'static') base += '/static';
+      if (path) base += '/' + path.replace(/^\/+/, '');
+      return base;
+    }
+    return `/config/${service}`;
+  }
+  if (section.startsWith('management-')) {
+    return `/management/${section.replace('management-', '')}`;
+  }
+  if (section === 'monitor-logs') {
+    return `/monitor/logs${type === 'error' ? '/error' : ''}`;
+  }
+  if (section === 'monitor-blocklist') {
+    return '/monitor/blocklist';
+  }
+  if (section === 'config-domain') {
+    return '/config/domain';
+  }
+  return '/';
+}
+
 // ============================================================================
 // GLOBAL FUNCTION EXPOSURE
 // All functions called from HTML onclick/onchange handlers must be on window
 // ============================================================================
+
+// Expose route utils for use in editors.js and debugging
+window.buildAppRoute = buildAppRoute;
+window.parseAppRoute = parseAppRoute;
 
 // UI Components
 window.showMobilePanel = showMobilePanel;
@@ -67,6 +137,8 @@ window.addNewUser = usersEditor.addNewUser;
 window.removeUser = usersEditor.removeUser;
 window.saveUsers = usersEditor.saveUsers;
 window.revertUsers = usersEditor.revertUsers;
+window.filterUsersUsername = usersEditor.filterUsersUsername;
+window.onUsersServiceFilterChange = usersEditor.onUsersServiceFilterChange;
 
 // DDNS Editor
 window.renderDdnsEditor = ddnsEditor.renderDdnsEditor;
@@ -194,25 +266,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   editors.renderServicesList();
   editors.renderPlaceholderEditor();
 
-  // Handle URL parameters and initial view
-  const urlParams = new URLSearchParams(window.location.search);
-  const justUpdated = urlParams.get('updated') === 'true';
-  const justRestarted = urlParams.get('restarted') === 'true';
-  
+  // Handle path-based routing and initial view
+  const url = new URL(window.location);
+  const justUpdated = url.searchParams.get('updated') === 'true';
+  const justRestarted = url.searchParams.get('restarted') === 'true';
+
   if (justUpdated) {
-    urlParams.delete('updated');
+    url.searchParams.delete('updated');
     showStatus('Update completed successfully!', 'success');
   }
   if (justRestarted) {
-    urlParams.delete('restarted');
+    url.searchParams.delete('restarted');
     showStatus('Server restarted successfully!', 'success');
   }
   if (justUpdated || justRestarted) {
-    const url = new URL(window.location);
-    url.search = urlParams.toString();
     window.history.replaceState({}, '', url);
   }
-  
+
   // Initialize UI based on setup state
   const isFirstTimeSetup = state.ecosystem.default === true;
   const certStatus = editors.getCertificateStatus();
@@ -235,6 +305,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Parse path for route
+  const route = parseAppRoute(window.location.pathname);
+
   if (isFirstTimeSetup) {
     editors.selectItem('management-application');
   } else if (state.secretsSaved === false) {
@@ -243,38 +316,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     editors.selectItem('config-domain');
   } else if (canProvision) {
     editors.selectItem('management-certificates');
-  } else {
-    const section = urlParams.get('section');
-    const type = urlParams.get('type');
-    const folder = urlParams.get('folder');
-    const path = urlParams.get('path');
-    
-    if (section) {
-      const validMonitorSections = ['monitor-logs', 'monitor-blocklist'];
-      const validManagementSections = ['management-application', 'management-secrets', 'management-users', 'management-theme', 'management-advanced'];
-      if (state.secrets.admin_email_address && state.secrets.admin_email_address.trim() !== '') {
-        validManagementSections.push('management-certificates');
-      }
-      if (state.config.domain && state.config.domain.trim() !== '') {
-        validManagementSections.push('management-ddns');
-      }
-      const validConfigSections = ['config-domain'];
-      const isValidMonitor = validMonitorSections.includes(section);
-      const isValidManagement = validManagementSections.includes(section);
-      const isValidConfig = validConfigSections.includes(section);
-      const isService = section.startsWith('config-') && state.config.services && state.config.services[section.replace('config-', '')];
-
-      if (isValidManagement || isValidConfig || isService || isValidMonitor) {
-        editors.selectItem(section, type, folder, path, false);
-      } else {
-        const url = new URL(window.location);
-        url.searchParams.delete('section');
-        url.searchParams.delete('type');
-        url.searchParams.delete('folder');
-        url.searchParams.delete('path');
-        window.history.replaceState({}, '', url);
-      }
-    }
+  } else if (route.section) {
+    editors.selectItem(route.section, route.type, route.folder, route.path, false);
   }
   
   // Event listeners
@@ -307,30 +350,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       state.setCurrentUrl(window.location.href);
     }
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const section = urlParams.get('section');
-    const type = urlParams.get('type');
-    const folder = urlParams.get('folder');
-    const path = urlParams.get('path');
-    
-    if (section) {
-      const validMonitorSections = ['monitor-logs', 'monitor-blocklist'];
-      const validManagementSections = ['management-application', 'management-secrets', 'management-users', 'management-theme', 'management-advanced'];
-      if (state.secrets.admin_email_address && state.secrets.admin_email_address.trim() !== '') {
-        validManagementSections.push('management-certificates');
-      }
-      if (state.config.domain && state.config.domain.trim() !== '') {
-        validManagementSections.push('management-ddns');
-      }
-      const validConfigSections = ['config-domain'];
-      const isValidMonitor = validMonitorSections.includes(section);
-      const isValidManagement = validManagementSections.includes(section);
-      const isValidConfig = validConfigSections.includes(section);
-      const isService = section.startsWith('config-') && state.config.services && state.config.services[section.replace('config-', '')];
-      
-      if (isValidManagement || isValidConfig || isService || isValidMonitor) {
-        editors.selectItem(section, type, folder, path, false);
-      }
+    const route = parseAppRoute(window.location.pathname);
+    if (route.section) {
+      editors.selectItem(route.section, route.type, route.folder, route.path, false);
     } else {
       state.setCurrentSelection(null);
       editors.renderPlaceholderEditor();
