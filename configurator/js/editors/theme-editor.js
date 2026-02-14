@@ -156,7 +156,7 @@ export async function uploadFavicon() {
   formData.append('favicon', pendingFaviconFile);
   
   try {
-    const response = await fetch('favicon', {
+    const response = await fetch('/favicon', {
       method: 'POST',
       body: formData
     });

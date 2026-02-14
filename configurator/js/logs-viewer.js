@@ -162,7 +162,7 @@ export async function installLogRotate() {
     installBtn.disabled = true;
     installButtonTextLoop(installBtn);
     
-    const response = await fetch('installlogrotate');
+    const response = await fetch('/installlogrotate');
 
     if (!response.ok) {
       const error = await response.text();

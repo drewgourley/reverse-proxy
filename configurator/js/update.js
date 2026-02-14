@@ -64,7 +64,7 @@ export async function checkForUpdates() {
   updateText.textContent = 'Checking...';
   
   try {
-    const response = await fetch('git/check');
+    const response = await fetch('/git/check');
     if (!response.ok) {
       throw new Error('Failed to check for updates');
     }
@@ -132,12 +132,12 @@ async function pullUpdates(force) {
   try {
     let response;
     if (force) {
-      response = await fetch('git/force', {
+      response = await fetch('/git/force', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
     } else {
-      response = await fetch('git/pull', {
+      response = await fetch('/git/pull', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
