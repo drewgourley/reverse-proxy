@@ -27,6 +27,7 @@ export let currentFileManagerContext = null;
 export let selectedFiles = new Set();
 export let allowPopStateNavigation = false;
 export let currentUrl = window.location.href;
+export let environment = ''; // defaulting to blank, will be overridden by server data
 
 // State setters (for updating from other modules)
 export function setConfig(value) { config = value; }
@@ -57,3 +58,4 @@ export function setCurrentFileManagerContext(value) { currentFileManagerContext 
 export function setSelectedFiles(value) { selectedFiles = value; }
 export function setAllowPopStateNavigation(value) { allowPopStateNavigation = value; }
 export function setCurrentUrl(value) { currentUrl = value; }
+export function setEnvironment(value) { environment = value; }

@@ -72,6 +72,10 @@
     min-height: 438px;
 }
 
+.section.logs-section .hint-section {
+    margin-top:0;
+}
+
 .section-title {
     font-size: 18px;
     font-weight: 600;
@@ -79,6 +83,19 @@
     margin-bottom: 15px;
     padding-bottom: 10px;
     border-bottom: 2px solid var(--color-gray-200);
+}
+
+.title-link {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+}
+
+.title-link:hover {
+    text-decoration: underline;
+}
+
+.title-link:active {
+    color: var(--color-primary-hover);
 }
 
 .section-title-spaced {

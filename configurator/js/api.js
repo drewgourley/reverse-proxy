@@ -224,6 +224,7 @@ export async function loadEcosystem(suppressStatus = false) {
     const loadedEcosystem = JSON.parse(text);
     state.setEcosystem(loadedEcosystem);
     state.setOriginalEcosystem(JSON.parse(JSON.stringify(loadedEcosystem)));
+    state.setEnvironment(loadedEcosystem.apps[0].env.NODE_ENV);
   } catch (error) {
     if (!suppressStatus) showStatus('Could not load Ecosystem: ' + error.message, 'error');
   }

@@ -226,7 +226,7 @@ function renderDefaultSubdomainSection(serviceName, subdomain) {
   const isWww = serviceName === 'www';
   return `
     <div class="section">
-      <div class="section-title">Subdomain Settings</div>
+      <div class="section-title">Subdomain Settings - <a class="title-link" href="${subdomain.protocol === 'secure' && state.environment === 'production'  ? 'https' : 'http'}://${isWww ? '' : serviceName + '.'}${state.config.domain}" target="_blank">${isWww ? '' : serviceName + '.'}${state.config.domain}</a></div>
       <div class="nested-object">
         <div class="form-group">
           <p class="label" onclick="toggleDropdown('subdomain_type_${serviceName}', event)">Type</p>
@@ -262,7 +262,7 @@ function renderDefaultSubdomainSection(serviceName, subdomain) {
 function renderSubdomainSection(serviceName, subdomain) {
   return `
     <div class="section">
-      <div class="section-title">Subdomain Settings</div>
+      <div class="section-title">Subdomain Settings - <a class="title-link" href="${subdomain.protocol === 'secure' && state.environment === 'production'  ? 'https' : 'http'}://${serviceName}.${state.config.domain}" target="_blank">${serviceName}.${state.config.domain}</a></div>
       <div class="nested-object">
         <button class="btn-remove" onclick="removeSubdomain('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Subdomain</button>
         <div class="form-group">
