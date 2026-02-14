@@ -1,15 +1,20 @@
 .material-icons {
-    font-family: 'Material Icons';
-    font-weight: normal;
-    font-style: normal;
-    font-size: 20px;
-    display: inline-block;
-    line-height: 1;
-    letter-spacing: normal;
-    word-wrap: normal;
-    white-space: nowrap;
-    vertical-align: middle;
-    opacity: 0.5;
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  display: inline-block;
+  line-height: 1;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  vertical-align: middle;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga';
+  opacity: 0.5;
 }
 
 .material-icons.warning {
