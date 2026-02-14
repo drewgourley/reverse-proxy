@@ -209,11 +209,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (justUpdated) {
     url.searchParams.delete('updated');
-    showStatus('Update completed successfully!', 'success');
+    ui.showStatus('Update completed successfully!', 'success');
   }
   if (justRestarted) {
     url.searchParams.delete('restarted');
-    showStatus('Server restarted successfully!', 'success');
+    ui.showStatus('Server restarted successfully!', 'success');
   }
   if (justUpdated || justRestarted) {
     window.history.replaceState({}, '', url);
