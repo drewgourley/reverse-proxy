@@ -29,14 +29,14 @@ export async function renderFileManager(serviceName, folderType = 'public', curr
       <div class="form-group">
         <label>Folder Type</label>
         <div class="folders-tabs-row">
-          <button class="tab-folder-type ${folderType === 'public' ? 'active' : ''}" 
-              onclick="switchFolderType('${serviceName}', 'public')">
+          <a href="${window.buildAppRoute ? window.buildAppRoute({ section: `config-${serviceName}`, folder: 'public' }) : '#'}" class="tab-folder-type ${folderType === 'public' ? 'active' : ''}" 
+              onclick="(preventDefaultThen(() => switchFolderType('${serviceName}', 'public')))(event)">
             <span class="material-icons">public</span> Public
-          </button>
-          <button class="tab-folder-type ${folderType === 'static' ? 'active' : ''}" 
-              onclick="switchFolderType('${serviceName}', 'static')">
+          </a>
+          <a href="${window.buildAppRoute ? window.buildAppRoute({ section: `config-${serviceName}`, folder: 'static' }) : '#'}" class="tab-folder-type ${folderType === 'static' ? 'active' : ''}" 
+              onclick="(preventDefaultThen(() => switchFolderType('${serviceName}', 'static')))(event)">
             <span class="material-icons">code</span> Static
-          </button>
+          </a>
         </div>
         <div class="folders-tabs-spacer"></div>
         <div class="hint" id="folderTypeHint">${folderType === 'public' ? 'Public files are served directly.' : 'Static files are stored differently and are served at the /static path.'}</div>
@@ -48,7 +48,7 @@ export async function renderFileManager(serviceName, folderType = 'public', curr
 
   panel.innerHTML = html;
   actions.innerHTML = `
-    <button class="btn-add-field" onclick="backToServiceEditor('${serviceName}')"><span class="material-icons">arrow_back</span> Back to Service</button>
+    <a href="${window.buildAppRoute ? window.buildAppRoute({ section: `config-${serviceName}` }) : '#'}" class="btn-add-field" onclick="(preventDefaultThen(() => backToServiceEditor('${serviceName}')))(event)"><span class="material-icons">arrow_back</span> Back to Service</a>
   `;
 
   await renderFileManagerContent(serviceName, folderType, currentPath);
@@ -360,7 +360,7 @@ export function showUploadDialog(serviceName, folderType, currentPath = '') {
     <div class="form-group">
       <label for="fileInput">Select File</label>
       <input type="file" id="fileInput" class="file-input-hidden">
-      <button class="btn-add-field no-top" onclick="document.getElementById('fileInput').click()"><span class="material-icons">upload_file</span> Choose File</button>
+            <button class="btn-add-field no-top" onclick="clickItemByID('fileInput')"><span class="material-icons">upload_file</span> Choose File</button>
       <span id="fileInputName" class="file-name-display"></span>
     </div>
     <div class="form-group">
@@ -703,7 +703,7 @@ export function showUnpackZipDialog(serviceName, folderType, currentPath = '') {
     <div class="form-group">
       <label for="zipFileInput">Select Zip File</label>
       <input type="file" id="zipFileInput" accept=".zip" class="file-input-hidden">
-      <button class="btn-add-field no-top" onclick="document.getElementById('zipFileInput').click()"><span class="material-icons">upload_file</span> Choose File</button>
+      <button class="btn-add-field no-top" onclick="clickItemByID('zipFileInput')"><span class="material-icons">upload_file</span> Choose File</button>
       <span id="zipFileInputName" class="file-name-display"></span>
       <div class="hint">Choose a zip file to extract into the current directory</div>
     </div>

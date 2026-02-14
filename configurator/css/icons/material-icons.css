@@ -137,12 +137,12 @@ h1 .material-icons {
     margin: -5px 0 0;
 }
 
-button .material-icons {
+button .material-icons, a.btn-add-field .material-icons, a.btn-save .material-icons, a.btn-reset .material-icons, a.btn-remove .material-icons, a.btn-add-logrotate .material-icons {
     font-size: 22px;
     margin: -6px 2px -4px -8px;
 }
 
-button .material-icons.update-icon {
+button .material-icons.update-icon, a.btn-add-field .material-icons.update-icon, a.btn-save .material-icons.update-icon, a.btn-reset .material-icons.update-icon, a.btn-remove .material-icons.update-icon, a.btn-add-logrotate .material-icons.update-icon {
     font-size:16px;
     margin-right: 0;
 }

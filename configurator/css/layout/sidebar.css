@@ -30,7 +30,7 @@
     border-top: 2px solid var(--color-gray-200);
 }
 
-.sidebar-actions button {
+.sidebar-actions button, .sidebar-actions a {
     flex: 0 0 auto;
 }
 

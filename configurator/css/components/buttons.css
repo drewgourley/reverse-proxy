@@ -7,6 +7,19 @@ button {
     transition: all 0.3s ease;
 }
 
+a.btn-add-field, a.btn-save, a.btn-reset, a.btn-remove, a.btn-toggle-password, a.btn-add-logrotate, a.btn-color, a.btn-refresh-ip {
+    padding: 10px 20px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    display: inline-block;
+    vertical-align: middle;
+    text-decoration: none;
+    border: none;
+    transition: all 0.3s ease;
+} 
+
 .btn-save {
     background: #48bb78;
     color: white;

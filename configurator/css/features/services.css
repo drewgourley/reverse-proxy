@@ -8,6 +8,8 @@
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
+    text-decoration: none;
+    color: inherit;
 }
 
 .service-item:hover {

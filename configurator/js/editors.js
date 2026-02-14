@@ -1,5 +1,5 @@
 import * as state from './state.js';
-import { getServiceIcon } from './utils.js';
+import { getServiceIcon, preventDefaultThen } from './utils.js';
 import { showMobilePanel } from './ui-components.js';
 import { renderDomainEditor } from './editors/domain-editor.js';
 import { renderApplicationEditor } from './editors/application-editor.js';
@@ -102,27 +102,29 @@ export function renderServicesList() {
   monitorHeader.textContent = 'Activity Monitor';
   fragment.appendChild(monitorHeader);
 
-  const logsItem = document.createElement('div');
+  const logsItem = document.createElement('a');
   logsItem.className = 'service-item' + (state.currentSelection === 'monitor-logs' ? ' active' : '');
   logsItem.innerHTML = '<span class="material-icons">article</span> Logs';
+  logsItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'monitor-logs' }) : '#monitor-logs';
   if (isFirstTimeSetup) {
     logsItem.style.opacity = '0.5';
     logsItem.style.cursor = 'default';
     logsItem.style.pointerEvents = 'none';
   } else {
-    logsItem.onclick = () => selectItem('monitor-logs');
+    logsItem.onclick = preventDefaultThen(() => selectItem('monitor-logs'));
   }
   fragment.appendChild(logsItem);
 
-  const blocklistItem = document.createElement('div');
+  const blocklistItem = document.createElement('a');
   blocklistItem.className = 'service-item' + (state.currentSelection === 'monitor-blocklist' ? ' active' : '');
   blocklistItem.innerHTML = `<span class="material-icons">shield</span> Blocklist`;
+  blocklistItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'monitor-blocklist' }) : '#monitor-blocklist';
   if (isFirstTimeSetup) {
     blocklistItem.style.opacity = '0.5';
     blocklistItem.style.cursor = 'default';
     blocklistItem.style.pointerEvents = 'none';
   } else {
-    blocklistItem.onclick = () => selectItem('monitor-blocklist');
+    blocklistItem.onclick = preventDefaultThen(() => selectItem('monitor-blocklist'));
   }
   fragment.appendChild(blocklistItem);
 
@@ -130,81 +132,88 @@ export function renderServicesList() {
   managementHeader.textContent = 'Management';
   fragment.appendChild(managementHeader);
 
-  const appItem = document.createElement('div');
+  const appItem = document.createElement('a');
   appItem.className = 'service-item' + (state.currentSelection === 'management-application' ? ' active' : '');
   appItem.innerHTML = '<span class="material-icons">settings</span> Application';
-  appItem.onclick = () => selectItem('management-application');
+  appItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-application' }) : '#management-application';
+  appItem.onclick = preventDefaultThen(() => selectItem('management-application'));
   fragment.appendChild(appItem);
 
-  const secretsItem = document.createElement('div');
+  const secretsItem = document.createElement('a');
   secretsItem.className = 'service-item' + (state.currentSelection === 'management-secrets' ? ' active' : '');
   secretsItem.innerHTML = '<span class="material-icons">vpn_key</span> Secrets';
+  secretsItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-secrets' }) : '#management-secrets';
   if (!secretsEnabled) {
     secretsItem.style.opacity = '0.5';
     secretsItem.style.cursor = 'default';
     secretsItem.style.pointerEvents = 'none';
   } else {
-    secretsItem.onclick = () => selectItem('management-secrets');
+    secretsItem.onclick = preventDefaultThen(() => selectItem('management-secrets'));
   }
   fragment.appendChild(secretsItem);
 
-  const usersItem = document.createElement('div');
+  const usersItem = document.createElement('a');
   usersItem.className = 'service-item' + (state.currentSelection === 'management-users' ? ' active' : '');
   usersItem.innerHTML = '<span class="material-icons">group</span> Users';
+  usersItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-users' }) : '#management-users';
   if (!usersEnabled) {
     usersItem.style.opacity = '0.5';
     usersItem.style.cursor = 'default';
     usersItem.style.pointerEvents = 'none';
   } else {
-    usersItem.onclick = () => selectItem('management-users');
+    usersItem.onclick = preventDefaultThen(() => selectItem('management-users'));
   }
   fragment.appendChild(usersItem);
 
-  const certsItem = document.createElement('div');
+  const certsItem = document.createElement('a');
   certsItem.className = 'service-item' + (state.currentSelection === 'management-certificates' ? ' active' : '');
   certsItem.innerHTML = '<span class="material-icons">lock</span> Certificates';
+  certsItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-certificates' }) : '#management-certificates';
   if (!usersEnabled) {
     certsItem.style.opacity = '0.5';
     certsItem.style.cursor = 'default';
     certsItem.style.pointerEvents = 'none';
   } else {
-    certsItem.onclick = () => selectItem('management-certificates');
+    certsItem.onclick = preventDefaultThen(() => selectItem('management-certificates'));
   }
   fragment.appendChild(certsItem);
 
-  const ddnsItem = document.createElement('div');
+  const ddnsItem = document.createElement('a');
   ddnsItem.className = 'service-item' + (state.currentSelection === 'management-ddns' ? ' active' : '');
   ddnsItem.innerHTML = '<span class="material-icons">public</span> Dynamic DNS';
+  ddnsItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-ddns' }) : '#management-ddns';
   if (!usersEnabled) {
     ddnsItem.style.opacity = '0.5';
     ddnsItem.style.cursor = 'default';
     ddnsItem.style.pointerEvents = 'none';
   } else {
-    ddnsItem.onclick = () => selectItem('management-ddns');
+    ddnsItem.onclick = preventDefaultThen(() => selectItem('management-ddns'));
   }
   fragment.appendChild(ddnsItem);
 
-  const themeItem = document.createElement('div');
+  const themeItem = document.createElement('a');
   themeItem.className = 'service-item' + (state.currentSelection === 'management-theme' ? ' active' : '');
   themeItem.innerHTML = '<span class="material-icons">palette</span> Theme';
+  themeItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-theme' }) : '#management-theme';
   if (isFirstTimeSetup || !state.secretsSaved) {
     themeItem.style.opacity = '0.5';
     themeItem.style.cursor = 'default';
     themeItem.style.pointerEvents = 'none';
   } else {
-    themeItem.onclick = () => selectItem('management-theme');
+    themeItem.onclick = preventDefaultThen(() => selectItem('management-theme'));
   }
   fragment.appendChild(themeItem);
 
-  const advancedItem = document.createElement('div');
+  const advancedItem = document.createElement('a');
   advancedItem.className = 'service-item' + (state.currentSelection === 'management-advanced' ? ' active' : '');
   advancedItem.innerHTML = '<span class="material-icons">science</span> Advanced';
+  advancedItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-advanced' }) : '#management-advanced';
   if (isFirstTimeSetup || !state.secretsSaved) {
     advancedItem.style.opacity = '0.5';
     advancedItem.style.cursor = 'default';
     advancedItem.style.pointerEvents = 'none';
   } else {
-    advancedItem.onclick = () => selectItem('management-advanced');
+    advancedItem.onclick = preventDefaultThen(() => selectItem('management-advanced'));
   }
   fragment.appendChild(advancedItem);
 
@@ -212,16 +221,17 @@ export function renderServicesList() {
   configHeader.textContent = 'Configuration';
   fragment.appendChild(configHeader);
 
-  const domainItem = document.createElement('div');
+  const domainItem = document.createElement('a');
   const domainName = state.config.domain;
   domainItem.className = 'service-item' + (state.currentSelection === 'config-domain' ? ' active' : '');
   domainItem.innerHTML = `<span class="material-icons">public</span> <span id="domainNameContainer" class="name-container"><span class="subdomain-name-container">Domain</span>${domainName ? `<span class="nicename-name-container"> - ${domainName}</span>` : ''}</span>`;
+  domainItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'config-domain' }) : '#config-domain';
   if (isFirstTimeSetup || !state.secretsSaved) {
     domainItem.style.opacity = '0.5';
     domainItem.style.cursor = 'default';
     domainItem.style.pointerEvents = 'none';
   } else {
-    domainItem.onclick = () => selectItem('config-domain');
+    domainItem.onclick = preventDefaultThen(() => selectItem('config-domain'));
   }
   fragment.appendChild(domainItem);
 
@@ -249,7 +259,7 @@ export function renderServicesList() {
     const protocol = service?.subdomain?.protocol;
     const serviceType = service?.subdomain?.type;
     const icon = getServiceIcon(serviceType);
-    const serviceItem = document.createElement('div');
+    const serviceItem = document.createElement('a');
 
     serviceItem.className = 'service-item' 
       + (isActive ? ' active' : '') 
@@ -267,13 +277,14 @@ export function renderServicesList() {
     }
     
     serviceItem.innerHTML = `${icon} <span id="${serviceName}NameContainer" class="name-container"><span class="subdomain-name-container">${serviceName}</span>${nicename ? `<span class="nicename-container"> - ${nicename}</span>` : ''}</span>` + (hintParts.length > 0 ? ' <span class="hint">' + hintParts.join(', ') + '</span>' : '');
+    serviceItem.href = window.buildAppRoute ? window.buildAppRoute({ section: `config-${serviceName}` }) : `#config-${serviceName}`;
     
     if (isFirstTimeSetup || !state.secretsSaved) {
       serviceItem.style.opacity = '0.5';
       serviceItem.style.cursor = 'default';
       serviceItem.style.pointerEvents = 'none';
     } else {
-      serviceItem.onclick = () => selectItem(`config-${serviceName}`);
+      serviceItem.onclick = preventDefaultThen(() => selectItem(`config-${serviceName}`));
     }
     
     fragment.appendChild(serviceItem);

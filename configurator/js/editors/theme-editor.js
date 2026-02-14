@@ -242,7 +242,7 @@ export function renderThemeEditor() {
           <div class="form-group">
             <label for="faviconUpload">Upload New Favicon</label>
             <input type="file" id="faviconUpload" accept="image/png" class="file-input-hidden">
-            <button class="btn-add-field no-top" onclick="document.getElementById('faviconUpload').click()"><span class="material-icons">upload_file</span> Choose File</button>
+            <button class="btn-add-field no-top" onclick="clickItemByID('faviconUpload')"><span class="material-icons">upload_file</span> Choose File</button>
             <span id="faviconFileName" class="file-name-display"></span>
             <div class="hint">PNG format only, up to 512x512 pixels</div>
           </div>

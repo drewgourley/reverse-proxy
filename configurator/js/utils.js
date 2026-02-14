@@ -246,6 +246,71 @@ export function cleanConfig(obj) {
   return obj;
 }
 
+// Nav and routing utilities
+export function parseAppRoute(path) {
+  // Remove leading/trailing slashes
+  const clean = path.replace(/^\/+|\/+$/g, '');
+  const parts = clean.split('/');
+  // Map to section/type/folder/path
+  if (parts[0] === 'config' && parts[1]) {
+    if (parts[2] === 'files') {
+      // /config/:service/files(/static)?
+      return {
+        section: `config-${parts[1]}`,
+        folder: parts[3] === 'static' ? 'static' : 'public',
+        path: parts.length > 4 ? parts.slice(4).join('/') : '',
+      };
+    }
+    // /config/:service
+    return { section: `config-${parts[1]}` };
+  }
+  if (parts[0] === 'management' && parts[1]) {
+    return { section: `management-${parts[1]}` };
+  }
+  if (parts[0] === 'monitor' && parts[1]) {
+    if (parts[1] === 'logs') {
+      // /monitor/logs(/error)?
+      return { section: 'monitor-logs', type: parts[2] === 'error' ? 'error' : 'out' };
+    }
+    if (parts[1] === 'blocklist') {
+      return { section: 'monitor-blocklist' };
+    }
+  }
+  if (parts[0] === 'config-domain') {
+    return { section: 'config-domain' };
+  }
+  return {};
+}
+
+export function buildAppRoute({ section, type, folder, path }) {
+  // Returns a path string for pushState
+  if (!section) return '/';
+  if (section.startsWith('config-')) {
+    const service = section.replace('config-', '');
+    if (folder) {
+      let base = `/config/${service}/files`;
+      if (folder === 'static') base += '/static';
+      if (path) base += '/' + path.replace(/^\/+/, '');
+      return base;
+    }
+    return `/config/${service}`;
+  }
+  if (section.startsWith('management-')) {
+    return `/management/${section.replace('management-', '')}`;
+  }
+  if (section === 'monitor-logs') {
+    return `/monitor/logs${type === 'error' ? '/error' : ''}`;
+  }
+  if (section === 'monitor-blocklist') {
+    return '/monitor/blocklist';
+  }
+  if (section === 'config-domain') {
+    return '/config/domain';
+  }
+  return '/';
+}
+
+// Misc utilities
 export function getServiceIcon(serviceType) {
   switch(serviceType) {
     case 'index': return '<span class="material-icons">description</span>';
@@ -253,5 +318,19 @@ export function getServiceIcon(serviceType) {
     case 'dirlist': return '<span class="material-icons">folder_open</span>';
     case 'spa': return '<span class="material-icons">flash_on</span>';
     default: return '<span class="material-icons">settings</span>';
+  }
+}
+
+export function preventDefaultThen(callback) {
+  return function(event) {
+    event.preventDefault();
+    callback(event);
+  };
+}
+
+export function clickItemByID(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.click();
   }
 }

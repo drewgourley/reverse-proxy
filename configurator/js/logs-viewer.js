@@ -36,11 +36,14 @@ export function renderLogsViewer(type = 'out', pushState = true) {
     `;
   }
 
+  const routeOut = window.buildAppRoute ? window.buildAppRoute({ section: 'monitor-logs', type: 'out' }) : '#monitor-logs-out';
+  const routeErr = window.buildAppRoute ? window.buildAppRoute({ section: 'monitor-logs', type: 'error' }) : '#monitor-logs-error';
+
   html += `
       <div class="logs-container">
         <div class="logs-tabs-row">
-          <button class="tab-log-type${type === 'out' ? ' active' : ''}" id="btnLogOut" onclick="switchLogType('out')"><span class="material-icons">terminal</span> Standard Output</button>
-          <button class="tab-log-type${type === 'error' ? ' active' : ''}" id="btnLogErr" onclick="switchLogType('error')"><span class="material-icons">error</span> Error Output</button>
+          <a href="${routeOut}" class="tab-log-type${type === 'out' ? ' active' : ''}" id="btnLogOut" onclick="(preventDefaultThen(() => switchLogType('out')))(event)"><span class="material-icons">terminal</span> Standard Output</a>
+          <a href="${routeErr}" class="tab-log-type${type === 'error' ? ' active' : ''}" id="btnLogErr" onclick="(preventDefaultThen(() => switchLogType('error')))(event)"><span class="material-icons">error</span> Error Output</a>
         </div>
         <div id="logsContentContainer"></div>
       </div>

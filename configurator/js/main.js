@@ -14,90 +14,30 @@ import * as certificatesEditor from './editors/certificates-editor.js';
 import * as advancedEditor from './editors/advanced-editor.js';
 import * as domainEditor from './editors/domain-editor.js';
 import * as themeEditor from './editors/theme-editor.js';
-import { showMobilePanel, closeConfirmModal, confirmAction, closePromptModal, submitPrompt, toggleDropdown, selectDropdownOption, removeDropdownTag, togglePasswordVisibility, showStatus } from './ui-components.js';
-
-function parseAppRoute(path) {
-  // Remove leading/trailing slashes
-  const clean = path.replace(/^\/+|\/+$/g, '');
-  const parts = clean.split('/');
-  // Map to section/type/folder/path
-  if (parts[0] === 'config' && parts[1]) {
-    if (parts[2] === 'files') {
-      // /config/:service/files(/static)?
-      return {
-        section: `config-${parts[1]}`,
-        folder: parts[3] === 'static' ? 'static' : 'public',
-        path: parts.length > 4 ? parts.slice(4).join('/') : '',
-      };
-    }
-    // /config/:service
-    return { section: `config-${parts[1]}` };
-  }
-  if (parts[0] === 'management' && parts[1]) {
-    return { section: `management-${parts[1]}` };
-  }
-  if (parts[0] === 'monitor' && parts[1]) {
-    if (parts[1] === 'logs') {
-      // /monitor/logs(/error)?
-      return { section: 'monitor-logs', type: parts[2] === 'error' ? 'error' : 'out' };
-    }
-    if (parts[1] === 'blocklist') {
-      return { section: 'monitor-blocklist' };
-    }
-  }
-  if (parts[0] === 'config-domain') {
-    return { section: 'config-domain' };
-  }
-  return {};
-}
-
-function buildAppRoute({ section, type, folder, path }) {
-  // Returns a path string for pushState
-  if (!section) return '/';
-  if (section.startsWith('config-')) {
-    const service = section.replace('config-', '');
-    if (folder) {
-      let base = `/config/${service}/files`;
-      if (folder === 'static') base += '/static';
-      if (path) base += '/' + path.replace(/^\/+/, '');
-      return base;
-    }
-    return `/config/${service}`;
-  }
-  if (section.startsWith('management-')) {
-    return `/management/${section.replace('management-', '')}`;
-  }
-  if (section === 'monitor-logs') {
-    return `/monitor/logs${type === 'error' ? '/error' : ''}`;
-  }
-  if (section === 'monitor-blocklist') {
-    return '/monitor/blocklist';
-  }
-  if (section === 'config-domain') {
-    return '/config/domain';
-  }
-  return '/';
-}
+import * as utils from './utils.js';
+import * as ui from './ui-components.js';
 
 // ============================================================================
 // GLOBAL FUNCTION EXPOSURE
 // All functions called from HTML onclick/onchange handlers must be on window
 // ============================================================================
 
-// Expose route utils for use in editors.js and debugging
-window.buildAppRoute = buildAppRoute;
-window.parseAppRoute = parseAppRoute;
+// Expose Utility Functions
+window.buildAppRoute = utils.buildAppRoute;
+window.parseAppRoute = utils.parseAppRoute;
+window.preventDefaultThen = utils.preventDefaultThen;
+window.clickItemByID = utils.clickItemByID;
 
 // UI Components
-window.showMobilePanel = showMobilePanel;
-window.closeConfirmModal = closeConfirmModal;
-window.confirmAction = confirmAction;
-window.closePromptModal = closePromptModal;
-window.submitPrompt = submitPrompt;
-window.toggleDropdown = toggleDropdown;
-window.selectDropdownOption = selectDropdownOption;
-window.removeDropdownTag = removeDropdownTag;
-window.togglePasswordVisibility = togglePasswordVisibility;
+window.showMobilePanel = ui.showMobilePanel;
+window.closeConfirmModal = ui.closeConfirmModal;
+window.confirmAction = ui.confirmAction;
+window.closePromptModal = ui.closePromptModal;
+window.submitPrompt = ui.submitPrompt;
+window.toggleDropdown = ui.toggleDropdown;
+window.selectDropdownOption = ui.selectDropdownOption;
+window.removeDropdownTag = ui.removeDropdownTag;
+window.togglePasswordVisibility = ui.togglePasswordVisibility;
 
 // Editors Module - Core Navigation
 window.selectItem = editors.selectItem;
@@ -319,8 +259,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Event listeners
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      closeConfirmModal();
-      closePromptModal();
+      ui.closeConfirmModal();
+      ui.closePromptModal();
     }
   });
 

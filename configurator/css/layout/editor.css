@@ -50,6 +50,10 @@
 }
 
 .editor-actions button {
+    margin-top: 2px;
+}
+
+.editor-actions button, .editor-actions a {
     flex: 0 0 auto;
 }
 

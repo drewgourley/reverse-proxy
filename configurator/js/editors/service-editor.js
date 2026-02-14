@@ -625,7 +625,7 @@ export function renderServiceEditor(serviceName) {
   const isInitiated = state.originalConfig.services[serviceName]?.subdomain;
   if (isInitiated && isFileManageableType && !isProtectedService) {
     actions.innerHTML = `
-      <button class="btn-add-field" onclick="renderFileManager('${serviceName}', 'public')"><span class="material-icons">folder</span> Files</button>
+      <a href="${window.buildAppRoute ? window.buildAppRoute({ section: `config-${serviceName}`, folder: 'public' }) : '#'}" class="btn-add-field" onclick="(preventDefaultThen(() => renderFileManager('${serviceName}', 'public')))(event)"><span class="material-icons">folder</span> Files</a>
       <div class="flex-spacer"></div>
       <button class="btn-reset" id="resetBtn" onclick="resetEditor()"><span class="material-icons">undo</span> Revert</button>
       <button class="btn-save" id="saveBtn" onclick="saveConfig()"><span class="material-icons">save</span> Save Config</button>
