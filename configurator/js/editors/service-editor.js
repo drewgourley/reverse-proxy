@@ -1,9 +1,6 @@
-// Service Editor Module
-// Handles rendering and managing individual service configurations
-
 import * as state from '../state.js';
-import * as utils from '../utils.js';
 import * as api from '../api.js';
+import { parseErrorMessage, getServiceIcon } from '../utils.js';
 import { reloadPage, waitForServerRestart, createDropdown, showStatus, showConfirmModal, showPromptModal, showPromptError, closePromptModal, showLoadingOverlay } from '../ui-components.js';
 import { blockNavigation, hasUnsavedManagementChanges, renderPlaceholderEditor } from '../editors.js';
 import { renderDomainEditor } from './domain-editor.js';
@@ -12,16 +9,6 @@ import { renderCertificatesEditor } from './certificates-editor.js';
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
-
-export function getServiceIcon(serviceType) {
-  switch(serviceType) {
-    case 'index': return '<span class="material-icons">description</span>';
-    case 'proxy': return '<span class="material-icons">swap_horiz</span>';
-    case 'dirlist': return '<span class="material-icons">folder_open</span>';
-    case 'spa': return '<span class="material-icons">flash_on</span>';
-    default: return '<span class="material-icons">settings</span>';
-  }
-}
 
 export function updateServiceProperty(serviceName, path, value) {
   const parts = path.split('.');
@@ -819,7 +806,7 @@ export async function saveConfig() {
 
     reloadPage();
   } catch (error) {
-    showStatus('<span class="material-icons">error</span> Error saving config: ' + utils.parseErrorMessage(error), 'error');
+    showStatus('<span class="material-icons">error</span> Error saving config: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Config';

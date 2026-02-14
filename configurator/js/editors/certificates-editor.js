@@ -1,6 +1,3 @@
-// Certificates Editor Module
-// Handles SSL certificate provisioning with Let's Encrypt
-
 import * as state from '../state.js';
 import * as api from '../api.js';
 import { reloadPage, waitForServerRestart, showStatus, showLoadingOverlay } from '../ui-components.js';
@@ -27,7 +24,6 @@ export function renderCertificatesEditor() {
     warningMessage = '<div class="hint"><span class="material-icons info">info</span> No certificate changes needed at this time</div>';
   }
   
-  // Build certificate status readout
   let statusHtml = '';
   
   if (certStatus.provisioned.length > 0) {

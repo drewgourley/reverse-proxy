@@ -1,21 +1,9 @@
-// Complete Configurator - File Manager Module
-// This file contains all file management functions for the configurator
-// Migrated from the original 5,420-line script.js monolith
-
 import * as state from './state.js';
-import * as utils from './utils.js';
+import { formatFileSize, getFileIcon } from './utils.js';
 import { showStatus, closePromptModal, showLoadingOverlay, hideLoadingOverlay, showPromptModal, showPromptError, showConfirmModal } from './ui-components.js';
-
-// ============================================================================
-// FILE MANAGER STATE
-// ============================================================================
 
 let currentFileManagerContext = null;
 let selectedFiles = new Set();
-
-// ============================================================================
-// MAIN FILE MANAGER RENDER
-// ============================================================================
 
 export async function renderFileManager(serviceName, folderType = 'public', currentPath = '', pushState = true) {
   const panel = document.getElementById('editorPanel');
@@ -323,8 +311,8 @@ function renderFileList(files, serviceName, folderType, currentPath) {
   });
   
   for (const file of sorted) {
-    const icon = file.type === 'directory' ? '<span class="material-icons folder">folder</span>' : utils.getFileIcon(file.name);
-    const sizeStr = file.type === 'file' ? utils.formatFileSize(file.size) : '';
+    const icon = file.type === 'directory' ? '<span class="material-icons folder">folder</span>' : getFileIcon(file.name);
+    const sizeStr = file.type === 'file' ? formatFileSize(file.size) : '';
     const modified = file.type === 'file' && file.modified ? new Date(file.modified).toLocaleString() : '';
     const fullPath = currentPath ? `${currentPath}/${file.path}` : file.path;
     const isSelected = selectedFiles.has(fullPath);

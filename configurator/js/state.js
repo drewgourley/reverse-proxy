@@ -1,6 +1,4 @@
-// Global State Management
 // All application state variables in one place
-
 export let config = {};
 export let originalConfig = {};
 export let secrets = {};

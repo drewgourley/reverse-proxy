@@ -1,27 +1,72 @@
-// Blocklist Editor Module
-// Handles blocklist management and IP blocking
-
 import * as state from '../state.js';
-import * as utils from '../utils.js';
 import * as api from '../api.js';
+import { parseErrorMessage } from '../utils.js';
 import { reloadPage, waitForServerRestart, showPromptModal, showPromptError, showStatus, closePromptModal, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
 
+// Search filter state
 let blocklistSearchTerm = '';
 
-function filterBlocklist() {
+export function filterBlocklist() {
   const searchInput = document.getElementById('blocklistSearchInput');
-  if (!searchInput) return;
-  
-  blocklistSearchTerm = searchInput.value.toLowerCase().trim();
+  const panel = document.getElementById('editorPanel');
   const entries = document.querySelectorAll('.blocklist-entry');
+  let entryCount = 0;
+  
+  blocklistSearchTerm = searchInput?.value.toLowerCase().trim() || '';
   
   entries.forEach((entry) => {
     const ipInput = entry.querySelector('input[type="text"]');
     const ip = ipInput.value.toLowerCase();
     const matches = blocklistSearchTerm === '' || ip.includes(blocklistSearchTerm);
-    entry.style.display = matches ? '' : 'none';
+    if (matches) {
+      entry.style.display = '';
+      entryCount++;
+    } else {
+      entry.style.display = 'none';
+    }
   });
+
+  const noResultsMessage = document.getElementById('noResultsMessage');
+  if (entryCount === 0) {
+    if (!noResultsMessage) {
+      const noResultsMessageEl = document.createElement('div');
+      noResultsMessageEl.id = 'noResultsMessage';
+      noResultsMessageEl.className = 'no-results-message';
+      noResultsMessageEl.innerHTML = '<p class="hint">No matching IP addresses found</p><button class="btn-remove result-output" onclick="clearBlocklistSearch()"><span class="material-icons">search_off</span> Clear Search</button>';
+      panel.appendChild(noResultsMessageEl);
+    }
+  } else {
+    if (noResultsMessage) {
+      noResultsMessage.remove();
+    }
+  }
+
+  persistBlocklistFiltersToUrl();
 }
+
+function persistBlocklistFiltersToUrl() {
+  const url = new URL(window.location);
+
+  if (blocklistSearchTerm && blocklistSearchTerm.trim() !== '') {
+    url.searchParams.set('blocklist_search', blocklistSearchTerm);
+  } else {
+    url.searchParams.delete('blocklist_search');
+  }
+
+  window.history.replaceState(null, '', url.toString());
+}
+
+export function clearBlocklistSearch() {
+  blocklistSearchTerm = '';
+  const searchInput = document.getElementById('blocklistSearchInput');
+
+  if (searchInput) {
+    searchInput.value = '';
+  }
+
+  persistBlocklistFiltersToUrl();
+  filterBlocklist();
+} 
 
 export async function renderBlocklistEditor(reload = true) {
   if (reload) {
@@ -31,6 +76,16 @@ export async function renderBlocklistEditor(reload = true) {
   const panel = document.getElementById('editorPanel');
   panel.scrollTop = 0;
   
+  try {
+    const params = new URL(window.location).searchParams;
+    const q = params.get('blocklist_search');
+    if (q !== null) {
+      blocklistSearchTerm = String(q).toLowerCase();
+    }
+  } catch (err) {
+    /* ignore malformed url */
+  }
+
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
 
@@ -40,7 +95,7 @@ export async function renderBlocklistEditor(reload = true) {
       <div class="hint hint-section">Add or remove IP addresses from the blocklist</div>
       <div class="blocklist-controls">
         <button class="btn-add-field no-top" onclick="addBlocklistEntry()"><span class="material-icons">add_circle</span> Add Blocklist Entry</button>
-        <input type="text" id="blocklistSearchInput" class="blocklist-search" placeholder="Filter IPs..." />
+        <input type="text" id="blocklistSearchInput" class="blocklist-search" placeholder="Filter IPs..." value="${blocklistSearchTerm}" oninput="filterBlocklist()" />
       </div>
   `;
   state.blocklist.forEach((ip, index) => {
@@ -60,17 +115,14 @@ export async function renderBlocklistEditor(reload = true) {
   `;
   panel.innerHTML = html;
   
-  // Attach search input event listener after rendering
-  const searchInput = document.getElementById('blocklistSearchInput');
-  if (searchInput) {
-    searchInput.addEventListener('input', filterBlocklist);
-  }
-  
   actions.innerHTML = `
     <div class="flex-spacer"></div>
     <button class="btn-reset" onclick="revertBlocklist()"><span class="material-icons">undo</span> Revert</button>
     <button class="btn-save" id="saveBlocklistBtn" onclick="saveBlocklist()"><span class="material-icons">save</span> Save Blocklist</button>
   `;
+  
+  persistBlocklistFiltersToUrl();
+  filterBlocklist();
 }
 
 export function addBlocklistEntry() {
@@ -131,7 +183,7 @@ export async function saveBlocklist() {
 
     reloadPage();
   } catch (error) {
-    showStatus('<span class="material-icons">error</span> Error saving blocklist: ' + utils.parseErrorMessage(error), 'error');
+    showStatus('<span class="material-icons">error</span> Error saving blocklist: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Blocklist';

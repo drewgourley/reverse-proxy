@@ -1,6 +1,3 @@
-// Domain Editor Module
-// Handles domain configuration and setup instructions
-
 import * as state from '../state.js';
 import * as api from '../api.js';
 import { createDropdown } from '../ui-components.js';
@@ -14,7 +11,6 @@ export function renderDomainEditor() {
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
 
-  // Build service options list (services with subdomain type index or spa, except api)
   const serviceOptions = Object.keys(state.config.services || {})
     .filter(name => {
       if (name === 'api') return false;
@@ -130,7 +126,6 @@ export function renderDomainEditor() {
     <button class="btn-save" id="saveBtn" onclick="saveConfig()"><span class="material-icons">save</span> Save Config</button>
   `;
 
-  // Fetch and display public IP and local IP
   fetchPublicIp();
   fetchLocalIp();
 }

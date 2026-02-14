@@ -1,6 +1,3 @@
-// Application Editor Module
-// Handles PM2 ecosystem configuration
-
 import * as state from '../state.js';
 import * as api from '../api.js';
 import { parseErrorMessage } from '../utils.js';

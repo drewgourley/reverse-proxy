@@ -1,6 +1,3 @@
-// Advanced Editor Module
-// Handles advanced configuration including parsers, extractors, and query types
-
 import * as state from '../state.js';
 import * as api from '../api.js';
 import { reloadPage, waitForServerRestart, showPromptModal, showStatus, showConfirmModal, showLoadingOverlay } from '../ui-components.js';

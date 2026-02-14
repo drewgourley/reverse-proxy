@@ -1,14 +1,6 @@
-// Update Module
-// Git status, updates, and system management functions
-// Migrated from original script.js
-
 import * as state from './state.js';
 import * as api from './api.js';
 import { reloadPage, waitForServerRestart, showConfirmModal, showStatus } from './ui-components.js';
-
-// ============================================================================
-// GIT STATUS RENDERING
-// ============================================================================
 
 export function renderGitStatus(status, showForceUpdate = false) {
   const versionInfo = document.getElementById('versionInfo');
@@ -48,10 +40,6 @@ export function renderGitStatus(status, showForceUpdate = false) {
   `;
 }
 
-// ============================================================================
-// UPDATE CHECKING
-// ============================================================================
-
 export async function checkForUpdates() {
   const updateBtn = document.getElementById('updateBtn');
   const isFirstTimeSetup = state.ecosystem.default === true;
@@ -64,12 +52,7 @@ export async function checkForUpdates() {
   updateText.textContent = 'Checking...';
   
   try {
-    const response = await fetch('/git/check');
-    if (!response.ok) {
-      throw new Error('Failed to check for updates');
-    }
-    
-    const data = await response.json();
+    const data = await api.gitCheck();
     updateIcon.classList.remove('spinning');
     
     if (data.success && data.updatesAvailable) {
@@ -92,10 +75,6 @@ export async function checkForUpdates() {
     updateBtn.title = 'Check for updates';
   }
 }
-
-// ============================================================================
-// UPDATE HANDLING
-// ============================================================================
 
 export function handleUpdate(force = false) {
   const updateBtn = document.getElementById('updateBtn');
@@ -130,25 +109,17 @@ async function pullUpdates(force) {
   updateBtn.disabled = true;
 
   try {
-    let response;
-    if (force) {
-      response = await fetch('/git/force', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-    } else {
-      response = await fetch('/git/pull', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-    
-    if (!response.ok) {
-      const data = await response.json();
+    try {
+      if (force) {
+        await api.gitForce();
+      } else {
+        await api.gitPull();
+      }
+    } catch (error) {
       await api.loadGitStatus(true, true);
-      throw new Error(data.error || 'Update failed');
+      throw error;
     }
-    
+
     await waitForServerRestart(10000);
     
     reloadPage(true);

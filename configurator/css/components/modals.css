@@ -74,12 +74,12 @@
     display: flex;
     gap: 10px;
     justify-content: flex-end;
-    padding-top: 15px;
+    padding-top: 10px;
     border-top: 2px solid var(--color-gray-100);
 }
 
 .modal-btn {
-    padding: 10px 20px;
+    padding: 12px 20px;
     border: none;
     border-radius: 5px;
     cursor: pointer;

@@ -1,6 +1,3 @@
-// Main Application Entry Point
-// Initializes the application and coordinates all modules
-
 import * as state from './state.js';
 import * as api from './api.js';
 import * as editors from './editors.js';
@@ -19,9 +16,6 @@ import * as domainEditor from './editors/domain-editor.js';
 import * as themeEditor from './editors/theme-editor.js';
 import { showMobilePanel, closeConfirmModal, confirmAction, closePromptModal, submitPrompt, toggleDropdown, selectDropdownOption, removeDropdownTag, togglePasswordVisibility, showStatus } from './ui-components.js';
 
-// =====================
-// Path-based Routing Utils
-// =====================
 function parseAppRoute(path) {
   // Remove leading/trailing slashes
   const clean = path.replace(/^\/+|\/+$/g, '');
@@ -119,6 +113,8 @@ window.renderBlocklistEditor = blocklistEditor.renderBlocklistEditor;
 window.addBlocklistEntry = blocklistEditor.addBlocklistEntry;
 window.removeBlocklistEntry = blocklistEditor.removeBlocklistEntry;
 window.saveBlocklist = blocklistEditor.saveBlocklist;
+window.filterBlocklist = blocklistEditor.filterBlocklist;
+window.clearBlocklistSearch = blocklistEditor.clearBlocklistSearch;
 window.revertBlocklist = blocklistEditor.revertBlocklist;
 
 // Secrets Editor
@@ -139,6 +135,7 @@ window.saveUsers = usersEditor.saveUsers;
 window.revertUsers = usersEditor.revertUsers;
 window.filterUsersUsername = usersEditor.filterUsersUsername;
 window.onUsersServiceFilterChange = usersEditor.onUsersServiceFilterChange;
+window.clearUsersSearch = usersEditor.clearUsersSearch;
 
 // DDNS Editor
 window.renderDdnsEditor = ddnsEditor.renderDdnsEditor;
@@ -177,7 +174,6 @@ window.onRootServiceChange = domainEditor.onRootServiceChange;
 
 // Service Editor Module - Main Rendering
 window.renderServiceEditor = serviceEditor.renderServiceEditor;
-window.getServiceIcon = serviceEditor.getServiceIcon;
 
 // Service Editor Module - Property Updates
 window.updateServiceProperty = serviceEditor.updateServiceProperty;

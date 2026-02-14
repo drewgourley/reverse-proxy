@@ -1,35 +1,29 @@
-// Theme Editor Module
-// Handles theme customization, color management, and favicon upload
-
-import { colors, originalColors, pendingFaviconFile, setColors, setOriginalColors, setPendingFaviconFile } from '../state.js';
+import * as state from '../state.js';
+import * as api from '../api.js';
 import { showStatus, showConfirmModal } from '../ui-components.js';
 import { hexToHSL, getInverseColor, darkenColor, lightenFromBackground, darkenFromBackground, clampBackgroundColor } from '../utils.js';
-import * as api from '../api.js';
 
 export function initializeTheme() {
-  // Apply the theme based on current state
   updateTheme();
   
-  // Mark document as ready
   document.documentElement.classList.add('ready');
   
-  // Update color input fields if they exist
   const color1 = document.getElementById('color1');
   const color2 = document.getElementById('color2');
   const color3 = document.getElementById('color3');
   const color4 = document.getElementById('color4');
   
-  if (color1) color1.value = colors.primary || '#667eea';
-  if (color2) color2.value = colors.secondary || '#764ba2';
-  if (color3) color3.value = colors.accent || '#48bb78';
-  if (color4) color4.value = colors.background || '#ffffff';
+  if (color1) color1.value = state.colors.primary || '#667eea';
+  if (color2) color2.value = state.colors.secondary || '#764ba2';
+  if (color3) color3.value = state.colors.accent || '#48bb78';
+  if (color4) color4.value = state.colors.background || '#ffffff';
 }
 
 export function updateTheme() {
-  const primary = colors.primary || '#667eea';
-  const secondary = colors.secondary || '#764ba2';
-  const accent = colors.accent || '#48bb78';
-  const background = colors.background || '#ffffff';
+  const primary = state.colors.primary || '#667eea';
+  const secondary = state.colors.secondary || '#764ba2';
+  const accent = state.colors.accent || '#48bb78';
+  const background = state.colors.background || '#ffffff';
   const inverse = getInverseColor(accent);
   const displayBackground = clampBackgroundColor(background);
   
@@ -88,7 +82,7 @@ export function revertTheme() {
     'Are you sure you want to discard all changes to the theme?',
     (confirmed) => {
       if (confirmed) {
-        setColors(JSON.parse(JSON.stringify(originalColors)));
+        state.setColors(JSON.parse(JSON.stringify(state.originalColors)));
         updateTheme();
         
         const color1 = document.getElementById('color1');
@@ -96,12 +90,12 @@ export function revertTheme() {
         const color3 = document.getElementById('color3');
         const color4 = document.getElementById('color4');
         
-        if (color1) color1.value = originalColors.primary || '#667eea';
-        if (color2) color2.value = originalColors.secondary || '#764ba2';
-        if (color3) color3.value = originalColors.accent || '#48bb78';
-        if (color4) color4.value = originalColors.background || '#ffffff';
+        if (color1) color1.value = state.originalColors.primary || '#667eea';
+        if (color2) color2.value = state.originalColors.secondary || '#764ba2';
+        if (color3) color3.value = state.originalColors.accent || '#48bb78';
+        if (color4) color4.value = state.originalColors.background || '#ffffff';
         
-        setPendingFaviconFile(null);
+        state.setPendingFaviconFile(null);
         const faviconUpload = document.getElementById('faviconUpload');
         const faviconPreview = document.getElementById('faviconPreview');
         if (faviconUpload) faviconUpload.value = '';
@@ -116,7 +110,7 @@ export function revertTheme() {
 export async function handleFaviconPreview(event) {
   const file = event.target.files[0];
   if (!file) {
-    setPendingFaviconFile(null);
+    state.setPendingFaviconFile(null);
     return;
   }
   
@@ -133,16 +127,16 @@ export async function handleFaviconPreview(event) {
     img.onload = async () => {
       if (img.width > 512 || img.height > 512) {
         showStatus('Image must be 512x512 or smaller', 'error');
-        setPendingFaviconFile(null);
+        state.setPendingFaviconFile(null);
         return;
       }
       
-      setPendingFaviconFile(file);
+      state.setPendingFaviconFile(file);
       
       document.getElementById('faviconFileName').textContent = file.name;
       document.getElementById('faviconPreviewImg').src = e.target.result;
       document.getElementById('faviconPreview').style.display = 'block';
-    };
+    }; 
     img.src = e.target.result;
   };
   
@@ -150,22 +144,14 @@ export async function handleFaviconPreview(event) {
 }
 
 export async function uploadFavicon() {
-  if (!pendingFaviconFile) return true;
+  if (!state.pendingFaviconFile) return true;
   
   const formData = new FormData();
-  formData.append('favicon', pendingFaviconFile);
+  formData.append('favicon', state.pendingFaviconFile);
   
   try {
-    const response = await fetch('/favicon', {
-      method: 'POST',
-      body: formData
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Favicon upload failed');
-    }
-    
+    await api.uploadFavicon(formData);
+
     const currentFavicon = document.getElementById('currentFavicon');
     const noFaviconWarning = document.getElementById('noFaviconWarning');
     if (currentFavicon) {
@@ -176,7 +162,7 @@ export async function uploadFavicon() {
       noFaviconWarning.style.display = 'none';
     }
     
-    setPendingFaviconFile(null);
+    state.setPendingFaviconFile(null);
     document.getElementById('faviconFileName').textContent = '';
     document.getElementById('faviconPreview').style.display = 'none';
     document.getElementById('faviconUpload').value = '';
@@ -186,24 +172,24 @@ export async function uploadFavicon() {
     console.error('Favicon upload failed:', error);
     throw error;
   }
-}
+} 
 
 export async function saveTheme() {
   try {
     const colorData = {
-      primary: colors.primary,
-      secondary: colors.secondary,
-      accent: colors.accent,
-      background: colors.background,
-      inverse: getInverseColor(colors.accent)
+      primary: state.colors.primary,
+      secondary: state.colors.secondary,
+      accent: state.colors.accent,
+      background: state.colors.background,
+      inverse: getInverseColor(state.colors.accent)
     };
     
     await api.saveColors(colorData);
     
-    setColors(colorData);
-    setOriginalColors(JSON.parse(JSON.stringify(colorData)));
+    state.setColors(colorData);
+    state.setOriginalColors(JSON.parse(JSON.stringify(colorData)));
     
-    if (pendingFaviconFile) {
+    if (state.pendingFaviconFile) {
       await uploadFavicon();
       showStatus('Theme and favicon saved successfully!', 'success');
     } else {
@@ -212,7 +198,7 @@ export async function saveTheme() {
   } catch (error) {
     console.error('Failed to save theme:', error);
     showStatus('Failed to save theme: ' + error.message, 'error');
-  }
+  } 
 }
 
 export function renderThemeEditor() {
@@ -232,22 +218,22 @@ export function renderThemeEditor() {
           <div class="subsection-heading"><strong><span class="material-icons">brush</span> Colors</strong></div>
           <div class="form-group">
             <label for="color1">Primary Color</label>
-            <input type="color" id="color1" value="${colors.primary || '#667eea'}">
+            <input type="color" id="color1" value="${state.colors.primary || '#667eea'}">
             <div class="hint">Used for titles, buttons, and highlights</div>
           </div>
           <div class="form-group">
             <label for="color2">Secondary Color</label>
-            <input type="color" id="color2" value="${colors.secondary || '#764ba2'}">
+            <input type="color" id="color2" value="${state.colors.secondary || '#764ba2'}">
             <div class="hint">Used for active selections and gradients</div>
           </div>
           <div class="form-group">
             <label for="color3">Accent Color</label>
-            <input type="color" id="color3" value="${colors.accent || '#48bb78'}">
+            <input type="color" id="color3" value="${state.colors.accent || '#48bb78'}">
             <div class="hint">Used for save buttons and success states</div>
           </div>
           <div class="form-group">
             <label for="color4">Background Color</label>
-            <input type="color" id="color4" value="${colors.background || '#ffffff'}">
+            <input type="color" id="color4" value="${state.colors.background || '#ffffff'}">
             <div class="hint">Base background color for panels (automatically generates grays)</div>
           </div>
         </div>
@@ -287,19 +273,19 @@ export function renderThemeEditor() {
   `;
 
   document.getElementById('color1').addEventListener('input', (e) => {
-    colors.primary = e.target.value;
+    state.colors.primary = e.target.value;
     updateTheme();
   });
   document.getElementById('color2').addEventListener('input', (e) => {
-    colors.secondary = e.target.value;
+    state.colors.secondary = e.target.value;
     updateTheme();
   });
   document.getElementById('color3').addEventListener('input', (e) => {
-    colors.accent = e.target.value;
+    state.colors.accent = e.target.value;
     updateTheme();
   });
   document.getElementById('color4').addEventListener('input', (e) => {
-    colors.background = e.target.value;
+    state.colors.background = e.target.value;
     updateTheme();
   });
   

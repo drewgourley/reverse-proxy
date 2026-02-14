@@ -1,6 +1,4 @@
-// UI Components Module
-// Reusable UI elements: modals, status messages, dropdowns, etc.
-
+// Global variables to hold current confirm/prompt callbacks
 let confirmCallback = null;
 let promptCallback = null;
 
@@ -220,9 +218,7 @@ export function createDropdown(options) {
   `;
 }
 
-/**
- * Toggles a dropdown open/closed
- */
+// Toggles a dropdown open/closed
 export function toggleDropdown(id, event) {
   event.stopPropagation();
   
@@ -273,9 +269,7 @@ export function toggleDropdown(id, event) {
   }
 }
 
-/**
- * Handles option selection in dropdown
- */
+// Handles option selection in dropdown
 export function selectDropdownOption(id, value, multiSelect, event) {
   event.stopPropagation();
   
@@ -326,9 +320,7 @@ export function selectDropdownOption(id, value, multiSelect, event) {
   }
 }
 
-/**
- * Removes a tag from a multi-select dropdown
- */
+// Removes a tag from a multi-select dropdown
 export function removeDropdownTag(id, value, event) {
   event.stopPropagation();
   
@@ -352,9 +344,7 @@ export function removeDropdownTag(id, value, event) {
   }
 }
 
-/**
- * Updates the display of a dropdown based on current selection
- */
+// Updates the display of a dropdown based on current selection
 export function updateDropdownDisplay(id, multiSelect) {
   const select = document.getElementById(id);
   if (!select) return;
@@ -384,9 +374,7 @@ export function updateDropdownDisplay(id, multiSelect) {
   }
 }
 
-/**
- * Gets the selected value(s) from a dropdown
- */
+// Gets the selected value(s) from a dropdown
 export function getDropdownValue(id) {
   const select = document.getElementById(id);
   if (!select) return null;
@@ -398,9 +386,7 @@ export function getDropdownValue(id) {
   return isMulti ? values : (values[0] || null);
 }
 
-/**
- * Sets the selected value(s) for a dropdown
- */
+// Sets the selected value(s) for a dropdown
 export function setDropdownValue(id, value) {
   const select = document.getElementById(id);
   if (!select) return;

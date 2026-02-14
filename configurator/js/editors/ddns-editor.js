@@ -1,9 +1,6 @@
-// DDNS Editor Module
-// Handles Dynamic DNS configuration for AWS Route 53
-
 import * as state from '../state.js';
-import * as utils from '../utils.js';
 import * as api from '../api.js';
+import { parseErrorMessage } from '../utils.js';
 import { reloadPage, waitForServerRestart, showStatus, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
 
 export function renderDdnsEditor() {
@@ -102,7 +99,7 @@ export async function saveDdns() {
     
     reloadPage();
   } catch (error) {
-    showStatus('<span class="material-icons">error</span> Error saving DDNS config: ' + utils.parseErrorMessage(error), 'error');
+    showStatus('<span class="material-icons">error</span> Error saving DDNS config: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save DDNS Config';

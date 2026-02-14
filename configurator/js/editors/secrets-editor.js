@@ -1,12 +1,7 @@
-// Secrets Editor Module
-// Handles secrets management and sensitive configuration
-
 import * as state from '../state.js';
-import * as utils from '../utils.js';
 import * as api from '../api.js';
+import { parseErrorMessage } from '../utils.js';
 import { reloadPage, waitForServerRestart, showStatus, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
-
-const { getDefaultSecrets } = api;
 
 export function renderSecretsEditor() {
   const actions = document.getElementById('editorActions');
@@ -38,7 +33,7 @@ export function renderSecretsEditor() {
     orderedKeys.push(key);
   });
   
-  const defaultSecretKeys = Object.keys(getDefaultSecrets());
+  const defaultSecretKeys = Object.keys(api.getDefaultSecrets());
   orderedKeys.forEach(key => {
     const value = state.secrets[key];
     const isDefaultSecret = defaultSecretKeys.includes(key);
@@ -168,7 +163,7 @@ export async function saveSecrets() {
 
     reloadPage();
   } catch (error) {
-    showStatus('<span class="material-icons">error</span> Error saving secrets: ' + utils.parseErrorMessage(error), 'error');
+    showStatus('<span class="material-icons">error</span> Error saving secrets: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Secrets';

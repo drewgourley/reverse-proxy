@@ -1,8 +1,5 @@
-// Complete Configurator - Core Editors Module
-// This file contains core navigation, rendering, and helper functions
-// Individual editors have been separated into their own modules
-
 import * as state from './state.js';
+import { getServiceIcon } from './utils.js';
 import { showMobilePanel } from './ui-components.js';
 import { renderDomainEditor } from './editors/domain-editor.js';
 import { renderApplicationEditor } from './editors/application-editor.js';
@@ -16,10 +13,6 @@ import { renderLogsViewer } from './logs-viewer.js';
 import { renderBlocklistEditor } from './editors/blocklist-editor.js';
 import { renderFileManager } from './file-manager.js';
 import { renderServiceEditor } from './editors/service-editor.js';
-
-// ============================================================================
-// CORE NAVIGATION & RENDERING
-// ============================================================================
 
 export function renderPlaceholderEditor(message = 'Select an item from the sidebar to view or edit its settings.', actionsHtml = '') {
   const actions = document.getElementById('editorActions');
@@ -255,29 +248,25 @@ export function renderServicesList() {
     const isActive = state.currentSelection === `config-${serviceName}`;
     const protocol = service?.subdomain?.protocol;
     const serviceType = service?.subdomain?.type;
-    
-    // Get icon dynamically based on service type
-    let icon = 'settings';
-    if (serviceType === 'index') icon = 'description';
-    else if (serviceType === 'proxy') icon = 'swap_horiz';
-    else if (serviceType === 'dirlist') icon = 'folder_open';
-    else if (serviceType === 'spa') icon = 'flash_on';
-    
+    const icon = getServiceIcon(serviceType);
     const serviceItem = document.createElement('div');
+
     serviceItem.className = 'service-item' 
       + (isActive ? ' active' : '') 
       + (protocol === 'insecure' ? ' insecure' : '') 
       + (rootService ? ' root-service' : '');
     
     const hintParts = [];
+
     if (rootService) {
       hintParts.push('Root Service');
     }
+
     if (protocol === 'insecure') {
       hintParts.push('Not Secure');
     }
     
-    serviceItem.innerHTML = `<span class="material-icons">${icon}</span> <span id="${serviceName}NameContainer" class="name-container"><span class="subdomain-name-container">${serviceName}</span>${nicename ? `<span class="nicename-container"> - ${nicename}</span>` : ''}</span>` + (hintParts.length > 0 ? ' <span class="hint">' + hintParts.join(', ') + '</span>' : '');
+    serviceItem.innerHTML = `${icon} <span id="${serviceName}NameContainer" class="name-container"><span class="subdomain-name-container">${serviceName}</span>${nicename ? `<span class="nicename-container"> - ${nicename}</span>` : ''}</span>` + (hintParts.length > 0 ? ' <span class="hint">' + hintParts.join(', ') + '</span>' : '');
     
     if (isFirstTimeSetup || !state.secretsSaved) {
       serviceItem.style.opacity = '0.5';

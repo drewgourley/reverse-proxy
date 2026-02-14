@@ -1,17 +1,17 @@
-// Users Editor Module
-// Handles user management and service access control
-
 import * as state from '../state.js';
-import * as utils from '../utils.js';
 import * as api from '../api.js';
-import { reloadPage, waitForServerRestart, createDropdown, showStatus, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
+import { parseErrorMessage, generateUUID } from '../utils.js';
+import { reloadPage, waitForServerRestart, createDropdown, setDropdownValue, showStatus, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
 
 // Search filter state
 let usersSearchUsername = '';
 let usersSearchServices = [];
 
 function filterUsers() {
+  const panel = document.getElementById('editorPanel');
   const entries = document.querySelectorAll('.user-entry');
+  let entryCount = 0;
+
   entries.forEach((entry) => {
     const usernameInput = entry.querySelector('input[type="text"][id*="user_username_"]');
     const username = usernameInput ? usernameInput.value.toLowerCase() : '';
@@ -25,34 +25,89 @@ function filterUsers() {
     const isNew = user && (!user.uuid || !user.password_hash);
     if (isNew) {
       entry.style.display = '';
+      entryCount++;
       return;
     }
 
-    // Check username or uuid match
     const search = usersSearchUsername;
     const matches =
       search === '' ||
       username.includes(search) ||
       uuid.includes(search);
 
-    // Check service match
     let serviceMatches = usersSearchServices.length === 0;
     if (usersSearchServices.length > 0) {
       serviceMatches = usersSearchServices.some(service => userServices.includes(service));
     }
 
-    entry.style.display = (matches && serviceMatches) ? '' : 'none';
+    if (matches && serviceMatches) {
+      entry.style.display = '';
+      entryCount++;
+    } else {
+      entry.style.display = 'none';
+    }
   });
+
+  const noResultsMessage = document.getElementById('noResultsMessage');
+  if (entryCount === 0) {
+    if (!noResultsMessage) {
+      const noResultsMessageEl = document.createElement('div');
+      noResultsMessageEl.id = 'noResultsMessage';
+      noResultsMessageEl.className = 'no-results-message';
+      noResultsMessageEl.innerHTML = '<p class="hint">No matching users found</p><button class="btn-remove result-output" onclick="clearUsersSearch()"><span class="material-icons">search_off</span> Clear Search</button>';
+      panel.appendChild(noResultsMessageEl);
+    }
+  } else {
+    if (noResultsMessage) {
+      noResultsMessage.remove();
+    }
+  }
+}
+
+function persistUsersFiltersToUrl() {
+  const url = new URL(window.location);
+
+  if (usersSearchUsername && usersSearchUsername.trim() !== '') {
+    url.searchParams.set('users_search', usersSearchUsername);
+  } else {
+    url.searchParams.delete('users_search');
+  }
+
+  if (usersSearchServices && usersSearchServices.length > 0) {
+    url.searchParams.set('users_services', usersSearchServices.join(','));
+  } else {
+    url.searchParams.delete('users_services');
+  }
+
+  window.history.replaceState(null, '', url.toString());
 }
 
 export function filterUsersUsername() {
   const searchInput = document.getElementById('usersSearchInput');
   usersSearchUsername = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  persistUsersFiltersToUrl();
   filterUsers();
 }
 
 export function onUsersServiceFilterChange(selectedValues) {
   usersSearchServices = selectedValues.filter(v => v !== '_no_services');
+  persistUsersFiltersToUrl();
+  filterUsers();
+}
+
+export function clearUsersSearch() {
+  usersSearchUsername = '';
+  usersSearchServices = [];
+
+  const searchInput = document.getElementById('usersSearchInput');
+  if (searchInput) {
+    searchInput.value = '';
+  }
+
+  // Reset the services dropdown (if present)
+  setDropdownValue('usersServiceFilter', []);
+
+  persistUsersFiltersToUrl();
   filterUsers();
 }
 
@@ -69,13 +124,30 @@ export function renderUsersEditor() {
     return state.config.services[name]?.subdomain?.requireAuth === true;
   });
 
+  try {
+    const url = new URL(window.location);
+    const params = url.searchParams;
+    const qSearch = params.get('users_search');
+    if (qSearch !== null) {
+      usersSearchUsername = String(qSearch).toLowerCase();
+    }
+
+    const qServices = params.get('users_services');
+    if (qServices) {
+      const parsed = qServices.split(',').map(s => s.trim()).filter(Boolean);
+      usersSearchServices = parsed.filter(s => authServices.includes(s));
+    }
+  } catch (err) {
+    // ignore malformed url
+  }
+
   let html = `
     <div class="section">
       <div class="section-title"><span class="material-icons">group</span> User Management</div>
       <div class="hint hint-section">Manage users and their service access. Users can log into services that have "Require Login" enabled. The admin account (from Secrets) always has access to all services.</div>
       <div class="users-controls">
         <button class="btn-add-field no-top" onclick="addNewUser()"><span class="material-icons">add_circle</span> Add New User</button>
-        <input type="text" id="usersSearchInput" class="users-search-input" placeholder="Filter by username or UUID..." oninput="filterUsersUsername()" />
+        <input type="text" id="usersSearchInput" class="users-search-input" placeholder="Filter by username or UUID..." value="${usersSearchUsername}" oninput="filterUsersUsername()" />
         <div class="flex-break"></div>
         ${createDropdown({
           id: 'usersServiceFilter',
@@ -83,7 +155,7 @@ export function renderUsersEditor() {
             ...authServices.map(serviceName => ({
               value: serviceName,
               label: state.config.services[serviceName]?.nicename || serviceName,
-              selected: false
+              selected: usersSearchServices.includes(serviceName)
             })),
             ...(authServices.length === 0 ? [{
               value: '_no_services',
@@ -181,10 +253,9 @@ export function renderUsersEditor() {
       createUserServicesChangeHandler(index);
     });
   }
-  
-  // Reset search filters when re-rendering
-  usersSearchUsername = '';
-  usersSearchServices = [];
+
+  persistUsersFiltersToUrl();
+  filterUsers();
 }
 
 // Create onChange handler for user services dropdown
@@ -222,7 +293,7 @@ export function updateUserPassword(index, value) {
 export function addNewUser() {
   if (!state.users.users) state.setUsers({ users: [] });
   state.users.users.unshift({
-    uuid: utils.generateUUID(),
+    uuid: generateUUID(),
     username: '',
     password_hash: '',
     services: []
@@ -286,7 +357,7 @@ export async function saveUsers() {
 
     reloadPage();
   } catch (error) {
-    const message = utils.parseErrorMessage(error);
+    const message = parseErrorMessage(error);
     showStatus('<span class="material-icons">error</span> Failed to save users: ' + message, 'error');
   } finally {
     saveBtn.disabled = false;

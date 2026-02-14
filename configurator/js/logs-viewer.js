@@ -1,7 +1,5 @@
-// Logs Viewer Module
-// Real-time log streaming and display
-
-import { ecosystem, logRotateInstalled } from './state.js';
+import * as state from './state.js';
+import * as api from './api.js';
 import { parseErrorMessage } from './utils.js';
 import { reloadPage, waitForServerRestart, showStatus, showLoadingOverlay } from './ui-components.js';
 
@@ -29,7 +27,7 @@ export function renderLogsViewer(type = 'out', pushState = true) {
       <div class="hint hint-section">View real-time logs of application activity and healthchecks.</div>
   `;
 
-  if (!logRotateInstalled) {
+  if (!state.logRotateInstalled) {
     html += `
       <div class="installation-trigger highlight-recommended">
         <button class="btn-add-logrotate" id="installLogRotateBtn" onclick="installLogRotate()">Install PM2 Log Rotate Module</button>
@@ -83,7 +81,7 @@ export function renderLogsViewerContent(type = 'out') {
 }
 
 export function startLogStream(type = 'out') {
-  const appName = ecosystem?.apps?.[0]?.name ? (ecosystem.apps[0].name).replace(' ', '-') : 'Reverse-Proxy';
+  const appName = state.ecosystem?.apps?.[0]?.name ? (state.ecosystem.apps[0].name).replace(' ', '-') : 'Reverse-Proxy';
   const maxLines = 10000;
   const logsBox = document.getElementById('logsBox');
   const logsContent = document.getElementById('logsContent');
@@ -161,13 +159,8 @@ export async function installLogRotate() {
   try {
     installBtn.disabled = true;
     installButtonTextLoop(installBtn);
-    
-    const response = await fetch('/installlogrotate');
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error);
-    }
+    await api.installLogRotate();
 
     showStatus('Log Rotate Module Installed!', 'success');
 

@@ -1,16 +1,7 @@
-// API Module
-// All server communication and data persistence operations
-
-import { 
-  secrets, setConfig, setOriginalConfig, setSecrets, setOriginalSecrets,
-  setUsers, setOriginalUsers, setDdns, setOriginalDdns,
-  setEcosystem, setOriginalEcosystem, setAdvanced, setOriginalAdvanced,
-  setCerts, setOriginalCerts, setBlocklist, setOriginalBlocklist,
-  setGitStatus, setSecretsSaved, setLogRotateInstalled, setColors, setOriginalColors
-} from './state.js';
+import * as state from './state.js';
 import { showStatus } from './ui-components.js';
 
-// Default configurations
+// Establish defaults
 export function getDefaultConfig() {
   return {
     domain: '',
@@ -18,7 +9,7 @@ export function getDefaultConfig() {
       api: {
         subdomain: {
           type: 'index',
-          protocol: secrets.admin_email_address ? 'secure' : 'insecure',
+          protocol: state.secrets.admin_email_address ? 'secure' : 'insecure',
           proxy: {
             websocket: null,
             middleware: null
@@ -29,7 +20,7 @@ export function getDefaultConfig() {
       www: {
         subdomain: {
           type: 'index',
-          protocol: secrets.admin_email_address ? 'secure' : 'insecure',
+          protocol: state.secrets.admin_email_address ? 'secure' : 'insecure',
           proxy: {
             websocket: null,
             middleware: null
@@ -96,12 +87,12 @@ export async function loadConfig(suppressStatus = false) {
       loadedConfig.services.www = defaults.services.www;
     }
 
-    setConfig(loadedConfig);
-    setOriginalConfig(JSON.parse(JSON.stringify(loadedConfig)));
+    state.setConfig(loadedConfig);
+    state.setOriginalConfig(JSON.parse(JSON.stringify(loadedConfig)));
   } catch (error) {
     const defaultConfig = getDefaultConfig();
-    setConfig(defaultConfig);
-    setOriginalConfig(JSON.parse(JSON.stringify(defaultConfig)));
+    state.setConfig(defaultConfig);
+    state.setOriginalConfig(JSON.parse(JSON.stringify(defaultConfig)));
     if (!suppressStatus) showStatus('Could not load Config: ' + error.message, 'error');
   }
 }
@@ -118,7 +109,7 @@ export async function loadSecrets(suppressStatus = false) {
       throw new Error('Empty response from server');
     }
     
-    setSecretsSaved(true);
+    state.setSecretsSaved(true);
     const loadedSecrets = JSON.parse(text);
     
     const defaults = getDefaultSecrets();
@@ -128,13 +119,13 @@ export async function loadSecrets(suppressStatus = false) {
       }
     });
     
-    setSecrets(loadedSecrets);
-    setOriginalSecrets(JSON.parse(JSON.stringify(loadedSecrets)));
+    state.setSecrets(loadedSecrets);
+    state.setOriginalSecrets(JSON.parse(JSON.stringify(loadedSecrets)));
   } catch (error) {
     const defaultSecrets = getDefaultSecrets();
-    setSecrets(defaultSecrets);
-    setOriginalSecrets(JSON.parse(JSON.stringify(defaultSecrets)));
-    setSecretsSaved(false);
+    state.setSecrets(defaultSecrets);
+    state.setOriginalSecrets(JSON.parse(JSON.stringify(defaultSecrets)));
+    state.setSecretsSaved(false);
     if (!suppressStatus) showStatus('Could not load Secrets: ' + error.message, 'error');
   }
 }
@@ -148,18 +139,18 @@ export async function loadUsers(suppressStatus = false) {
     const text = await response.text();
     
     if (!text) {
-      setUsers({ users: [] });
-      setOriginalUsers(JSON.parse(JSON.stringify({ users: [] })));
+      state.setUsers({ users: [] });
+      state.setOriginalUsers(JSON.parse(JSON.stringify({ users: [] })));
       return;
     }
     
     const loadedUsers = JSON.parse(text);
     if (!loadedUsers.users) loadedUsers.users = [];
-    setUsers(loadedUsers);
-    setOriginalUsers(JSON.parse(JSON.stringify(loadedUsers)));
+    state.setUsers(loadedUsers);
+    state.setOriginalUsers(JSON.parse(JSON.stringify(loadedUsers)));
   } catch (error) {
-    setUsers({ users: [] });
-    setOriginalUsers(JSON.parse(JSON.stringify({ users: [] })));
+    state.setUsers({ users: [] });
+    state.setOriginalUsers(JSON.parse(JSON.stringify({ users: [] })));
     if (!suppressStatus) showStatus('Could not load Users: ' + error.message, 'error');
   }
 }
@@ -177,11 +168,11 @@ export async function loadBlocklist(suppressStatus = false) {
     }
     
     const loadedBlocklist = JSON.parse(text);
-    setBlocklist(loadedBlocklist);
-    setOriginalBlocklist(JSON.parse(JSON.stringify(loadedBlocklist)));
+    state.setBlocklist(loadedBlocklist);
+    state.setOriginalBlocklist(JSON.parse(JSON.stringify(loadedBlocklist)));
   } catch (error) {
-    setBlocklist([]);
-    setOriginalBlocklist([]);
+    state.setBlocklist([]);
+    state.setOriginalBlocklist([]);
     if (!suppressStatus) showStatus('Could not load Blocklist: ' + error.message, 'error');
   }
 }
@@ -196,8 +187,8 @@ export async function loadDdns(suppressStatus = false) {
     
     if (!text) {
       const defaultDdns = getDefaultDdns();
-      setDdns(defaultDdns);
-      setOriginalDdns(JSON.parse(JSON.stringify(defaultDdns)));
+      state.setDdns(defaultDdns);
+      state.setOriginalDdns(JSON.parse(JSON.stringify(defaultDdns)));
       return;
     }
     
@@ -208,12 +199,12 @@ export async function loadDdns(suppressStatus = false) {
       if (loadedDdns[key] === undefined) loadedDdns[key] = defaults[key];
     });
     
-    setDdns(loadedDdns);
-    setOriginalDdns(JSON.parse(JSON.stringify(loadedDdns)));
+    state.setDdns(loadedDdns);
+    state.setOriginalDdns(JSON.parse(JSON.stringify(loadedDdns)));
   } catch (error) {
     const defaultDdns = getDefaultDdns();
-    setDdns(defaultDdns);
-    setOriginalDdns(JSON.parse(JSON.stringify(defaultDdns)));
+    state.setDdns(defaultDdns);
+    state.setOriginalDdns(JSON.parse(JSON.stringify(defaultDdns)));
     if (!suppressStatus) showStatus('Could not load DDNS Config: ' + error.message, 'error');
   }
 }
@@ -231,8 +222,8 @@ export async function loadEcosystem(suppressStatus = false) {
     }
     
     const loadedEcosystem = JSON.parse(text);
-    setEcosystem(loadedEcosystem);
-    setOriginalEcosystem(JSON.parse(JSON.stringify(loadedEcosystem)));
+    state.setEcosystem(loadedEcosystem);
+    state.setOriginalEcosystem(JSON.parse(JSON.stringify(loadedEcosystem)));
   } catch (error) {
     if (!suppressStatus) showStatus('Could not load Ecosystem: ' + error.message, 'error');
   }
@@ -248,8 +239,8 @@ export async function loadAdvanced(suppressStatus = false) {
     
     if (!text) {
       const defaultAdvanced = getDefaultAdvanced();
-      setAdvanced(defaultAdvanced);
-      setOriginalAdvanced(JSON.parse(JSON.stringify(defaultAdvanced)));
+      state.setAdvanced(defaultAdvanced);
+      state.setOriginalAdvanced(JSON.parse(JSON.stringify(defaultAdvanced)));
       return;
     }
     
@@ -260,12 +251,12 @@ export async function loadAdvanced(suppressStatus = false) {
       if (loadedAdvanced[key] === undefined) loadedAdvanced[key] = defaults[key];
     });
     
-    setAdvanced(loadedAdvanced);
-    setOriginalAdvanced(JSON.parse(JSON.stringify(loadedAdvanced)));
+    state.setAdvanced(loadedAdvanced);
+    state.setOriginalAdvanced(JSON.parse(JSON.stringify(loadedAdvanced)));
   } catch (error) {
     const defaultAdvanced = getDefaultAdvanced();
-    setAdvanced(defaultAdvanced);
-    setOriginalAdvanced(JSON.parse(JSON.stringify(defaultAdvanced)));
+    state.setAdvanced(defaultAdvanced);
+    state.setOriginalAdvanced(JSON.parse(JSON.stringify(defaultAdvanced)));
     if (!suppressStatus) showStatus('Could not load Advanced Config: ' + error.message, 'error');
   }
 }
@@ -285,49 +276,13 @@ export async function loadCerts(suppressStatus = false) {
       loadedCerts = JSON.parse(text);
     }
     
-    setCerts(loadedCerts);
-    setOriginalCerts(JSON.parse(JSON.stringify(loadedCerts)));
+    state.setCerts(loadedCerts);
+    state.setOriginalCerts(JSON.parse(JSON.stringify(loadedCerts)));
   } catch (error) {
     const defaultCerts = { services: [], provisionedAt: null };
-    setCerts(defaultCerts);
-    setOriginalCerts(defaultCerts);
+    state.setCerts(defaultCerts);
+    state.setOriginalCerts(defaultCerts);
     if (!suppressStatus) showStatus('Could not load certificate data: ' + error.message, 'error');
-  }
-}
-
-export async function loadGitStatus(suppressStatus = false, showForceUpdate = false) {
-  const { renderGitStatus, checkForUpdates } = await import('./update.js');
-  try {
-    const response = await fetch('/git/status');
-    if (!response.ok) {
-      renderGitStatus({ error: 'Version Unavailable' });
-      return;
-    }
-    
-    const data = await response.json();
-    if (data.success) {
-      setGitStatus(data);
-      renderGitStatus(data, showForceUpdate);
-      if (!showForceUpdate) checkForUpdates();
-    } else {
-      renderGitStatus({ error: data.error });
-    }
-  } catch (error) {
-    if (!suppressStatus) showStatus('Could not load Git Status: ' + error.message, 'error');
-    renderGitStatus({ error: 'Version Unavailable' });
-  }
-}
-
-export async function loadLogRotateStatus(suppressStatus = false) {
-  try {
-    const response = await fetch('/checklogrotate');
-    if (!response.ok) {
-      throw new Error((await response.json()).error || 'Log rotate check failed');
-    }
-    setLogRotateInstalled(true);
-  } catch (error) {
-    if (!suppressStatus) showStatus('Could not load Log Rotate Status: ' + error.message, 'error');
-    setLogRotateInstalled(false);
   }
 }
 
@@ -337,8 +292,8 @@ export async function loadColors(suppressStatus = false) {
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load colors`);
     
     const loadedColors = await response.json();
-    setColors(loadedColors);
-    setOriginalColors(JSON.parse(JSON.stringify(loadedColors)));
+    state.setColors(loadedColors);
+    state.setOriginalColors(JSON.parse(JSON.stringify(loadedColors)));
   } catch (error) {
     if (!suppressStatus) showStatus('Could not load colors: ' + error.message, 'error');
     const defaultColors = {
@@ -348,8 +303,8 @@ export async function loadColors(suppressStatus = false) {
       background: '#ffffff',
       inverse: '#b84878'
     };
-    setColors(defaultColors);
-    setOriginalColors(JSON.parse(JSON.stringify(defaultColors)));
+    state.setColors(defaultColors);
+    state.setOriginalColors(JSON.parse(JSON.stringify(defaultColors)));
   }
 }
 
@@ -519,4 +474,97 @@ export async function fetchLocalIp() {
   } catch (error) {
     showStatus('Error fetching local IP: ' + error.message, 'error');
   }
+}
+
+// Git operations
+export async function gitCheck() {
+  const response = await fetch('/git/check');
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error((data && (data.error || data.message)) || `HTTP ${response.status}: Failed to check for updates`);
+  }
+  return data;
+}
+
+export async function gitPull() {
+  const response = await fetch('/git/pull', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error((data && (data.error || data.message)) || 'Git pull failed');
+  }
+  return data;
+}
+
+export async function gitForce() {
+  const response = await fetch('/git/force', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error((data && (data.error || data.message)) || 'Git force update failed');
+  }
+  return data;
+}
+
+export async function loadGitStatus(suppressStatus = false, showForceUpdate = false) {
+  const { renderGitStatus, checkForUpdates } = await import('./update.js');
+  try {
+    const response = await fetch('/git/status');
+    if (!response.ok) {
+      renderGitStatus({ error: 'Version Unavailable' });
+      return;
+    }
+    
+    const data = await response.json();
+    if (data.success) {
+      state.setGitStatus(data);
+      renderGitStatus(data, showForceUpdate);
+      if (!showForceUpdate) checkForUpdates();
+    } else {
+      renderGitStatus({ error: data.error });
+    }
+  } catch (error) {
+    if (!suppressStatus) showStatus('Could not load Git Status: ' + error.message, 'error');
+    renderGitStatus({ error: 'Version Unavailable' });
+  }
+}
+
+// Special logrotate operations
+export async function loadLogRotateStatus(suppressStatus = false) {
+  try {
+    const response = await fetch('/checklogrotate');
+    if (!response.ok) {
+      throw new Error((await response.json()).error || 'Log rotate check failed');
+    }
+    state.setLogRotateInstalled(true);
+  } catch (error) {
+    if (!suppressStatus) showStatus('Could not load Log Rotate Status: ' + error.message, 'error');
+    state.setLogRotateInstalled(false);
+  }
+}
+
+export async function installLogRotate() {
+  const response = await fetch('/installlogrotate');
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error((data && (data.error || data.message)) || `HTTP ${response.status}: Failed to install logrotate`);
+  }
+  return data;
+}
+
+// Favicon upload
+export async function uploadFavicon(formData) {
+  const response = await fetch('/favicon', {
+    method: 'POST',
+    body: formData
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error((data && (data.error || data.message)) || 'Favicon upload failed');
+  }
+  return data;
 }

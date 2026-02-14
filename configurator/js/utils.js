@@ -1,6 +1,3 @@
-// Utility Functions
-// Pure helper functions with no side effects
-
 // Error handling utilities
 export function parseErrorMessage(error) {
   try {
@@ -114,7 +111,6 @@ export function clampBackgroundColor(hex) {
   return hex;
 }
 
-// UUID generator
 export function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
@@ -216,7 +212,6 @@ export function generateAutoRename(filename, existingFiles) {
   return newName;
 }
 
-// Config cleaning utility
 export function cleanConfig(obj) {
   if (obj === null || obj === undefined) {
     return obj;
@@ -251,7 +246,6 @@ export function cleanConfig(obj) {
   return obj;
 }
 
-// Service icon mapping
 export function getServiceIcon(serviceType) {
   switch(serviceType) {
     case 'index': return '<span class="material-icons">description</span>';
@@ -260,12 +254,4 @@ export function getServiceIcon(serviceType) {
     case 'spa': return '<span class="material-icons">flash_on</span>';
     default: return '<span class="material-icons">settings</span>';
   }
-}
-
-// Section type detection
-export function getSectionType(prefixedName) {
-  if (prefixedName.startsWith('config-')) return 'config';
-  if (prefixedName.startsWith('management-')) return 'management';
-  if (prefixedName.startsWith('monitor-')) return 'monitor';
-  return 'unknown';
 }
