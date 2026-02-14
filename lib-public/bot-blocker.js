@@ -55,6 +55,26 @@ const ipSuspicionScores = new Map(); // Track scores per IP
 const BLOCK_THRESHOLD = 20; // Auto-block after this score
 const SCORE_DECAY_MS = 3600000; // Reset scores after 1 hour
 
+// Lightweight cached Set for fast blocklist lookups across the app
+let _cachedBlockSet = new Set();
+let _cachedBlockLen = 0;
+
+/**
+ * Check if an IP address is in the blocklist
+ * @param {ip} ip - The IP address to check
+ * @param {blocklist} blocklist - The list of blocked IP addresses
+ * @returns {boolean} - Whether the IP is blocked
+ */
+function isIpBlocked(ip, blocklist) {
+  if (!ip || ip === 'unknown') return false;
+  const len = (blocklist || []).length;
+  if (len !== _cachedBlockLen) {
+    _cachedBlockSet = new Set(blocklist || []);
+    _cachedBlockLen = len;
+  }
+  return _cachedBlockSet.has(ip);
+}
+
 /**
  * Check if a request matches suspicious vulnerability scanning patterns
  * @param {string} ip - Client IP address
@@ -161,6 +181,7 @@ async function addToBlocklist(ip, reason, blocklist) {
 module.exports = {
   checkSuspiciousRequest,
   addToBlocklist,
+  isIpBlocked,
   BLOCK_THRESHOLD,
   SCORE_DECAY_MS
 };

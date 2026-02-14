@@ -106,7 +106,7 @@ function updateBlocklist(baseDir, updatedBlocklist) {
   }
   
   const blocklistPath = path.join(baseDir, 'blocklist.json');
-  saveConfig(blocklistPath, updatedBlocklist, -1);
+  saveConfig(blocklistPath, updatedBlocklist);
 }
 
 /**

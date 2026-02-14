@@ -20,6 +20,18 @@ function sendError(response, statusCode, error) {
 }
 
 /**
+ * Get the client's IP address from a socket object
+ * @param {Socket} socket - The socket object from which to extract the IP address 
+ * @returns {string} The extracted IP address or 'unknown' if not available
+ */
+function extractIpFromSocket(socket) {
+  const addr = socket?.remoteAddress;
+  if (!addr) return 'unknown';
+  const parts = addr.split(':');
+  return parts[parts.length - 1];
+};
+
+/**
  * Handle WebSocket upgrade requests for proxied services
  * @param {object} config - Configuration object
  * @param {function} req - Request object
@@ -43,5 +55,6 @@ function handleWebSocketUpgrade(config, req, socket, head) {
 
 module.exports = {
   sendError,
+  extractIpFromSocket,
   handleWebSocketUpgrade
 };

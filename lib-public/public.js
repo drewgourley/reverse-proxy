@@ -21,8 +21,8 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const { RedisStore } = require('connect-redis');
 
 const authHelpers = require('./auth-helpers');
-const { sendError } = require('./helpers');
-const { checkSuspiciousRequest, addToBlocklist } = require('./bot-blocker');
+const { sendError, extractIpFromSocket } = require('./helpers');
+const { checkSuspiciousRequest, addToBlocklist, isIpBlocked } = require('./bot-blocker');
 
 /**
  * Initializes the Express application with all configured services, middleware, and routing
@@ -132,8 +132,7 @@ async function initApplication(options) {
       const services = Object.keys(config.services);
       
       // Extract real client IP (handles proxy forwarding)
-      const address = request.socket?.remoteAddress?.split(':');
-      const ip = address ? address[address.length - 1] : 'unknown';
+      const ip = extractIpFromSocket(request.socket);
       const host = request.headers.host;
       
       // Log all incoming requests with timestamp and source IP and response status code (after response is sent)
@@ -142,11 +141,12 @@ async function initApplication(options) {
         console.log(`${now}: ${protocols[request.secure ? 'secure' : 'insecure']}${host}${request.url} by ${ip} - ${response.statusCode}`);
       });
       
-      // Block requests from blacklisted IPs
-      if (ip !== 'unknown' && blocklist && blocklist.includes(ip)) {
+      // Block requests from blacklisted IPs — destroy the socket immediately to avoid any further compute
+      if (isIpBlocked(ip, blocklist)) {
         const now = new Date().toISOString();
-        console.log(`${now}: [blocklist] Blocking request from ${ip}`);
-        return response.status(403).send('Access Denied');
+        console.log(`${now}: [blocklist] Early-destroying connection from ${ip}`);
+        try { response.socket.destroy(); } catch (err) { /* ignore */ }
+        return;
       }
       
       // Check for suspicious bot/vulnerability scanner patterns
