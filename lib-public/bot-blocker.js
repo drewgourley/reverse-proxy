@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const net = require('net');
 
 // ========== Bot Detection Patterns ==========
 const suspiciousPatterns = [
@@ -60,6 +61,40 @@ let _cachedBlockSet = new Set();
 let _cachedBlockLen = 0;
 
 /**
+ * Return true for RFC1918/loopback/link-local/ULA IPv6 addresses.
+ * Internal devices are exempt from bot detection and blocking.
+ * @param {string} ip
+ * @returns {boolean}
+ */
+function isInternalIp(ip) {
+  if (!ip || ip === 'unknown') return false;
+  ip = String(ip).trim();
+
+  // strip IPv6 zone, brackets and normalize IPv4-mapped IPv6
+  const zoneIdx = ip.indexOf('%');
+  if (zoneIdx !== -1) ip = ip.slice(0, zoneIdx);
+  if (ip.startsWith('[') && ip.endsWith(']')) ip = ip.slice(1, -1);
+  if (ip.startsWith('::ffff:')) ip = ip.split('::ffff:')[1];
+
+  const family = net.isIP(ip);
+  if (family === 4) {
+    const parts = ip.split('.').map(p => Number(p) || 0);
+    if (parts.length !== 4) return false;
+    if (parts[0] === 10) return true;                             // 10.0.0.0/8
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true; // 172.16.0.0/12
+    if (parts[0] === 192 && parts[1] === 168) return true;       // 192.168.0.0/16
+    if (parts[0] === 127) return true;                           // loopback
+    if (parts[0] === 169 && parts[1] === 254) return true;       // link-local
+    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true; // CGNAT
+    return false;
+  } else if (family === 6) {
+    const l = ip.toLowerCase();
+    return l === '::1' || l.startsWith('fe80:') || l.startsWith('fc') || l.startsWith('fd');
+  }
+  return false;
+}
+
+/**
  * Check if an IP address is in the blocklist
  * @param {ip} ip - The IP address to check
  * @param {blocklist} blocklist - The list of blocked IP addresses
@@ -67,13 +102,15 @@ let _cachedBlockLen = 0;
  */
 function isIpBlocked(ip, blocklist) {
   if (!ip || ip === 'unknown') return false;
+  // never treat internal addresses as blocked
+  if (isInternalIp(ip)) return false;
   const len = (blocklist || []).length;
   if (len !== _cachedBlockLen) {
     _cachedBlockSet = new Set(blocklist || []);
     _cachedBlockLen = len;
   }
   return _cachedBlockSet.has(ip);
-}
+} 
 
 /**
  * Check if a request matches suspicious vulnerability scanning patterns
@@ -82,8 +119,10 @@ function isIpBlocked(ip, blocklist) {
  * @returns {Object} Suspicion analysis with score and patterns
  */
 function checkSuspiciousRequest(ip, url, host) {
-  if (ip === 'unknown') return { suspicious: false, score: 0 };
-  
+  if (!ip || ip === 'unknown') return { suspicious: false, score: 0 };
+  // never score internal/private addresses
+  if (isInternalIp(ip)) return { suspicious: false, score: 0, internal: true };
+
   const hostStr = (host || '').toString();
   const ipv4Regex = /^\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?$/;
   const ipv6Regex = /^\[?[0-9a-fA-F:]+\]?(?::\d+)?$/;
@@ -101,11 +140,12 @@ function checkSuspiciousRequest(ip, url, host) {
   }
 
   // Host-based scoring: IP literals and suspicious reverse DNS names
-  const isHostIPv4 = hostStr && ipv4Regex.test(hostStr);
-  const isHostIPv6 = hostStr && ipv6Regex.test(hostStr) && hostStr.includes(':');
-  const isHostIP = Boolean(isHostIPv4 || isHostIPv6);
-  if (isHostIP) {
-    totalScore += 5; // treat direct IP host as more suspicious
+  const hostIpCandidate = hostStr.split(':')[0].replace(/^\[|\]$/g, '');
+  const hostIsIp = Boolean(hostIpCandidate && net.isIP(hostIpCandidate));
+  const hostIsInternal = hostIsIp && isInternalIp(hostIpCandidate);
+
+  if (hostIsIp && !hostIsInternal) {
+    totalScore += 5; // treat direct IP host as more suspicious (but not internal LAN)
     matches.push('host-ip');
   }
   if (hostStr && reverseDnsRegex.test(hostStr)) {
@@ -113,16 +153,16 @@ function checkSuspiciousRequest(ip, url, host) {
     matches.push('reverse-dns');
   }
 
-  // Escalate if direct-IP host combines with high-severity indicators
+  // Escalate if direct-IP host combines with high-severity indicators (skip for internal hosts)
   const highSeverity = new Set(['env-file','env-backup','aws-creds','phpinfo','git-exposure','path-traversal','webshell','database','db-backup','wp-exploit']);
   const matchedHigh = matches.some(m => highSeverity.has(m));
-  if (isHostIP && matchedHigh) {
+  if (hostIsIp && !hostIsInternal && matchedHigh) {
     totalScore += 10; // rapid escalation for direct-IP + sensitive probe
     matches.push('host-ip-escalation');
   }
 
   if (totalScore > 0) {
-    // Update IP's cumulative score
+    // Update IP's cumulative score (skip storing for internal addresses which were filtered above)
     const now = Date.now();
     let ipData = ipSuspicionScores.get(ip) || { score: 0, lastSeen: now, requests: [] };
 
@@ -145,12 +185,12 @@ function checkSuspiciousRequest(ip, url, host) {
       score: totalScore,
       cumulativeScore: ipData.score,
       patterns: matches,
-      shouldBlock: ipData.score >= BLOCK_THRESHOLD || (isHostIP && matchedHigh)
+      shouldBlock: ipData.score >= BLOCK_THRESHOLD || (hostIsIp && !hostIsInternal && matchedHigh)
     };
   }
 
   return { suspicious: false, score: 0 };
-}
+} 
 
 /**
  * Add an IP to the blocklist and persist to disk
@@ -160,6 +200,12 @@ function checkSuspiciousRequest(ip, url, host) {
  * @returns {Promise<Array>} Updated blocklist
  */
 async function addToBlocklist(ip, reason, blocklist) {
+  // never add internal/private addresses to the persisted blocklist
+  if (isInternalIp(ip)) {
+    const now = new Date().toISOString();
+    console.log(`${now}: [auto-block] Ignored internal IP ${ip} (not adding to blocklist) - ${reason}`);
+    return blocklist || [];
+  }
   if (!blocklist) blocklist = [];
   if (!blocklist.includes(ip)) {
     blocklist.push(ip);
