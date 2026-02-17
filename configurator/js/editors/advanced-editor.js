@@ -221,7 +221,7 @@ export async function saveAdvanced() {
       'Server Restarting...', 'Advanced configuration saved. Waiting for the server to restart...');
     
     await waitForServerRestart();
-    
+    state.setRebooting(true);
     reloadPage();
   } catch (error) {
     console.error('Advanced config save error:', error);

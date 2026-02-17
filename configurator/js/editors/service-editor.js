@@ -801,7 +801,7 @@ export async function saveConfig() {
     
     showLoadingOverlay('Server Restarting...', 'Configuration saved. Waiting for the server to restart...');
     await waitForServerRestart();
-
+    state.setRebooting(true);
     reloadPage();
   } catch (error) {
     showStatus('Error saving config: ' + parseErrorMessage(error), 'error');

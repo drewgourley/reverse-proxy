@@ -83,7 +83,7 @@ export async function saveEcosystem() {
     } else if (state.currentSelection) {
       selectItem(state.currentSelection);
     }
-    
+    state.setRebooting(true);
     reloadPage();
   } catch (error) {
     showStatus('Error saving application settings: ' + parseErrorMessage(error), 'error');

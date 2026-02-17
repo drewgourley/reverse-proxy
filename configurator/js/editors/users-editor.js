@@ -365,7 +365,7 @@ export async function saveUsers() {
     
     showLoadingOverlay('Server Restarting...', 'Users saved. Waiting for the server to restart...');
     await waitForServerRestart();
-
+    state.setRebooting(true);
     reloadPage();
   } catch (error) {
     const message = parseErrorMessage(error);

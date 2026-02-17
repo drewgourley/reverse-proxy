@@ -121,7 +121,7 @@ async function pullUpdates(force) {
     }
 
     await waitForServerRestart(10000);
-    
+    state.setRebooting(true);
     reloadPage(true);
   } catch (error) {
     console.error('Update error:', error);

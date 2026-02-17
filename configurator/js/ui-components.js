@@ -503,6 +503,6 @@ export function reloadPage(update = false) {
     } else {
       url.searchParams.set('restarted', 'true');
     }
-    window.location.href = url.toString()
+    window.location.href = url.toString();
   }, 1000);
 }

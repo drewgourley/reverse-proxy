@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Prevent navigation with unsaved changes
   window.addEventListener('beforeunload', (event) => {
-    if (editors.hasUnsavedChanges()) {
+    if (!state.rebooting && editors.hasUnsavedChanges()) {
       event.preventDefault();
       event.returnValue = ''; // Required for Chrome
       return ''; // For older browsers

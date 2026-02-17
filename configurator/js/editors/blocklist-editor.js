@@ -188,7 +188,7 @@ export async function saveBlocklist() {
     showStatus('Blocklist saved successfully!', 'success');
     showLoadingOverlay('Server Restarting...', 'Blocklist saved. Waiting for the server to restart...');
     await waitForServerRestart();
-
+    state.setRebooting(true);
     reloadPage();
   } catch (error) {
     showStatus('Error saving blocklist: ' + parseErrorMessage(error), 'error');

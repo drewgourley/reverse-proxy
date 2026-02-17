@@ -119,7 +119,7 @@ export async function provisionCertificates() {
     
     showLoadingOverlay('Server Restarting...', 'Certificates provisioned. Waiting for the server to restart...');
     await waitForServerRestart();
-    
+    state.setRebooting(true);
     reloadPage();
   } catch (error) {
     outputEl.innerHTML = `

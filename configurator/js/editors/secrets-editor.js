@@ -160,7 +160,7 @@ export async function saveSecrets() {
     
     showLoadingOverlay('Server Restarting...', 'Secrets saved. Waiting for the server to restart...');
     await waitForServerRestart();
-
+    state.setRebooting(true);
     reloadPage();
   } catch (error) {
     showStatus('Error saving secrets: ' + parseErrorMessage(error), 'error');

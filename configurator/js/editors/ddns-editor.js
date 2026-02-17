@@ -96,7 +96,7 @@ export async function saveDdns() {
     
     showLoadingOverlay('Server Restarting...', 'DDNS config saved. Waiting for the server to restart...');
     await waitForServerRestart();
-    
+    state.setRebooting(true);
     reloadPage();
   } catch (error) {
     showStatus('Error saving DDNS config: ' + parseErrorMessage(error), 'error');
