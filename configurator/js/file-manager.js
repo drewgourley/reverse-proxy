@@ -1,6 +1,7 @@
 import * as state from './state.js';
 import { formatFileSize, getFileIcon } from './utils.js';
 import { showStatus, closePromptModal, showLoadingOverlay, hideLoadingOverlay, showPromptModal, showPromptError, showConfirmModal } from './ui-components.js';
+import { renderServiceEditor } from './editors/service-editor.js';
 
 let currentFileManagerContext = null;
 let selectedFiles = new Set();
@@ -162,7 +163,6 @@ export async function backToServiceEditor(serviceName) {
   selectedFiles.clear();
   currentFileManagerContext = null;
   
-  const { renderServiceEditor } = await import('./editors/service-editor.js');
   renderServiceEditor(serviceName);
 }
 

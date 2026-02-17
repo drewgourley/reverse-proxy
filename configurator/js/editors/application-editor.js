@@ -1,6 +1,7 @@
 import * as state from '../state.js';
 import * as api from '../api.js';
 import { parseErrorMessage } from '../utils.js';
+import { selectItem } from '../editors.js';
 import { reloadPage, waitForServerRestart, showStatus, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
 
 export function renderApplicationEditor() {
@@ -78,11 +79,9 @@ export async function saveEcosystem() {
     await waitForServerRestart();
 
     if (isDefault) {
-      const editors = await import('../editors.js');
-      editors.selectItem('management-secrets');
+      selectItem('management-secrets');
     } else if (state.currentSelection) {
-      const editors = await import('../editors.js');
-      editors.selectItem(state.currentSelection);
+      selectItem(state.currentSelection);
     }
     
     reloadPage();

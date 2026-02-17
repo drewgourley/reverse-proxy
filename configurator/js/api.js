@@ -1,5 +1,6 @@
 import * as state from './state.js';
 import { showStatus } from './ui-components.js';
+import { renderGitStatus, checkForUpdates } from './update.js';
 
 // Establish defaults
 export function getDefaultConfig() {
@@ -512,7 +513,6 @@ export async function gitForce() {
 }
 
 export async function loadGitStatus(suppressStatus = false, showForceUpdate = false) {
-  const { renderGitStatus, checkForUpdates } = await import('./update.js');
   try {
     const response = await fetch('/git/status');
     if (!response.ok) {
