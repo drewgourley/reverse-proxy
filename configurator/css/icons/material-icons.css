@@ -179,8 +179,14 @@ label .material-icons {
 }
 
 .multi-select-label .material-icons {
-    font-size: 18px;
+    font-size: 16px;
     margin-right: 2px;
+    margin-top: -3px;
+    margin-bottom: -2px;
+}
+
+.multi-select-tag.all-services span:first-child .material-icons {
+    font-size: 16px;
     margin-top: -4px;
 }
 

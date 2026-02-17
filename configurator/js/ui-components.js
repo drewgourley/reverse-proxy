@@ -12,6 +12,12 @@ export function showStatus(message, type) {
   if (type === 'success') {
     icon = '<span class="material-icons success">check_circle</span>';
   }
+  if (type === 'warning') {
+    icon = '<span class="material-icons warning">warning</span>';
+  }
+  if (type === 'info') {
+    icon = '<span class="material-icons info">info</span>';
+  }
   const statusEl = document.createElement('div');
   statusEl.className = 'status ' + type;
   statusEl.innerHTML = icon ? icon + ' ' + message : message;
@@ -102,14 +108,42 @@ export function closePromptModal() {
   promptCallback = null;
 }
 
-export function submitPrompt() {
+export async function submitPrompt() {
   const value = document.getElementById('promptInput').value;
-  if (promptCallback) {
-    const result = promptCallback(value);
-    // Only close modal if callback returns true (success)
-    if (result !== false) {
-      closePromptModal();
+  if (!promptCallback) return;
+
+  const submitBtn = document.querySelector('#promptModalContent .modal-btn-primary');
+  const wasDisabled = submitBtn ? submitBtn.disabled : false;
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    let result;
+
+    try {
+      result = promptCallback(value);
+    } catch (err) {
+      showPromptError(err && err.message ? err.message : String(err));
+      return;
     }
+
+    if (result && typeof result.then === 'function') {
+      try {
+        const resolved = await result;
+        if (resolved === false) {
+          return;
+        }
+        closePromptModal();
+      } catch (err) {
+        showPromptError(err && err.message ? err.message : String(err));
+        return;
+      }
+    } else {
+      if (!!result) {
+        closePromptModal();
+      }
+    }
+  } finally {
+    if (submitBtn) submitBtn.disabled = wasDisabled;
   }
 }
 

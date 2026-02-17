@@ -87,7 +87,7 @@ export async function saveEcosystem() {
     
     reloadPage();
   } catch (error) {
-    showStatus('<span class="material-icons">error</span> Error saving application settings: ' + parseErrorMessage(error), 'error');
+    showStatus('Error saving application settings: ' + parseErrorMessage(error), 'error');
     saveBtn.disabled = false;
     saveBtn.textContent = isDefault ? 'Generate Application Settings' : 'Save Application Settings';
   }

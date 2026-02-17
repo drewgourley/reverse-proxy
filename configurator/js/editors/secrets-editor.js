@@ -163,7 +163,7 @@ export async function saveSecrets() {
 
     reloadPage();
   } catch (error) {
-    showStatus('<span class="material-icons">error</span> Error saving secrets: ' + parseErrorMessage(error), 'error');
+    showStatus('Error saving secrets: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Secrets';

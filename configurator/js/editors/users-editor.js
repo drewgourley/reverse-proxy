@@ -49,12 +49,20 @@ function filterUsers() {
   });
 
   const noResultsMessage = document.getElementById('noResultsMessage');
-  if (entryCount === 0) {
+  if (state.users.users.length > 0 && entryCount === 0) {
     if (!noResultsMessage) {
       const noResultsMessageEl = document.createElement('div');
       noResultsMessageEl.id = 'noResultsMessage';
       noResultsMessageEl.className = 'no-results-message';
-      noResultsMessageEl.innerHTML = '<p class="hint">No matching users found</p><button class="btn-remove result-output" onclick="clearUsersSearch()"><span class="material-icons">search_off</span> Clear Search</button>';
+      noResultsMessageEl.innerHTML = '<p class="placeholder-message">No matching users found</p><button class="btn-remove" onclick="clearUsersSearch()"><span class="material-icons">search_off</span> Clear Search</button>';
+      panel.appendChild(noResultsMessageEl);
+    }
+  } else if (state.users.users.length === 0) {
+    if (!noResultsMessage) {
+      const noResultsMessageEl = document.createElement('div');
+      noResultsMessageEl.id = 'noResultsMessage';
+      noResultsMessageEl.className = 'no-results-message';
+      noResultsMessageEl.innerHTML = '<p class="placeholder-message">No users configured</p><button class="btn-add-field" onclick="addNewUser()"><span class="material-icons">add_circle</span> Add New User</button>';
       panel.appendChild(noResultsMessageEl);
     }
   } else {
@@ -170,71 +178,65 @@ export function renderUsersEditor() {
       </div>
   `;
 
-  if (state.users.users && state.users.users.length > 0) {
-    state.users.users.forEach((user, index) => {
-      const isExistingHash = user.password_hash && user.password_hash.startsWith('$2b$');
-      html += `
-      <div class="secret-entry user-entry">
-        <div class="form-group">
-          <label for="user_username_${index}">Username</label>
-          <input type="text" id="user_username_${index}" value="${user.username || ''}" 
-              onchange="updateUser(${index}, 'username', this.value)"
-              autocomplete="off"
-              placeholder="Enter username">
-          <div class="hint">UUID: ${user.uuid || 'Will be generated on save'}</div>
-        </div>
-        <div class="form-group">
-          <label for="user_password_${index}">Password</label>
-          <div class="password-input-group">
-            <input type="text" id="user_password_${index}" value="${isExistingHash ? '' : (user.password_hash || '')}"
-                class="text-security"
-                onchange="updateUserPassword(${index}, this.value)"
-                placeholder="${isExistingHash ? 'Password set - enter new to change' : 'Enter password'}"
-                autocomplete="new-password">
-            <button class="btn-toggle-password" onclick="togglePasswordVisibility('user_password_${index}', this)"><span class="material-icons">visibility</span> Show</button>
-          </div>
-          <div class="hint">${isExistingHash ? 'Leave empty to keep current password' : 'Password will be hashed when saved'}</div>
-        </div>
-        <div class="form-group">
-          <p class="label color-primary" onclick="toggleDropdown('user_services_select_${index}', event)">Service Access</p>
-          ${createDropdown({
-            id: `user_services_select_${index}`,
-            items: [
-              {
-                value: '*',
-                label: '<span class="material-icons">star</span> All Services',
-                selected: user.services?.includes('*'),
-                special: 'all-services'
-              },
-              ...authServices.map(serviceName => ({
-                value: serviceName,
-                label: state.config.services[serviceName]?.nicename || serviceName,
-                selected: user.services?.includes(serviceName) && !user.services?.includes('*'),
-                disabled: user.services?.includes('*')
-              })),
-              ...(authServices.length === 0 ? [{
-                value: '_no_services',
-                label: 'No services with "Require Login" configured',
-                disabled: true
-              }] : [])
-            ],
-            multiSelect: true,
-            placeholder: 'Select services...',
-            onChange: `onUserServicesChange_${index}`
-          })}
-          <div class="hint">Choose "<span class="material-icons star">star</span> All Services" for full access or select individual services this user can access</div>
-        </div>
-        <div class="secret-actions">
-          <button class="btn-remove" onclick="removeUser(${index})"><span class="material-icons">remove_circle</span> Remove User</button>
-        </div>
-      </div>
-      `;
-    });
-  } else {
+  state.users.users.forEach((user, index) => {
+    const isExistingHash = user.password_hash && user.password_hash.startsWith('$2b$');
     html += `
-      <div class="hint">No users configured. Add a user to allow login to protected services.</div>
+    <div class="secret-entry user-entry">
+      <div class="form-group">
+        <label for="user_username_${index}">Username</label>
+        <input type="text" id="user_username_${index}" value="${user.username || ''}" 
+            onchange="updateUser(${index}, 'username', this.value)"
+            autocomplete="off"
+            placeholder="Enter username">
+        <div class="hint">UUID: ${user.uuid || 'Will be generated on save'}</div>
+      </div>
+      <div class="form-group">
+        <label for="user_password_${index}">Password</label>
+        <div class="password-input-group">
+          <input type="text" id="user_password_${index}" value="${isExistingHash ? '' : (user.password_hash || '')}"
+              class="text-security"
+              onchange="updateUserPassword(${index}, this.value)"
+              placeholder="${isExistingHash ? 'Password set - enter new to change' : 'Enter password'}"
+              autocomplete="new-password">
+          <button class="btn-toggle-password" onclick="togglePasswordVisibility('user_password_${index}', this)"><span class="material-icons">visibility</span> Show</button>
+        </div>
+        <div class="hint">${isExistingHash ? 'Leave empty to keep current password' : 'Password will be hashed when saved'}</div>
+      </div>
+      <div class="form-group">
+        <p class="label color-primary" onclick="toggleDropdown('user_services_select_${index}', event)">Service Access</p>
+        ${createDropdown({
+          id: `user_services_select_${index}`,
+          items: [
+            {
+              value: '*',
+              label: '<span class="material-icons">star</span> All Services',
+              selected: user.services?.includes('*'),
+              special: 'all-services'
+            },
+            ...authServices.map(serviceName => ({
+              value: serviceName,
+              label: state.config.services[serviceName]?.nicename || serviceName,
+              selected: user.services?.includes(serviceName) && !user.services?.includes('*'),
+              disabled: user.services?.includes('*')
+            })),
+            ...(authServices.length === 0 ? [{
+              value: '_no_services',
+              label: 'No services with "Require Login" configured',
+              disabled: true
+            }] : [])
+          ],
+          multiSelect: true,
+          placeholder: 'Select services...',
+          onChange: `onUserServicesChange_${index}`
+        })}
+        <div class="hint">Choose "<span class="material-icons star">star</span> All Services" for full access or select individual services this user can access</div>
+      </div>
+      <div class="secret-actions">
+        <button class="btn-remove" onclick="removeUser(${index})"><span class="material-icons">remove_circle</span> Remove User</button>
+      </div>
+    </div>
     `;
-  }
+  });
 
   html += `
     </div>
@@ -299,6 +301,15 @@ export function addNewUser() {
     services: []
   });
   renderUsersEditor();
+
+  setTimeout(() => {
+    const input = document.getElementById('user_username_0');
+    if (input) {
+      input.focus();
+      input.select();
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 0);
 }
 
 export function removeUser(index) {
@@ -358,7 +369,7 @@ export async function saveUsers() {
     reloadPage();
   } catch (error) {
     const message = parseErrorMessage(error);
-    showStatus('<span class="material-icons">error</span> Failed to save users: ' + message, 'error');
+    showStatus('Failed to save users: ' + message, 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Users';

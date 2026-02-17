@@ -109,8 +109,8 @@
     cursor: default;
 }
 
-.multi-select-tag.all-access {
-    background: var(--color-accent);
+.multi-select-tag.all-services {
+    background: #ed8936;
 }
 
 .multi-select-tag span {

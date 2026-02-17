@@ -133,6 +133,12 @@
 
 .no-results-message {
     text-align: center;
-    color: var(--color-gray-400);
-    padding: 20px;
+}
+
+.no-results-message .placeholder-message {
+    padding-bottom: 0;
+}
+
+.no-results-message button {
+    margin-top: 10px;
 }

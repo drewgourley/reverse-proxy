@@ -2,7 +2,7 @@ import * as state from '../state.js';
 import * as api from '../api.js';
 import { parseErrorMessage, getServiceIcon } from '../utils.js';
 import { reloadPage, waitForServerRestart, createDropdown, showStatus, showConfirmModal, showPromptModal, showPromptError, closePromptModal, showLoadingOverlay } from '../ui-components.js';
-import { blockNavigation, hasUnsavedManagementChanges, renderPlaceholderEditor } from '../editors.js';
+import { blockNavigation, hasUnsavedManagementChanges, renderPlaceholderEditor, renderServicesList, selectItem } from '../editors.js';
 import { renderDomainEditor } from './domain-editor.js';
 import { renderCertificatesEditor } from './certificates-editor.js';
 
@@ -128,7 +128,7 @@ export function addSubdomain(serviceName) {
       protocol: 'secure'
     };
     renderServiceEditor(serviceName);
-    import('../editors.js').then(editors => editors.renderServicesList());
+    renderServicesList();
   }
 }
 
@@ -140,7 +140,7 @@ export function removeSubdomain(serviceName) {
       if (confirmed) {
         delete state.config.services[serviceName].subdomain;
         renderServiceEditor(serviceName);
-        import('../editors.js').then(editors => editors.renderServicesList());
+        renderServicesList();
         showStatus('Subdomain removed', 'success');
       }
     }
@@ -673,9 +673,8 @@ export function removeService(serviceName) {
           <button class="btn-reset" id="resetBtn" onclick="resetEditor()"><span class="material-icons">undo</span> Revert</button>
           <button class="btn-save" id="saveBtn" onclick="saveConfig()"><span class="material-icons">save</span> Save Config</button>
         `;
-        const editors = await import('../editors.js');
-        editors.renderServicesList();
-        editors.renderPlaceholderEditor(message, actions);
+        renderServicesList();
+        renderPlaceholderEditor(message, actions);
         showStatus(`Service "${serviceName}" removed`, 'success');
       }
     }
@@ -693,7 +692,7 @@ export function addNewService() {
     'Lowercase letters, numbers, and hyphens only. Max 63 characters',
     '',
     'e.g., my-service',
-    async (serviceName) => {
+    (serviceName) => {
       if (!serviceName) return;
       
       const existingServices = Object.keys(state.config.services).map(s => s.toLowerCase());
@@ -722,9 +721,8 @@ export function addNewService() {
         }
       };
 
-      const editors = await import('../editors.js');
-      editors.renderServicesList();
-      editors.selectItem('config-' + serviceName);
+      renderServicesList();
+      selectItem('config-' + serviceName);
       closePromptModal();
     }
   );
@@ -806,7 +804,7 @@ export async function saveConfig() {
 
     reloadPage();
   } catch (error) {
-    showStatus('<span class="material-icons">error</span> Error saving config: ' + parseErrorMessage(error), 'error');
+    showStatus('Error saving config: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Config';
@@ -821,8 +819,7 @@ export function resetEditor() {
       if (confirmed) {
         state.setConfig(JSON.parse(JSON.stringify(state.originalConfig)));
         showStatus('Changes discarded', 'success');
-        const editors = await import('../editors.js');
-        editors.renderServicesList();
+        renderServiceEditor();
         if (state.currentSelection) {
           const serviceName = state.currentSelection.startsWith('config-') ? state.currentSelection.replace('config-', '') : null;
           

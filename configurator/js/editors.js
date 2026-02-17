@@ -34,58 +34,63 @@ export function renderPlaceholderEditor(message = 'Select an item from the sideb
 }
 
 export function selectItem(prefixedName, type, folder, path, pushState = true) {
-  if (pushState && state.currentSelection && state.currentSelection !== prefixedName) {
-    if (!canNavigateAway(state.currentSelection, prefixedName)) {
-      blockNavigation();
-      return;
+  try {
+    if (pushState && state.currentSelection && state.currentSelection !== prefixedName) {
+      if (!canNavigateAway(state.currentSelection, prefixedName)) {
+        blockNavigation();
+        return;
+      }
     }
-  }
 
-  state.setCurrentSelection(prefixedName);
+    state.setCurrentSelection(prefixedName);
 
-  if (pushState) {
-    const routePath = window.buildAppRoute({ section: prefixedName, type, folder, path });
-    window.history.pushState({}, '', routePath);
-    if (state.currentUrl !== undefined) {
-      state.setCurrentUrl(window.location.href);
+    if (pushState) {
+      const routePath = window.buildAppRoute({ section: prefixedName, type, folder, path });
+      window.history.pushState({}, '', routePath);
+      if (state.currentUrl !== undefined) {
+        state.setCurrentUrl(window.location.href);
+      }
     }
-  }
 
-  renderServicesList();
-  const itemName = prefixedName.replace(/^(management-|config-)/, '');
+    renderServicesList();
+    const itemName = prefixedName.replace(/^(management-|config-)/, '');
 
-  if (prefixedName === 'config-domain') {
-    renderDomainEditor();
-  } else if (prefixedName === 'management-application') {
-    renderApplicationEditor();
-  } else if (prefixedName === 'management-certificates') {
-    renderCertificatesEditor();
-  } else if (prefixedName === 'management-secrets') {
-    renderSecretsEditor();
-  } else if (prefixedName === 'management-users') {
-    renderUsersEditor();
-  } else if (prefixedName === 'management-ddns') {
-    renderDdnsEditor();
-  } else if (prefixedName === 'management-theme') {
-    renderThemeEditor();
-  } else if (prefixedName === 'management-advanced') {
-    renderAdvancedEditor();
-  } else if (prefixedName === 'monitor-logs') {
-    renderLogsViewer(type || 'out', pushState);
-  } else if (prefixedName === 'monitor-blocklist') {
-    renderBlocklistEditor();
-  } else if (prefixedName.startsWith('config-')) {
-    if (folder) {
-      renderFileManager(itemName, folder, path, pushState);
+    if (prefixedName === 'config-domain') {
+      renderDomainEditor();
+    } else if (prefixedName === 'management-application') {
+      renderApplicationEditor();
+    } else if (prefixedName === 'management-certificates') {
+      renderCertificatesEditor();
+    } else if (prefixedName === 'management-secrets') {
+      renderSecretsEditor();
+    } else if (prefixedName === 'management-users') {
+      renderUsersEditor();
+    } else if (prefixedName === 'management-ddns') {
+      renderDdnsEditor();
+    } else if (prefixedName === 'management-theme') {
+      renderThemeEditor();
+    } else if (prefixedName === 'management-advanced') {
+      renderAdvancedEditor();
+    } else if (prefixedName === 'monitor-logs') {
+      renderLogsViewer(type || 'out', pushState);
+    } else if (prefixedName === 'monitor-blocklist') {
+      renderBlocklistEditor();
+    } else if (prefixedName.startsWith('config-')) {
+      if (folder) {
+        renderFileManager(itemName, folder, path, pushState);
+      } else {
+        renderServiceEditor(itemName);
+      }
     } else {
-      renderServiceEditor(itemName);
+      renderPlaceholderEditor();
     }
-  } else {
-    renderPlaceholderEditor();
-  }
 
-  if (window.innerWidth <= 1024) {
-    showMobilePanel('editor');
+    if (window.innerWidth <= 1024) {
+      showMobilePanel('editor');
+    }
+  } catch (error) {
+    window.history.replaceState({}, '', window.location.origin);
+    renderPlaceholderEditor();
   }
 }
 

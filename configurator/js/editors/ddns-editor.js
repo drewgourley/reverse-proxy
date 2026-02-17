@@ -99,7 +99,7 @@ export async function saveDdns() {
     
     reloadPage();
   } catch (error) {
-    showStatus('<span class="material-icons">error</span> Error saving DDNS config: ' + parseErrorMessage(error), 'error');
+    showStatus('Error saving DDNS config: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save DDNS Config';

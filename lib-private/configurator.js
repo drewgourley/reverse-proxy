@@ -85,16 +85,6 @@ configrouter.get('/users', (request, response) => {
   }
 });
 
-configrouter.put('/users', async (request, response) => {
-  try {
-    await configManager.updateUsers(rootDir, request.body);
-    response.status(200).send({ success: true, message: 'Users updated successfully' });
-  } catch (error) {
-    const statusCode = error.statusCode || 500;
-    sendError(response, statusCode, error);
-  }
-});
-
 configrouter.get('/certs', (request, response) => {
   try {
     const certs = configManager.readConfig(rootDir, 'certs.json', { services: [], provisionedAt: null });
@@ -135,6 +125,102 @@ configrouter.get('/ecosystem', (request, response) => {
   }
 });
 
+
+configrouter.get('/colors', (request, response) => {
+  try {
+    const colors = themeManager.readColors(rootDir);
+    response.setHeader('Content-Type', 'application/json');
+    response.send(colors);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/ddns', (request, response) => {
+  try {
+    const ddns = configManager.readConfig(rootDir, 'ddns.json', {});
+    response.setHeader('Content-Type', 'application/json');
+    response.send(ddns);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/advanced', (request, response) => {
+  try {
+    const advanced = configManager.readConfig(rootDir, 'advanced.json', { parsers: {}, extractors: {}, queryTypes: [] });  
+    response.setHeader('Content-Type', 'application/json');
+    response.send(advanced);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/checklogrotate', async (request, response) => {
+  try {
+    await processManager.checkLogrotate();
+    response.status(200).send({ success: true, message: 'Logrotate module is installed.' });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/installlogrotate', async (request, response) => {
+  try {
+    await processManager.installLogrotate();
+    response.status(200).send({ success: true, message: 'Logrotate module installed successfully.' });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/git/status', async (request, response) => {
+  try {
+    const status = await gitManager.getGitStatus();
+    response.status(200).send({ success: true, ...status });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/git/check', async (request, response) => {
+  try {
+    const result = await gitManager.checkForUpdates();
+    response.status(200).send({ success: true, ...result });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/logs/:appName/:type', (request, response) => {
+  logsManager.streamLogs(request, response);
+});
+
+configrouter.put('/users', async (request, response) => {
+  try {
+    await configManager.updateUsers(rootDir, request.body);
+    response.status(200).send({ success: true, message: 'Users updated successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+configrouter.get('/files/:serviceName/:folderType', (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const subPath = request.query.path || '';
+    
+    const config = require('../config.json');
+    const result = fileOps.listFiles(rootDir, serviceName, folderType, config, subPath);
+    
+    response.status(200).send({ success: true, ...result });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
 configrouter.put('/config', (request, response) => {
   try {
     const result = configManager.updateConfig(rootDir, request.body);
@@ -170,16 +256,6 @@ configrouter.put('/secrets', async (request, response) => {
   }
 });
 
-configrouter.get('/colors', (request, response) => {
-  try {
-    const colors = themeManager.readColors(rootDir);
-    response.setHeader('Content-Type', 'application/json');
-    response.send(colors);
-  } catch (error) {
-    sendError(response, 500, error);
-  }
-});
-
 configrouter.put('/colors', (request, response) => {
   try {
     themeManager.updateColors(rootDir, request.body);
@@ -187,27 +263,6 @@ configrouter.put('/colors', (request, response) => {
   } catch (error) {
     const statusCode = error.statusCode || 400;
     sendError(response, statusCode, error);
-  }
-});
-
-configrouter.post('/favicon', faviconUpload.single('favicon'), async (request, response) => {
-  try {
-    await themeManager.uploadFavicon(rootDir, request.file);
-    response.status(200).send({ success: true, message: 'Favicon uploaded successfully' });
-  } catch (error) {
-    console.error('Favicon upload error:', error);
-    const statusCode = error.statusCode || 500;
-    sendError(response, statusCode, error);
-  }
-});
-
-configrouter.get('/ddns', (request, response) => {
-  try {
-    const ddns = configManager.readConfig(rootDir, 'ddns.json', {});
-    response.setHeader('Content-Type', 'application/json');
-    response.send(ddns);
-  } catch (error) {
-    sendError(response, 500, error);
   }
 });
 
@@ -219,38 +274,6 @@ configrouter.put('/ddns', (request, response) => {
     const statusCode = error.statusCode || 500;
     sendError(response, statusCode, error);
   }
-});
-
-configrouter.get('/advanced', (request, response) => {
-  try {
-    const advanced = configManager.readConfig(rootDir, 'advanced.json', { parsers: {}, extractors: {}, queryTypes: [] });  
-    response.setHeader('Content-Type', 'application/json');
-    response.send(advanced);
-  } catch (error) {
-    sendError(response, 500, error);
-  }
-});
-
-configrouter.get('/checklogrotate', async (request, response) => {
-  try {
-    await processManager.checkLogrotate();
-    response.status(200).send({ success: true, message: 'Logrotate module is installed.' });
-  } catch (error) {
-    sendError(response, 500, error);
-  }
-});
-
-configrouter.get('/installlogrotate', async (request, response) => {
-  try {
-    await processManager.installLogrotate();
-    response.status(200).send({ success: true, message: 'Logrotate module installed successfully.' });
-  } catch (error) {
-    sendError(response, 500, error);
-  }
-});
-
-configrouter.get('/logs/:appName/:type', (request, response) => {
-  logsManager.streamLogs(request, response);
 });
 
 configrouter.put('/advanced', (request, response) => {
@@ -273,21 +296,36 @@ configrouter.put('/ecosystem', async (request, response) => {
   }
 });
 
-configrouter.get('/git/status', async (request, response) => {
+configrouter.put('/certs', async (request, response) => {
   try {
-    const status = await gitManager.getGitStatus();
-    response.status(200).send({ success: true, ...status });
+    const email = request.body.email;
+    if (!email) {
+      return sendError(response, 400, 'Email address is required');
+    }
+    
+    const config = configManager.readConfig(rootDir, 'config.json');
+    const result = await certManager.provisionCertificates(rootDir, email, config, env);
+    
+    response.status(200).send({ success: true, message: result.message });
+    if (env === 'production') {
+      setTimeout(() => {
+        process.exit(0);
+      }, 2000);
+    }
   } catch (error) {
-    sendError(response, 500, error);
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
   }
 });
 
-configrouter.get('/git/check', async (request, response) => {
+configrouter.post('/favicon', faviconUpload.single('favicon'), async (request, response) => {
   try {
-    const result = await gitManager.checkForUpdates();
-    response.status(200).send({ success: true, ...result });
+    await themeManager.uploadFavicon(rootDir, request.file);
+    response.status(200).send({ success: true, message: 'Favicon uploaded successfully' });
   } catch (error) {
-    sendError(response, 500, error);
+    console.error('Favicon upload error:', error);
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
   }
 });
 
@@ -315,43 +353,6 @@ configrouter.post('/git/force', async (request, response) => {
   }
 });
 
-configrouter.put('/certs', async (request, response) => {
-  try {
-    const email = request.body.email;
-    if (!email) {
-      return sendError(response, 400, 'Email address is required');
-    }
-    
-    const config = configManager.readConfig(rootDir, 'config.json');
-    const result = await certManager.provisionCertificates(rootDir, email, config, env);
-    
-    response.status(200).send({ success: true, message: result.message });
-    if (env === 'production') {
-      setTimeout(() => {
-        process.exit(0);
-      }, 2000);
-    }
-  } catch (error) {
-    const statusCode = error.statusCode || 500;
-    sendError(response, statusCode, error);
-  }
-});
-
-configrouter.get('/files/:serviceName/:folderType', (request, response) => {
-  try {
-    const { serviceName, folderType } = request.params;
-    const subPath = request.query.path || '';
-    
-    const config = require('../config.json');
-    const result = fileOps.listFiles(rootDir, serviceName, folderType, config, subPath);
-    
-    response.status(200).send({ success: true, ...result });
-  } catch (error) {
-    const statusCode = error.statusCode || 500;
-    sendError(response, statusCode, error);
-  }
-});
-
 configrouter.post('/files/:serviceName/:folderType', fileOps.fileUpload.single('file'), (request, response) => {
   try {
     const { serviceName, folderType } = request.params;
@@ -365,21 +366,6 @@ configrouter.post('/files/:serviceName/:folderType', fileOps.fileUpload.single('
       message: 'File uploaded successfully',
       file
     });
-  } catch (error) {
-    const statusCode = error.statusCode || 500;
-    sendError(response, statusCode, error);
-  }
-});
-
-configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
-  try {
-    const { serviceName, folderType } = request.params;
-    const { filePath } = request.body;
-    
-    const config = require('../config.json');
-    fileOps.deleteFile(rootDir, serviceName, folderType, config, filePath);
-    
-    response.status(200).send({ success: true, message: 'File deleted successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 500;
     sendError(response, statusCode, error);
@@ -433,6 +419,36 @@ configrouter.post('/files/:serviceName/:folderType/unpack', fileOps.fileUpload.s
     const statusCode = error.statusCode || 500;
     sendError(response, statusCode, error);
   }
+});
+
+configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
+  try {
+    const { serviceName, folderType } = request.params;
+    const { filePath } = request.body;
+    
+    const config = require('../config.json');
+    fileOps.deleteFile(rootDir, serviceName, folderType, config, filePath);
+    
+    response.status(200).send({ success: true, message: 'File deleted successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
+// SPA fallback: for any GET navigation that accepts HTML (and isn't an asset/API request), serve the configurator index
+configrouter.get('*', (request, response, next) => {
+  if (request.method !== 'GET') return next();
+
+  // If client prefers JSON (API request), skip fallback
+  const preferred = request.accepts(['html', 'json', 'text']);
+  if (preferred && preferred !== 'html') return next();
+
+  // Skip obvious asset requests (contain a file extension)
+  if (path.extname(request.path)) return next();
+
+  // Redirect to root for SPA routing, preserving query params
+  response.redirect('/');
 });
 
 configapp.use(configrouter);

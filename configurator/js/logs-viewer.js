@@ -172,7 +172,7 @@ export async function installLogRotate() {
 
     reloadPage();
   } catch (error) {
-    showStatus('<span class="material-icons">error</span> Error installing Log Rotate Module, you may have to do it manually: ' + parseErrorMessage(error), 'error');
+    showStatus('Error installing Log Rotate Module, you may have to do it manually: ' + parseErrorMessage(error), 'error');
     installBtn.disabled = false;
     installBtn.textContent = 'Install PM2 Log Rotate Module';
   }

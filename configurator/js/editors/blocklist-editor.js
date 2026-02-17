@@ -27,12 +27,20 @@ export function filterBlocklist() {
   });
 
   const noResultsMessage = document.getElementById('noResultsMessage');
-  if (entryCount === 0) {
+  if (state.blocklist.length > 0 && entryCount === 0) {
     if (!noResultsMessage) {
       const noResultsMessageEl = document.createElement('div');
       noResultsMessageEl.id = 'noResultsMessage';
       noResultsMessageEl.className = 'no-results-message';
-      noResultsMessageEl.innerHTML = '<p class="hint">No matching IP addresses found</p><button class="btn-remove result-output" onclick="clearBlocklistSearch()"><span class="material-icons">search_off</span> Clear Search</button>';
+      noResultsMessageEl.innerHTML = '<p class="placeholder-message">No matching IP addresses found</p><button class="btn-remove" onclick="clearBlocklistSearch()"><span class="material-icons">search_off</span> Clear Search</button>';
+      panel.appendChild(noResultsMessageEl);
+    }
+  } else if (state.blocklist.length === 0) {
+    if (!noResultsMessage) {
+      const noResultsMessageEl = document.createElement('div');
+      noResultsMessageEl.id = 'noResultsMessage';
+      noResultsMessageEl.className = 'no-results-message';
+      noResultsMessageEl.innerHTML = '<p class="placeholder-message">No blocklist entries</p><button class="btn-add-field" onclick="addBlocklistEntry()"><span class="material-icons">add_circle</span> Add Blocklist Entry</button>';
       panel.appendChild(noResultsMessageEl);
     }
   } else {
@@ -183,7 +191,7 @@ export async function saveBlocklist() {
 
     reloadPage();
   } catch (error) {
-    showStatus('<span class="material-icons">error</span> Error saving blocklist: ' + parseErrorMessage(error), 'error');
+    showStatus('Error saving blocklist: ' + parseErrorMessage(error), 'error');
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Blocklist';
