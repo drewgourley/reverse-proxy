@@ -120,9 +120,11 @@ async function pullUpdates(force) {
       throw error;
     }
 
-    await waitForServerRestart(10000);
-    state.setRebooting(true);
-    reloadPage(true);
+    let reboot = await waitForServerRestart(10000);
+    if (reboot) {
+      state.setRebooting(true);
+      reloadPage(true);
+    }
   } catch (error) {
     console.error('Update error:', error);
     loadingOverlay.classList.remove('active');

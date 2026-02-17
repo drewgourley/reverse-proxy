@@ -34,16 +34,13 @@ function readConfig(baseDir, fileName, defaultValue = null) {
  * Save configuration and optionally restart
  * @param {string} filePath - Full path to config file
  * @param {Object} data - Data to save
- * @param {number} restartDelay - Delay before restart in ms, -1 to skip restart
  */
-function saveConfig(filePath, data, restartDelay = 2000) {
+function saveConfig(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
   
-  if (restartDelay >= 0) {
-    setTimeout(() => {
-      process.exit(0);
-    }, restartDelay);
-  }
+  setTimeout(() => {
+    process.exit(0);
+  }, 2000);
 }
 
 /**

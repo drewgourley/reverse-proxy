@@ -364,9 +364,12 @@ export async function saveUsers() {
     showStatus('Users saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'Users saved. Waiting for the server to restart...');
-    await waitForServerRestart();
-    state.setRebooting(true);
-    reloadPage();
+
+    let reboot = await waitForServerRestart();
+    if (reboot) {
+      state.setRebooting(true);
+      reloadPage();
+    }
   } catch (error) {
     const message = parseErrorMessage(error);
     showStatus('Failed to save users: ' + message, 'error');

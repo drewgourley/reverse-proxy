@@ -76,15 +76,18 @@ export async function saveEcosystem() {
     showStatus('Application settings saved successfully!', 'success');
 
     showLoadingOverlay('Server Restarting...', 'Application settings saved. Waiting for the server to restart...');
-    await waitForServerRestart();
 
-    if (isDefault) {
-      selectItem('management-secrets');
-    } else if (state.currentSelection) {
-      selectItem(state.currentSelection);
+    let reboot = await waitForServerRestart();
+    if (reboot) {
+      if (isDefault) {
+        selectItem('management-secrets');
+      } else if (state.currentSelection) {
+        selectItem(state.currentSelection);
+      }
+
+      state.setRebooting(true);
+      reloadPage();
     }
-    state.setRebooting(true);
-    reloadPage();
   } catch (error) {
     showStatus('Error saving application settings: ' + parseErrorMessage(error), 'error');
     saveBtn.disabled = false;

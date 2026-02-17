@@ -148,8 +148,19 @@ export async function submitPrompt() {
 }
 
 // Loading overlay
-export function showLoadingOverlay(title, message) {
+export function showLoadingOverlay(title, message, error) {
   const overlay = document.getElementById('loadingOverlay');
+  const spinner = document.getElementById('loadingSpinner');
+  const icon = document.getElementById('loadingIcon');
+  
+  if (error) {
+    spinner.style.display = 'none';
+    icon.style.display = 'block';
+  } else {
+    spinner.style.display = 'block';
+    icon.style.display = 'none';
+  }
+
   document.getElementById('loadingTitle').textContent = title;
   document.getElementById('loadingMessage').textContent = message;
   overlay.classList.remove('hiding');
@@ -461,7 +472,7 @@ export function togglePasswordVisibility(inputId, button) {
 
 // Server restart ui functions
 export async function waitForServerRestart(delay = 5000) {
-  const maxAttempts = 12;
+  const maxAttempts = 2;
   const pollInterval = 5000;
   let attempts = 0;
   
@@ -481,7 +492,7 @@ export async function waitForServerRestart(delay = 5000) {
       
       if (response.ok) {
         document.documentElement.classList.remove('loaded');
-        return;
+        return true;
       }
     } catch (error) {
       console.warn('Server not responding yet, continuing to poll...');
@@ -492,7 +503,8 @@ export async function waitForServerRestart(delay = 5000) {
   }
   
   hideLoadingOverlay();
-  showStatus('Server did not restart within expected time. Please check manually.', 'error');
+  showLoadingOverlay('Restart Failed', 'Server did not restart within expected time. Please check manually.', true);
+  return false;
 }
 
 export function reloadPage(update = false) {

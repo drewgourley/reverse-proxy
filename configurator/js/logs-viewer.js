@@ -168,9 +168,11 @@ export async function installLogRotate() {
     showStatus('Log Rotate Module Installed!', 'success');
 
     showLoadingOverlay('Server Restarting...', 'Log Rotate Module Installed. Waiting for the server to restart...');
-    await waitForServerRestart();
-    state.setRebooting(true);
-    reloadPage();
+    let reboot = await waitForServerRestart();
+    if (reboot) {
+      state.setRebooting(true);
+      reloadPage();
+    }
   } catch (error) {
     showStatus('Error installing Log Rotate Module, you may have to do it manually: ' + parseErrorMessage(error), 'error');
     installBtn.disabled = false;

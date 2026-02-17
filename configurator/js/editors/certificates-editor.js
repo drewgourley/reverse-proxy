@@ -118,9 +118,12 @@ export async function provisionCertificates() {
     showStatus('Certificates provisioned successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'Certificates provisioned. Waiting for the server to restart...');
-    await waitForServerRestart();
-    state.setRebooting(true);
-    reloadPage();
+
+    let reboot = await waitForServerRestart();
+    if (reboot) {
+      state.setRebooting(true);
+      reloadPage();
+    }
   } catch (error) {
     outputEl.innerHTML = `
       <div class="result-error">

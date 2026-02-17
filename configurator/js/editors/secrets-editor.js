@@ -159,9 +159,12 @@ export async function saveSecrets() {
     showStatus('Secrets saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'Secrets saved. Waiting for the server to restart...');
-    await waitForServerRestart();
-    state.setRebooting(true);
-    reloadPage();
+
+    let reboot = await waitForServerRestart();
+    if (reboot) {
+      state.setRebooting(true);
+      reloadPage();
+    }
   } catch (error) {
     showStatus('Error saving secrets: ' + parseErrorMessage(error), 'error');
   } finally {

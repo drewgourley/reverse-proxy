@@ -220,9 +220,11 @@ export async function saveAdvanced() {
     showLoadingOverlay(
       'Server Restarting...', 'Advanced configuration saved. Waiting for the server to restart...');
     
-    await waitForServerRestart();
-    state.setRebooting(true);
-    reloadPage();
+    let reboot = await waitForServerRestart();
+    if (reboot) {
+      state.setRebooting(true);
+      reloadPage();
+    }
   } catch (error) {
     console.error('Advanced config save error:', error);
     showStatus('Save failed: ' + error.message, 'error');
