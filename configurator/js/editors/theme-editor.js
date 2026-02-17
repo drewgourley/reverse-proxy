@@ -175,6 +175,10 @@ export async function uploadFavicon() {
 } 
 
 export async function saveTheme() {
+  const saveBtn = document.getElementById('saveThemeBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+
   try {
     const colorData = {
       primary: state.colors.primary,
@@ -198,6 +202,9 @@ export async function saveTheme() {
   } catch (error) {
     console.error('Failed to save theme:', error);
     showStatus('Failed to save theme: ' + error.message, 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save Theme';
   } 
 }
 
