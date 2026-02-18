@@ -1,5 +1,4 @@
 # Ignore generated/runtime files from configurator
-
 store/*
 !store/store.md
 ecosystem.config.js
@@ -50,7 +49,6 @@ web/static/*
 !web/static/radio/
 !web/static/www/
 
-.env
 .DS_Store
 .DS_Store?
 ._*
@@ -59,4 +57,3 @@ web/static/*
 ehthumbs.db
 Thumbs.db
 node_modules
-_graveyard
