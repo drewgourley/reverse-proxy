@@ -127,7 +127,7 @@ async function pingHealthcheck(name, config, protocols) {
  * @param {string} env - Environment (production, development, etc.)
  * @param {object} cron - Node-cron instance
  */
-async function initializeHealthchecks(config, protocols, parsers, extractors, odalpapiService, env, cron) {
+async function initHealthchecks(config, protocols, parsers, extractors, odalpapiService, env, cron) {
   if (config.services) {
     const healthchecks = Object.keys(config.services).filter((name) => config.services[name].healthcheck);
     cron.schedule('1 * * * *', () => {
@@ -149,7 +149,7 @@ async function initializeHealthchecks(config, protocols, parsers, extractors, od
 }
 
 module.exports = {
-  initializeHealthchecks,
+  initHealthchecks,
   checkService,
   pingHealthcheck
 };

@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // because the system can write to it outside of the configurator.
   
   // Initialize theme after colors are loaded
-  themeEditor.initializeTheme();
+  themeEditor.initTheme();
 
   editors.renderServicesList();
   editors.renderPlaceholderEditor();

@@ -3,7 +3,7 @@ import * as api from '../api.js';
 import { showStatus, showConfirmModal } from '../ui-components.js';
 import { hexToHSL, getInverseColor, darkenColor, lightenFromBackground, darkenFromBackground, clampBackgroundColor } from '../utils.js';
 
-export function initializeTheme() {
+export function initTheme() {
   updateTheme();
   
   document.documentElement.classList.add('ready');

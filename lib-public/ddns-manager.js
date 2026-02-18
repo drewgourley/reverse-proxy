@@ -8,13 +8,13 @@
 const got = require('got');
 
 /**
- * Initialize DDNS updates if configured
+ * Initializes DDNS updates if configured
  * @param {object} ddns - DDNS configuration
  * @param {object} config - Main configuration
  * @param {string} env - Environment (production, development, etc.)
  * @param {object} cron - Node-cron instance
  */
-function initializeDDNS(ddns, config, env, cron) {
+function initDDNS(ddns, config, env, cron) {
   if (!ddns || !ddns.active || !ddns.aws_access_key_id || !ddns.aws_secret_access_key || 
       !ddns.aws_region || !ddns.route53_hosted_zone_id) {
     return;
@@ -97,5 +97,5 @@ function initializeDDNS(ddns, config, env, cron) {
 }
 
 module.exports = {
-  initializeDDNS
+  initDDNS
 };

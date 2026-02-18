@@ -9,11 +9,11 @@ const path = require('path');
 
 const configLoader = require('./lib-public/config-loader');
 const parsersExtractors = require('./lib-public/parsers-extractors');
-const { initializeDDNS } = require('./lib-public/ddns-manager');
-const { initializeHealthchecks } = require('./lib-public/health-checker');
-const { extractIpFromSocket, handleWebSocketUpgrade } = require('./lib-public/helpers');
-const { isIpBlocked } = require('./lib-public/bot-blocker');
+const { initDDNS } = require('./lib-public/ddns-manager');
+const { initHealthchecks } = require('./lib-public/health-checker');
 const { initApplication } = require('./lib-public/public');
+const { isIpBlocked } = require('./lib-public/bot-blocker');
+const { extractIpFromSocket, handleWebSocketUpgrade } = require('./lib-public/helpers');
 
 const { OdalPapiMainService } = require('./lib-public/odalpapi.js');
 const odalpapiService = new OdalPapiMainService();
@@ -70,10 +70,10 @@ if (env === 'development' || env === 'test') protocols.secure = 'http://';
 const { parsers, extractors } = parsersExtractors.setupParsersAndExtractors(advancedConfig);
 
 // Initialize DDNS manager to handle dynamic DNS updates for services
-initializeDDNS(ddns, config, env, cron);
+initDDNS(ddns, config, env, cron);
 
 // Schedule health checks for services with healthcheck URLs
-initializeHealthchecks(config, protocols, parsers, extractors, odalpapiService, env, cron);
+initHealthchecks(config, protocols, parsers, extractors, odalpapiService, env, cron);
 
 // Create and start the internal configurator server
 const configurator = http.createServer(configapp);
