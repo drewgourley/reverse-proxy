@@ -23,7 +23,6 @@ const configapp = require('./lib-private/configurator.js');
 // Check if any of the files in the store folder are in the root and move them to the store folder
 const storeDir = path.join(__dirname, 'store');
 const rootFiles = [
-  path.join('web', 'global', 'colors.json'),
   'advanced.json',
   'blocklist.json',
   'certs.json',
@@ -32,12 +31,25 @@ const rootFiles = [
   'secrets.json',
   'users.json',
 ];
+const webFiles = [
+  'colors.json',
+];
 rootFiles.forEach(file => {
   if (fs.existsSync(path.join(storeDir, file))) {
     console.log(`File ${file} already exists in store directory`);
   } else {
     if (fs.existsSync(path.join(__dirname, file))) {
       fs.renameSync(path.join(__dirname, file), path.join(storeDir, file));
+      console.log(`Moved ${file} to store directory`);
+    }
+  }
+});
+webFiles.forEach(file => {
+  if (fs.existsSync(path.join(storeDir, file))) {
+    console.log(`File ${file} already exists in store directory`);
+  } else {
+    if (fs.existsSync(path.join(__dirname, 'web', 'global', file))) {
+      fs.renameSync(path.join(__dirname, 'web', 'global', file), path.join(storeDir, file));
       console.log(`Moved ${file} to store directory`);
     }
   }
