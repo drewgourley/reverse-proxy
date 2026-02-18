@@ -36,8 +36,10 @@ rootFiles.forEach(file => {
   if (fs.existsSync(path.join(storeDir, file))) {
     console.log(`File ${file} already exists in store directory`);
   } else {
-    fs.renameSync(path.join(__dirname, file), path.join(storeDir, file));
-    console.log(`Moved ${file} to store directory`);
+    if (fs.existsSync(path.join(__dirname, file))) {
+      fs.renameSync(path.join(__dirname, file), path.join(storeDir, file));
+      console.log(`Moved ${file} to store directory`);
+    }
   }
 });
 
