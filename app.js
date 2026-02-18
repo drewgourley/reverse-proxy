@@ -23,10 +23,10 @@ const configapp = require('./lib-private/configurator.js');
 // Check if any of the files in the store folder are in the root and move them to the store folder
 const storeDir = path.join(__dirname, 'store');
 const rootFiles = [
+  path.join('web', 'global', 'colors.json'),
   'advanced.json',
   'blocklist.json',
   'certs.json',
-  'colors.json',
   'config.json',
   'ddns.json',
   'secrets.json',
