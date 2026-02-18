@@ -1,5 +1,6 @@
 import * as state from '../state.js';
 import * as api from '../api.js';
+import { parseErrorMessage } from '../utils.js';
 import { reloadPage, waitForServerRestart, showStatus, showLoadingOverlay } from '../ui-components.js';
 import { hasUnsavedConfigChanges } from '../editors.js';
 
@@ -128,10 +129,10 @@ export async function provisionCertificates() {
     outputEl.innerHTML = `
       <div class="result-error">
         <strong><span class="material-icons">error</span> Error</strong>
-        <p class="result-message">${utils.parseErrorMessage(error)}</p>
+        <p class="result-message">${parseErrorMessage(error)}</p>
       </div>
     `;
-    showStatus('Error provisioning certificates: ' + utils.parseErrorMessage(error), 'error');
+    showStatus('Error provisioning certificates: ' + parseErrorMessage(error), 'error');
     provisionBtn.disabled = false;
     provisionBtn.textContent = 'Provision Certificates';
   }

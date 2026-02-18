@@ -96,8 +96,8 @@ function isInternalIp(ip) {
 
 /**
  * Check if an IP address is in the blocklist
- * @param {ip} ip - The IP address to check
- * @param {blocklist} blocklist - The list of blocked IP addresses
+ * @param {string} ip - The IP address to check
+ * @param {Array<string>} blocklist - The list of blocked IP addresses
  * @returns {boolean} - Whether the IP is blocked
  */
 function isIpBlocked(ip, blocklist) {

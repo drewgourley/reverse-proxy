@@ -9,8 +9,8 @@ const path = require('path');
 
 const configLoader = require('./lib-public/config-loader');
 const parsersExtractors = require('./lib-public/parsers-extractors');
-const ddnsManager = require('./lib-public/ddns-manager');
-const { checkService, pingHealthcheck } = require('./lib-public/health-checker');
+const { initializeDDNS } = require('./lib-public/ddns-manager');
+const { initializeHealthchecks } = require('./lib-public/health-checker');
 const { handleWebSocketUpgrade, extractIpFromSocket } = require('./lib-public/helpers');
 const { isIpBlocked } = require('./lib-public/bot-blocker');
 const { initApplication } = require('./lib-public/public');
@@ -35,25 +35,10 @@ if (env === 'development' || env === 'test') protocols.secure = 'http://';
 const { parsers, extractors } = parsersExtractors.setupParsersAndExtractors(advancedConfig);
 
 // Initialize DDNS manager to handle dynamic DNS updates for services
-ddnsManager.initializeDDNS(ddns, config, env, cron);
+initializeDDNS(ddns, config, env, cron);
 
 // Schedule health checks for services with healthcheck URLs
-const healthchecks = Object.keys(config.services).filter((name) => config.services[name].healthcheck);
-cron.schedule('1 * * * *', () => {
-  healthchecks.forEach((name) => {
-    checkService(name, config, protocols, parsers, extractors, odalpapiService, (service) => {
-      const now = new Date().toISOString();
-      if (service.healthy) {
-        if (env === 'production') {
-          console.log(`${now}: ${name} service is up. Pinging healthcheck...`);
-          pingHealthcheck(name, config, protocols);
-        } else {
-          console.log(`${now}: Skipping healthcheck ping for ${name} in non-production environment`);
-        }
-      }
-    });
-  });
-});
+initializeHealthchecks(config, protocols, parsers, extractors, odalpapiService, env, cron);
 
 // Create and start the internal configurator server
 const configurator = http.createServer(configapp);

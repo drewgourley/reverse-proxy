@@ -117,7 +117,39 @@ async function pingHealthcheck(name, config, protocols) {
   }
 }
 
+/**
+ * Initializes health checks for services with healthcheck URLs in the configuration
+ * @param {object} config - Service configuration object
+ * @param {object} protocols - Protocol mapping
+ * @param {object} parsers - Parser functions
+ * @param {object} extractors - Extractor Functions
+ * @param {object} odalpapiService - OdalPapi service instance
+ * @param {string} env - Environment (production, development, etc.)
+ * @param {object} cron - Node-cron instance
+ */
+async function initializeHealthchecks(config, protocols, parsers, extractors, odalpapiService, env, cron) {
+  if (config.services) {
+    const healthchecks = Object.keys(config.services).filter((name) => config.services[name].healthcheck);
+    cron.schedule('1 * * * *', () => {
+      healthchecks.forEach((name) => {
+        checkService(name, config, protocols, parsers, extractors, odalpapiService, (service) => {
+          const now = new Date().toISOString();
+          if (service.healthy) {
+            if (env === 'production') {
+              console.log(`${now}: ${name} service is up. Pinging healthcheck...`);
+              pingHealthcheck(name, config, protocols);
+            } else {
+              console.log(`${now}: Skipping healthcheck ping for ${name} in non-production environment`);
+            }
+          }
+        });
+      });
+    });
+  }
+}
+
 module.exports = {
+  initializeHealthchecks,
   checkService,
   pingHealthcheck
 };

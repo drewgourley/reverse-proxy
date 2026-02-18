@@ -23,6 +23,7 @@ const { RedisStore } = require('connect-redis');
 const authHelpers = require('./auth-helpers');
 const { sendError, extractIpFromSocket } = require('./helpers');
 const { checkSuspiciousRequest, addToBlocklist, isIpBlocked } = require('./bot-blocker');
+const { checkService } = require('./health-checker');
 
 /**
  * Initializes the Express application with all configured services, middleware, and routing
@@ -485,7 +486,6 @@ async function initApplication(options) {
             // Each service with healthcheck config gets its own status endpoint
             Object.keys(config.services).forEach(healthname => {
               if (config.services[healthname].healthcheck) {
-                const { checkService } = require('./health-checker');
                 config.services[name].subdomain.router.get(`/health/${healthname}`, (request, response) => {
                   response.setHeader('Content-Type', 'application/json');
                   checkService(healthname, config, protocols, parsers, extractors, odalpapiService, response.send.bind(response));
