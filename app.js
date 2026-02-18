@@ -11,7 +11,7 @@ const configLoader = require('./lib-public/config-loader');
 const parsersExtractors = require('./lib-public/parsers-extractors');
 const { initializeDDNS } = require('./lib-public/ddns-manager');
 const { initializeHealthchecks } = require('./lib-public/health-checker');
-const { handleWebSocketUpgrade, extractIpFromSocket } = require('./lib-public/helpers');
+const { extractIpFromSocket, setupServerListener } = require('./lib-public/helpers');
 const { isIpBlocked } = require('./lib-public/bot-blocker');
 const { initApplication } = require('./lib-public/public');
 
@@ -66,7 +66,7 @@ setTimeout(() => {
 
   if (config.domain) {
     initApplication({ config, secrets, users, blocklist, env, protocols, parsers, extractors, odalpapiService, __dirname }).then((app) => {
-      const port_http = (env === 'development' || env === 'test') ? 80 : 8080;
+      const portHttp = (env === 'development' || env === 'test') ? 80 : 8080;
 
       // Use shared bot-blocker helper for fast blocklist checks
       const earlyHandler = (req, res) => {
@@ -82,38 +82,13 @@ setTimeout(() => {
 
       // Create HTTP server always
       const httpServer = http.createServer(earlyHandler);
-      httpServer.listen(port_http, () => {
-        const now = new Date().toISOString();
-        console.log(`${now}: HTTP Server running on port ${port_http}`);
-        httpServer.on('upgrade', (req, socket, head) => {
-          const ip = extractIpFromSocket(socket);
-          if (isIpBlocked(ip, blocklist)) {
-            console.log(`${now}: [early-block-upgrade] Destroying websocket connection from ${ip}`);
-            try { socket.destroy(); } catch (e) { /* ignore */ }
-            return;
-          }
-          handleWebSocketUpgrade(config, req, socket, head);
-        });
-      });
+      setupServerListener(config, blocklist, httpServer, portHttp, 'HTTP');
 
       // Only create HTTPS server if certs are available
       const httpsServer = cert ? https.createServer(cert, earlyHandler) : null;
       if (httpsServer) {
-        const port_https = 8443;
-
-        httpsServer.listen(port_https, () => {
-          const now = new Date().toISOString();
-          console.log(`${now}: HTTPS Server running on port ${port_https}`);
-          httpsServer.on('upgrade', (req, socket, head) => {
-            const ip = extractIpFromSocket(socket);
-            if (isIpBlocked(ip, blocklist)) {
-              console.log(`${now}: [early-block-upgrade] Destroying websocket connection from ${ip}`);
-              try { socket.destroy(); } catch (e) { /* ignore */ }
-              return;
-            }
-            handleWebSocketUpgrade(config, req, socket, head);
-          });
-        });
+        const portHttps = 8443;
+        setupServerListener(config, blocklist, httpsServer, portHttps, 'HTTPS');
       }
     }).catch((err) => {
       const now = new Date().toISOString();
