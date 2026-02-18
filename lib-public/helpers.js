@@ -66,32 +66,7 @@ function handleWebSocketUpgrade(config, req, socket, head) {
   }
 }
 
-/**
- * Set up server listener
- * @param {object} config - Configuration object
- * @param {Array<string>} blocklist - List of blocked IP addresses
- * @param {object} server - HTTP or HTTPS server instance
- * @param {number} port - Port number to listen on
- * @param {string} type - Server type (e.g., 'HTTP' or 'HTTPS') for logging
- */
-function setupServerListener(config, blocklist, server, port, type) {
-  server.listen(port, () => {
-    const now = new Date().toISOString();
-    console.log(`${now}: ${type} Server running on port ${port}`);
-    server.on('upgrade', (req, socket, head) => {
-      const ip = extractIpFromSocket(socket);
-      if (isIpBlocked(ip, blocklist)) {
-        console.log(`${now}: [early-block-upgrade] Destroying websocket connection from ${ip}`);
-        try { socket.destroy(); } catch (e) { /* ignore */ }
-        return;
-      }
-      handleWebSocketUpgrade(config, req, socket, head);
-    });
-  });
-}
-
 module.exports = {
   sendError,
   extractIpFromSocket,
-  setupServerListener
 };

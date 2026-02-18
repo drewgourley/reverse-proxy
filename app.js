@@ -11,7 +11,7 @@ const configLoader = require('./lib-public/config-loader');
 const parsersExtractors = require('./lib-public/parsers-extractors');
 const { initializeDDNS } = require('./lib-public/ddns-manager');
 const { initializeHealthchecks } = require('./lib-public/health-checker');
-const { extractIpFromSocket, setupServerListener } = require('./lib-public/helpers');
+const { extractIpFromSocket } = require('./lib-public/helpers');
 const { isIpBlocked } = require('./lib-public/bot-blocker');
 const { initApplication } = require('./lib-public/public');
 
@@ -114,6 +114,22 @@ setTimeout(() => {
         }
         return app(req, res);
       };
+
+      const setupServerListener = (config, blocklist, server, port, type) => {
+        server.listen(port, () => {
+          const now = new Date().toISOString();
+          console.log(`${now}: ${type} Server running on port ${port}`);
+          server.on('upgrade', (req, socket, head) => {
+            const ip = extractIpFromSocket(socket);
+            if (isIpBlocked(ip, blocklist)) {
+              console.log(`${now}: [early-block-upgrade] Destroying websocket connection from ${ip}`);
+              try { socket.destroy(); } catch (e) { /* ignore */ }
+              return;
+            }
+            handleWebSocketUpgrade(config, req, socket, head);
+          });
+        });
+      }
 
       // Always Create HTTP server
       const httpServer = http.createServer(earlyHandler);
