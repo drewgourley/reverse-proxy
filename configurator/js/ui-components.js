@@ -472,7 +472,7 @@ export function togglePasswordVisibility(inputId, button) {
 
 // Server restart ui functions
 export async function waitForServerRestart(delay = 5000) {
-  const maxAttempts = 2;
+  const maxAttempts = 12;
   const pollInterval = 5000;
   let attempts = 0;
   
