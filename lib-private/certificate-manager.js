@@ -30,13 +30,14 @@ function registerProvisionedCerts(baseDir, secureServices, crontab, permissions)
 
 /**
  * Provision SSL certificates using certbot
+ * @param {string} webDir - Web directory
  * @param {string} baseDir - Base directory
  * @param {string} email - Email address for Let's Encrypt
  * @param {Object} config - Configuration object
  * @param {string} env - Environment (development/production)
  * @returns {Promise<Object>} Provisioning result
  */
-function provisionCertificates(baseDir, email, config, env) {
+function provisionCertificates(webDir, baseDir, email, config, env) {
   return new Promise((resolve, reject) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email)) {
@@ -67,7 +68,7 @@ function provisionCertificates(baseDir, email, config, env) {
     
     const domainFlags = domains.map(d => `-d ${d}`).join(' ');
     const deployHook = `sudo -u ${os.userInfo().username} bash -c '. ~/.bashrc; pm2 restart all'`;
-    const baseCommand = `sudo certbot certonly --webroot --webroot-path ${path.join(baseDir, 'web', 'all')} --cert-name ${config.domain} ${domainFlags} --non-interactive --agree-tos --email ${email}`;
+    const baseCommand = `sudo certbot certonly --webroot --webroot-path ${path.join(webDir, 'web', 'all')} --cert-name ${config.domain} ${domainFlags} --non-interactive --agree-tos --email ${email}`;
     const cronCommandWithHook = `${baseCommand} --deploy-hook "${deployHook}"`;
     
     if (env === 'development') {

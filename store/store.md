@@ -1,0 +1,1 @@
+The "Store" folder is used to store configuration files.

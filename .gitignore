@@ -1,12 +1,8 @@
 # Ignore generated/runtime files from configurator
+
+store/*
+!store/store.md
 ecosystem.config.js
-advanced.json
-blocklist.json
-secrets.json
-ddns.json
-certs.json
-config.json
-users.json
 
 # Ignore everything in web/public by default (user-specific content)
 web/public/*

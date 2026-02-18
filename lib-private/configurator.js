@@ -22,6 +22,8 @@ const env = process.env.NODE_ENV;
 
 const rootDir = path.join(__dirname, '..');
 
+const storeDir = path.join(rootDir, 'store');
+
 const configapp = express();
 const configrouter = express.Router();
 
@@ -46,7 +48,7 @@ configrouter.use(express.json());
 
 configrouter.get('/config', (request, response) => {
   try {
-    const config = configManager.readConfig(rootDir, 'config.json');
+    const config = configManager.readConfig(storeDir, 'config.json', {});
     response.setHeader('Content-Type', 'application/json');
     response.send(config);
   } catch (error) {
@@ -57,7 +59,7 @@ configrouter.get('/config', (request, response) => {
 
 configrouter.get('/blocklist', (request, response) => {
   try {
-    const blocklist = configManager.readConfig(rootDir, 'blocklist.json', []);
+    const blocklist = configManager.readConfig(storeDir, 'blocklist.json', []);
     response.setHeader('Content-Type', 'application/json');
     response.send(blocklist);
   } catch (error) {
@@ -67,7 +69,7 @@ configrouter.get('/blocklist', (request, response) => {
 
 configrouter.get('/secrets', (request, response) => {
   try {
-    const secrets = configManager.readConfig(rootDir, 'secrets.json', {});
+    const secrets = configManager.readConfig(storeDir, 'secrets.json', {});
     response.setHeader('Content-Type', 'application/json');
     response.send(secrets);
   } catch (error) {
@@ -77,7 +79,7 @@ configrouter.get('/secrets', (request, response) => {
 
 configrouter.get('/users', (request, response) => {
   try {
-    const users = configManager.readConfig(rootDir, 'users.json', { users: [] });
+    const users = configManager.readConfig(storeDir, 'users.json', { users: [] });
     response.setHeader('Content-Type', 'application/json');
     response.send(users);
   } catch (error) {
@@ -87,7 +89,7 @@ configrouter.get('/users', (request, response) => {
 
 configrouter.get('/certs', (request, response) => {
   try {
-    const certs = configManager.readConfig(rootDir, 'certs.json', { services: [], provisionedAt: null });
+    const certs = configManager.readConfig(storeDir, 'certs.json', { services: [], provisionedAt: null });
     response.setHeader('Content-Type', 'application/json');
     response.send(certs);
   } catch (error) {
@@ -128,7 +130,7 @@ configrouter.get('/ecosystem', (request, response) => {
 
 configrouter.get('/colors', (request, response) => {
   try {
-    const colors = themeManager.readColors(rootDir);
+    const colors = configManager.readConfig(storeDir, 'colors.json', {});
     response.setHeader('Content-Type', 'application/json');
     response.send(colors);
   } catch (error) {
@@ -138,7 +140,7 @@ configrouter.get('/colors', (request, response) => {
 
 configrouter.get('/ddns', (request, response) => {
   try {
-    const ddns = configManager.readConfig(rootDir, 'ddns.json', {});
+    const ddns = configManager.readConfig(storeDir, 'ddns.json', {});
     response.setHeader('Content-Type', 'application/json');
     response.send(ddns);
   } catch (error) {
@@ -148,7 +150,7 @@ configrouter.get('/ddns', (request, response) => {
 
 configrouter.get('/advanced', (request, response) => {
   try {
-    const advanced = configManager.readConfig(rootDir, 'advanced.json', { parsers: {}, extractors: {}, queryTypes: [] });  
+    const advanced = configManager.readConfig(storeDir, 'advanced.json', { parsers: {}, extractors: {}, queryTypes: [] });  
     response.setHeader('Content-Type', 'application/json');
     response.send(advanced);
   } catch (error) {
@@ -196,22 +198,12 @@ configrouter.get('/logs/:appName/:type', (request, response) => {
   logsManager.streamLogs(request, response);
 });
 
-configrouter.put('/users', async (request, response) => {
-  try {
-    await configManager.updateUsers(rootDir, request.body);
-    response.status(200).send({ success: true, message: 'Users updated successfully' });
-  } catch (error) {
-    const statusCode = error.statusCode || 500;
-    sendError(response, statusCode, error);
-  }
-});
-
 configrouter.get('/files/:serviceName/:folderType', (request, response) => {
   try {
     const { serviceName, folderType } = request.params;
     const subPath = request.query.path || '';
     
-    const config = require('../config.json');
+    const config = configManager.readConfig(storeDir, 'config.json', {});
     const result = fileOps.listFiles(rootDir, serviceName, folderType, config, subPath);
     
     response.status(200).send({ success: true, ...result });
@@ -221,13 +213,23 @@ configrouter.get('/files/:serviceName/:folderType', (request, response) => {
   }
 });
 
+configrouter.put('/users', async (request, response) => {
+  try {
+    await configManager.updateUsers(storeDir, request.body);
+    response.status(200).send({ success: true, message: 'Users updated successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
 configrouter.put('/config', (request, response) => {
   try {
-    const result = configManager.updateConfig(rootDir, request.body);
+    const result = configManager.updateConfig(storeDir, request.body);
     if (result.domainChanged) {
       const now = new Date().toISOString();
       console.log(`${now}: Domain change detected, clearing provisioned certificates`);
-      certManager.registerProvisionedCerts(rootDir, [], false, false);
+      certManager.registerProvisionedCerts(storeDir, [], false, false);
     }
     response.status(200).send({ success: true, message: 'Config updated successfully' });
   } catch (error) {
@@ -238,7 +240,7 @@ configrouter.put('/config', (request, response) => {
 
 configrouter.put('/blocklist', (request, response) => {
   try {
-    configManager.updateBlocklist(rootDir, request.body);
+    configManager.updateBlocklist(storeDir, request.body);
     response.status(200).send({ success: true, message: 'Blocklist updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -248,7 +250,7 @@ configrouter.put('/blocklist', (request, response) => {
 
 configrouter.put('/secrets', async (request, response) => {
   try {
-    await configManager.updateSecrets(rootDir, request.body);
+    await configManager.updateSecrets(storeDir, request.body);
     response.status(200).send({ success: true, message: 'Secrets updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -258,7 +260,7 @@ configrouter.put('/secrets', async (request, response) => {
 
 configrouter.put('/colors', (request, response) => {
   try {
-    themeManager.updateColors(rootDir, request.body);
+    themeManager.updateColors(storeDir, request.body);
     response.status(200).send({ success: true, message: 'Colors updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 400;
@@ -268,7 +270,7 @@ configrouter.put('/colors', (request, response) => {
 
 configrouter.put('/ddns', (request, response) => {
   try {
-    configManager.updateDDNS(rootDir, request.body);
+    configManager.updateDDNS(storeDir, request.body);
     response.status(200).send({ success: true, message: 'DDNS configuration updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -278,7 +280,7 @@ configrouter.put('/ddns', (request, response) => {
 
 configrouter.put('/advanced', (request, response) => {
   try {
-    configManager.updateAdvanced(rootDir, request.body);
+    configManager.updateAdvanced(storeDir, request.body);
     response.status(200).send({ success: true, message: 'Advanced configuration updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -303,8 +305,8 @@ configrouter.put('/certs', async (request, response) => {
       return sendError(response, 400, 'Email address is required');
     }
     
-    const config = configManager.readConfig(rootDir, 'config.json');
-    const result = await certManager.provisionCertificates(rootDir, email, config, env);
+    const config = configManager.readConfig(storeDir, 'config.json');
+    const result = await certManager.provisionCertificates(rootDir, storeDir, email, config, env);
     
     response.status(200).send({ success: true, message: result.message });
     if (env === 'production') {
@@ -320,7 +322,7 @@ configrouter.put('/certs', async (request, response) => {
 
 configrouter.post('/favicon', faviconUpload.single('favicon'), async (request, response) => {
   try {
-    await themeManager.uploadFavicon(rootDir, request.file);
+    await themeManager.uploadFavicon(rootDir, storeDir, request.file);
     response.status(200).send({ success: true, message: 'Favicon uploaded successfully' });
   } catch (error) {
     console.error('Favicon upload error:', error);
@@ -358,7 +360,7 @@ configrouter.post('/files/:serviceName/:folderType', fileOps.fileUpload.single('
     const { serviceName, folderType } = request.params;
     const targetPath = request.body.targetPath || '';
     
-    const config = require('../config.json');
+    const config = configManager.readConfig(storeDir, 'config.json', {});
     const file = fileOps.uploadFile(rootDir, serviceName, folderType, config, request.file, targetPath);
     
     response.status(200).send({ 
@@ -377,7 +379,7 @@ configrouter.post('/files/:serviceName/:folderType/directory', (request, respons
     const { serviceName, folderType } = request.params;
     const { directoryPath } = request.body;
     
-    const config = require('../config.json');
+    const config = configManager.readConfig(storeDir, 'config.json', {});
     fileOps.createDirectory(rootDir, serviceName, folderType, config, directoryPath);
     
     response.status(200).send({ success: true, message: 'Directory created successfully' });
@@ -392,7 +394,7 @@ configrouter.post('/files/:serviceName/:folderType/rename', (request, response) 
     const { serviceName, folderType } = request.params;
     const { oldPath, newPath } = request.body;
     
-    const config = require('../config.json');
+    const config = configManager.readConfig(storeDir, 'config.json', {});
     fileOps.renameFile(rootDir, serviceName, folderType, config, oldPath, newPath);
     
     response.status(200).send({ success: true, message: 'Renamed successfully' });
@@ -407,7 +409,7 @@ configrouter.post('/files/:serviceName/:folderType/unpack', fileOps.fileUpload.s
     const { serviceName, folderType } = request.params;
     const { targetPath, deploy } = request.body;
     
-    const config = require('../config.json');
+    const config = configManager.readConfig(storeDir, 'config.json', {});
     const result = fileOps.unpackZip(rootDir, serviceName, folderType, config, request.file, targetPath, deploy === 'true');
     
     response.status(200).send({ 
@@ -426,7 +428,7 @@ configrouter.delete('/files/:serviceName/:folderType', (request, response) => {
     const { serviceName, folderType } = request.params;
     const { filePath } = request.body;
     
-    const config = require('../config.json');
+    const config = configManager.readConfig(storeDir, 'config.json', {});
     fileOps.deleteFile(rootDir, serviceName, folderType, config, filePath);
     
     response.status(200).send({ success: true, message: 'File deleted successfully' });

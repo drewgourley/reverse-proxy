@@ -20,7 +20,28 @@ const odalpapiService = new OdalPapiMainService();
 
 const configapp = require('./lib-private/configurator.js');
 
-const { config, secrets, users, ddns, advancedConfig, blocklist } = configLoader.loadConfigs(__dirname);
+// Check if any of the files in the store folder are in the root and move them to the store folder
+const storeDir = path.join(__dirname, 'store');
+const rootFiles = [
+  'advanced.json',
+  'blocklist.json',
+  'certs.json',
+  'colors.json',
+  'config.json',
+  'ddns.json',
+  'secrets.json',
+  'users.json',
+];
+rootFiles.forEach(file => {
+  if (fs.existsSync(path.join(storeDir, file))) {
+    console.log(`File ${file} already exists in store directory`);
+  } else {
+    fs.renameSync(path.join(__dirname, file), path.join(storeDir, file));
+    console.log(`Moved ${file} to store directory`);
+  }
+});
+
+const { config, secrets, users, ddns, advancedConfig, blocklist } = configLoader.loadConfigs(storeDir);
 
 // Load environment variables and set up protocols based on environment
 dotenv.config();
@@ -80,7 +101,7 @@ setTimeout(() => {
         return app(req, res);
       };
 
-      // Create HTTP server always
+      // Always Create HTTP server
       const httpServer = http.createServer(earlyHandler);
       setupServerListener(config, blocklist, httpServer, portHttp, 'HTTP');
 

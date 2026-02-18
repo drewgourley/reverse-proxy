@@ -49,8 +49,9 @@ async function getServiceData(name = 'www') {
 }
 
 async function getColors() {
+  const domain = window.location.hostname.split('.').slice(-2).join('.');
   try {
-    const response = await fetch(`/global/colors.json`);
+    const response = await fetch(`//api.${domain}/colors`);
     if (!response.ok) {
       throw new Error(response.statusText);
     }

@@ -212,7 +212,7 @@ async function addToBlocklist(ip, reason, blocklist) {
     
     // Persist to blocklist.json
     try {
-      const blocklistPath = path.join(__dirname, '..', 'blocklist.json');
+      const blocklistPath = path.join(__dirname, '..', 'store', 'blocklist.json');
       fs.writeFileSync(blocklistPath, JSON.stringify(blocklist, null, 2));
       const now = new Date().toISOString();
       console.log(`${now}: [auto-block] Added ${ip} to blocklist - ${reason}`);

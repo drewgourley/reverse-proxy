@@ -239,7 +239,7 @@ async function initApplication(options) {
               sessionSecret = crypto.randomBytes(32).toString('hex');
               try {
                 // Persist generated secret to secrets.json for consistency across restarts
-                const secretsPath = path.join(__dirname, 'secrets.json');
+                const secretsPath = path.join(__dirname, 'store', 'secrets.json');
                 let existing = {};
                 if (fs.existsSync(secretsPath)) existing = JSON.parse(fs.readFileSync(secretsPath, 'utf8'));
                 existing.api_session_secret = sessionSecret;
@@ -341,6 +341,32 @@ async function initApplication(options) {
           // ========== API Service - Special Routes ==========
           if (name === 'api') {
             config.services[name].subdomain.router.use(express.json());
+            config.services[name].subdomain.router.options('/colors', (req, res) => {
+              const origin = req.headers.origin;
+              if (origin && origin.match(new RegExp(`^https?://([a-zA-Z0-9-]+\\.)?${config.domain.replace('.', '\\.')}$`))) {
+                res.setHeader('Access-Control-Allow-Origin', origin);
+                res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+                res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+                res.setHeader('Access-Control-Max-Age', '86400');
+              }
+              res.status(204).end();
+            });
+            config.services[name].subdomain.router.get('/colors', (req, res) => {
+              const origin = req.headers.origin;
+              if (origin && origin.match(new RegExp(`^https?://([a-zA-Z0-9-]+\\.)?${config.domain.replace('.', '\\.')}$`))) {
+                res.setHeader('Access-Control-Allow-Origin', origin);
+                res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+                res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+              }
+              const colorsPath = path.join(__dirname, 'store', 'colors.json');
+              fs.readFile(colorsPath, 'utf8', (err, data) => {
+                if (err) {
+                  res.status(404).send('No Colors Found');
+                } else {
+                  res.json(JSON.parse(data));
+                }
+              });
+            });
             config.services[name].subdomain.router.options('/service/:id', (req, res) => {
               const origin = req.headers.origin;
               if (origin && origin.match(new RegExp(`^https?://([a-zA-Z0-9-]+\\.)?${config.domain.replace('.', '\\.')}$`))) {
@@ -375,7 +401,7 @@ async function initApplication(options) {
               if (!sessionSecret) {
                 sessionSecret = crypto.randomBytes(32).toString('hex');
                 try {
-                  const secretsPath = path.join(__dirname, 'secrets.json');
+                  const secretsPath = path.join(__dirname, 'store', 'secrets.json');
                   let existing = {};
                   if (fs.existsSync(secretsPath)) existing = JSON.parse(fs.readFileSync(secretsPath, 'utf8'));
                   existing.api_session_secret = sessionSecret;
@@ -581,7 +607,7 @@ async function initApplication(options) {
             if (!sessionSecret) {
               sessionSecret = crypto.randomBytes(32).toString('hex');
               try {
-                const secretsPath = path.join(__dirname, 'secrets.json');
+                const secretsPath = path.join(__dirname, 'store', 'secrets.json');
                 let existing = {};
                 if (fs.existsSync(secretsPath)) existing = JSON.parse(fs.readFileSync(secretsPath, 'utf8'));
                 existing.api_session_secret = sessionSecret;

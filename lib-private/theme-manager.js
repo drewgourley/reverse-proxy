@@ -6,22 +6,12 @@ const sharp = require('sharp');
 const toIco = require('to-ico');
 
 /**
- * Read colors configuration
- * @param {string} baseDir - Base directory
- * @returns {Object} Colors configuration
- */
-function readColors(baseDir) {
-  const colorsPath = path.join(baseDir, 'web', 'global', 'colors.json');
-  const colorsData = fs.readFileSync(colorsPath, 'utf8');
-  return JSON.parse(colorsData);
-}
-
-/**
  * Update colors and related files
+ * @param {string} webDir - Web directory
  * @param {string} baseDir - Base directory
  * @param {Object} updatedColors - New colors configuration
  */
-function updateColors(baseDir, updatedColors) {
+function updateColors(webDir, updatedColors) {
   const hexColorRegex = /^#([0-9A-Fa-f]{3}){1,2}$/;
   const colorFields = ['primary', 'secondary', 'accent', 'background', 'inverse'];
   const receivedFields = Object.keys(updatedColors);
@@ -52,11 +42,11 @@ function updateColors(baseDir, updatedColors) {
   }
   
   // Save colors.json
-  const colorsPath = path.join(baseDir, 'web', 'global', 'colors.json');
+  const colorsPath = path.join(baseDir, 'colors.json');
   fs.writeFileSync(colorsPath, JSON.stringify(updatedColors, null, 2));
   
   // Update browserconfig.xml
-  const browserconfigPath = path.join(baseDir, 'web', 'global', 'favicon', 'browserconfig.xml');
+  const browserconfigPath = path.join(webDir, 'web', 'global', 'favicon', 'browserconfig.xml');
   const browserconfigContent = `<?xml version="1.0" encoding="utf-8"?>
 <browserconfig>
     <msapplication>
@@ -70,7 +60,7 @@ function updateColors(baseDir, updatedColors) {
   fs.writeFileSync(browserconfigPath, browserconfigContent);
   
   // Update site.webmanifest
-  const webmanifestPath = path.join(baseDir, 'web', 'global', 'favicon', 'site.webmanifest');
+  const webmanifestPath = path.join(webDir, 'web', 'global', 'favicon', 'site.webmanifest');
   const webmanifest = {
     name: "Reverse Proxy Server",
     short_name: "ReverseProxy",
@@ -90,10 +80,10 @@ function updateColors(baseDir, updatedColors) {
 
 /**
  * Upload and process favicon files
- * @param {string} baseDir - Base directory
+ * @param {string} webDir - Base directory
  * @param {Object} file - Uploaded file object
  */
-async function uploadFavicon(baseDir, file) {
+async function uploadFavicon(webDir, file) {
   if (!file) {
     const error = new Error('No file uploaded');
     error.statusCode = 400;
@@ -114,7 +104,7 @@ async function uploadFavicon(baseDir, file) {
     throw error;
   }
   
-  const faviconDir = path.join(baseDir, 'web', 'global', 'favicon');
+  const faviconDir = path.join(webDir, 'web', 'global', 'favicon');
   if (!fs.existsSync(faviconDir)) {
     fs.mkdirSync(faviconDir, { recursive: true });
   }
@@ -147,7 +137,6 @@ async function uploadFavicon(baseDir, file) {
 }
 
 module.exports = {
-  readColors,
   updateColors,
   uploadFavicon
 };
