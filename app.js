@@ -11,7 +11,7 @@ const configLoader = require('./lib-public/config-loader');
 const parsersExtractors = require('./lib-public/parsers-extractors');
 const { initializeDDNS } = require('./lib-public/ddns-manager');
 const { initializeHealthchecks } = require('./lib-public/health-checker');
-const { extractIpFromSocket } = require('./lib-public/helpers');
+const { extractIpFromSocket, handleWebSocketUpgrade } = require('./lib-public/helpers');
 const { isIpBlocked } = require('./lib-public/bot-blocker');
 const { initApplication } = require('./lib-public/public');
 

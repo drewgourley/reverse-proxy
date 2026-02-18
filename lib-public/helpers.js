@@ -69,4 +69,5 @@ function handleWebSocketUpgrade(config, req, socket, head) {
 module.exports = {
   sendError,
   extractIpFromSocket,
+  handleWebSocketUpgrade
 };
