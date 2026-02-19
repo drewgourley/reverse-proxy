@@ -60,10 +60,6 @@ function provisionCertificates(webDir, baseDir, email, config, env) {
       return config.services[name].subdomain?.protocol === 'secure';
     });
     
-    if (secureServices.length === 0) {
-      return resolve({ message: 'No secure services configured' });
-    }
-    
     secureServices.forEach(name => {
       domains.push(`${name}.${config.domain}`);
     });
@@ -73,11 +69,13 @@ const deployHook = isContainerized ? '' : `sudo -u ${os.userInfo().username} bas
 const baseCommand = `${isContainerized ? '' : 'sudo '}certbot certonly --webroot --webroot-path ${path.join(webDir, 'web', 'all')} --cert-name ${config.domain} ${domainFlags} --non-interactive --agree-tos --email ${email}`.trim();
 const cronCommandWithHook = deployHook ? `${baseCommand} --deploy-hook "${deployHook}"` : baseCommand;
     if (env === 'development') {
-      registerProvisionedCerts(baseDir, secureServices, true, true);
-      return resolve({ message: 'Development mode: Certificates sucessfully not provisioned.' });
+      setTimeout(async () => {
+        registerProvisionedCerts(baseDir, secureServices, true, true);
+        return resolve({ message: 'Development mode: Certificates successfully not provisioned.' });
+      }, 2000);
+      return;
     }
     
-    // Production mode - actually provision certificates
     exec(baseCommand, { windowsHide: true }, (error, stdout, stderr) => {
       if (error) {
         return reject(new Error(error.message));

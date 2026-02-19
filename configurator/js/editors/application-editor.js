@@ -80,11 +80,10 @@ export async function saveEcosystem() {
     let reboot = await waitForServerRestart();
     if (reboot) {
       if (isDefault) {
-        selectItem('management-secrets');
-      } else if (state.currentSelection) {
-        selectItem(state.currentSelection);
+        setTimeout(() => {
+          selectItem('management-secrets');
+        }, 900);
       }
-
       state.setRebooting(true);
       reloadPage();
     }

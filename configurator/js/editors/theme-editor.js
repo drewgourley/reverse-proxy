@@ -13,17 +13,17 @@ export function initTheme() {
   const color3 = document.getElementById('color3');
   const color4 = document.getElementById('color4');
   
-  if (color1) color1.value = state.colors.primary || '#667eea';
-  if (color2) color2.value = state.colors.secondary || '#764ba2';
-  if (color3) color3.value = state.colors.accent || '#48bb78';
-  if (color4) color4.value = state.colors.background || '#ffffff';
+  if (color1) color1.value = state.colors.primary;
+  if (color2) color2.value = state.colors.secondary;
+  if (color3) color3.value = state.colors.accent;
+  if (color4) color4.value = state.colors.background;
 }
 
 export function updateTheme() {
-  const primary = state.colors.primary || '#667eea';
-  const secondary = state.colors.secondary || '#764ba2';
-  const accent = state.colors.accent || '#48bb78';
-  const background = state.colors.background || '#ffffff';
+  const primary = state.colors.primary;
+  const secondary = state.colors.secondary;
+  const accent = state.colors.accent;
+  const background = state.colors.background;
   const inverse = getInverseColor(accent);
   const displayBackground = clampBackgroundColor(background);
   
@@ -90,10 +90,10 @@ export function revertTheme() {
         const color3 = document.getElementById('color3');
         const color4 = document.getElementById('color4');
         
-        if (color1) color1.value = state.originalColors.primary || '#667eea';
-        if (color2) color2.value = state.originalColors.secondary || '#764ba2';
-        if (color3) color3.value = state.originalColors.accent || '#48bb78';
-        if (color4) color4.value = state.originalColors.background || '#ffffff';
+        if (color1) color1.value = state.originalColors.primary;
+        if (color2) color2.value = state.originalColors.secondary;
+        if (color3) color3.value = state.originalColors.accent;
+        if (color4) color4.value = state.originalColors.background;
         
         state.setPendingFaviconFile(null);
         const faviconUpload = document.getElementById('faviconUpload');
@@ -225,22 +225,22 @@ export function renderThemeEditor() {
           <div class="subsection-heading"><strong><span class="material-icons">brush</span> Colors</strong></div>
           <div class="form-group">
             <label for="color1">Primary Color</label>
-            <input type="color" id="color1" value="${state.colors.primary || '#667eea'}">
+            <input type="color" id="color1" value="${state.colors.primary}">
             <div class="hint">Used for titles, buttons, and highlights</div>
           </div>
           <div class="form-group">
             <label for="color2">Secondary Color</label>
-            <input type="color" id="color2" value="${state.colors.secondary || '#764ba2'}">
+            <input type="color" id="color2" value="${state.colors.secondary}">
             <div class="hint">Used for active selections and gradients</div>
           </div>
           <div class="form-group">
             <label for="color3">Accent Color</label>
-            <input type="color" id="color3" value="${state.colors.accent || '#48bb78'}">
+            <input type="color" id="color3" value="${state.colors.accent}">
             <div class="hint">Used for save buttons and success states</div>
           </div>
           <div class="form-group">
             <label for="color4">Background Color</label>
-            <input type="color" id="color4" value="${state.colors.background || '#ffffff'}">
+            <input type="color" id="color4" value="${state.colors.background}">
             <div class="hint">Base background color for panels (automatically generates grays)</div>
           </div>
         </div>

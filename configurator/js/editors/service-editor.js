@@ -1,7 +1,7 @@
 import * as state from '../state.js';
 import * as api from '../api.js';
 import { parseErrorMessage, getServiceIcon } from '../utils.js';
-import { reloadPage, waitForServerRestart, createDropdown, showStatus, showConfirmModal, showPromptModal, showPromptError, closePromptModal, showLoadingOverlay } from '../ui-components.js';
+import { reloadPage, waitForServerRestart, createDropdown, getDropdownValue, showStatus, showConfirmModal, showPromptModal, showPromptError, closePromptModal, showLoadingOverlay } from '../ui-components.js';
 import { blockNavigation, hasUnsavedManagementChanges, renderPlaceholderEditor, renderServicesList, selectItem } from '../editors.js';
 import { renderDomainEditor } from './domain-editor.js';
 import { renderCertificatesEditor } from './certificates-editor.js';
@@ -26,10 +26,7 @@ export function updateServiceProperty(serviceName, path, value) {
 }
 
 export function toggleFieldVisibility(serviceName) {
-  const typeSelect = document.getElementById(`subdomain_type_${serviceName}`);
-  if (!typeSelect) return;
-  
-  const selectedType = typeSelect.value;
+  const selectedType = getDropdownValue(`subdomain_type_${serviceName}`);
   const basicAuthFields = document.querySelectorAll(`.basicauth-field[data-service="${serviceName}"]`);
   const proxyFields = document.querySelectorAll(`.proxy-field[data-service="${serviceName}"]`);
   const requireAuthFields = document.querySelectorAll(`.requireauth-field[data-service="${serviceName}"]`);
@@ -63,10 +60,7 @@ export function toggleFieldVisibility(serviceName) {
 }
 
 export function toggleHealthcheckFieldVisibility(serviceName) {
-  const typeSelect = document.getElementById(`hc_type_${serviceName}`);
-  if (!typeSelect) return;
-  
-  const selectedType = typeSelect.value;
+  const selectedType = getDropdownValue(`hc_type_${serviceName}`);
   const httpOnlyFields = document.querySelectorAll(`.http-only-field[data-service="${serviceName}"]`);
   const gamedigOnlyFields = document.querySelectorAll(`.gamedig-only-field[data-service="${serviceName}"]`);
   const httpGamedigFields = document.querySelectorAll(`.http-gamedig-field[data-service="${serviceName}"]`);
@@ -100,10 +94,7 @@ export function toggleHealthcheckFieldVisibility(serviceName) {
 }
 
 export function toggleMetaFieldVisibility(serviceName) {
-  const extractorSelect = document.getElementById(`hc_extractor_${serviceName}`);
-  if (!extractorSelect) return;
-  
-  const selectedExtractor = extractorSelect.value;
+  const selectedExtractor = getDropdownValue(`hc_extractor_${serviceName}`);
   const extractorDependentFields = document.querySelectorAll(`.extractor-dependent-field[data-service="${serviceName}"]`);
   
   // Extractor-dependent fields: show only when an extractor is selected
@@ -562,7 +553,7 @@ export function renderServiceEditor(serviceName) {
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
   
-  const icon = getServiceIcon(service.subdomain?.type);
+  const icon = getServiceIcon(service?.subdomain?.type);
   
   let html = `
     <div class="section">
@@ -822,10 +813,9 @@ export function resetEditor() {
       if (confirmed) {
         state.setConfig(JSON.parse(JSON.stringify(state.originalConfig)));
         showStatus('Changes discarded', 'success');
-        renderServiceEditor();
+        renderServicesList();
         if (state.currentSelection) {
           const serviceName = state.currentSelection.startsWith('config-') ? state.currentSelection.replace('config-', '') : null;
-          
           if (serviceName && state.config.services[serviceName]) {
             renderServiceEditor(serviceName);
           } else if (state.currentSelection === 'management-certificates') {

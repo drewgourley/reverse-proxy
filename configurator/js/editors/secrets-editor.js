@@ -155,7 +155,7 @@ export async function saveSecrets() {
     await api.saveSecrets(state.secrets);
 
     state.setOriginalSecrets(JSON.parse(JSON.stringify(state.secrets)));
-    state.setSecretsSaved(true);
+
     showStatus('Secrets saved successfully!', 'success');
     
     showLoadingOverlay('Server Restarting...', 'Secrets saved. Waiting for the server to restart...');

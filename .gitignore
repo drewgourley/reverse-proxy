@@ -49,6 +49,8 @@ web/static/*
 !web/static/radio/
 !web/static/www/
 
+_store
+_store/*
 .DS_Store
 .DS_Store?
 ._*
