@@ -48,7 +48,33 @@ configrouter.use(express.json());
 
 configrouter.get('/config', (request, response) => {
   try {
-    const config = configManager.readConfig(storeDir, 'config.json', {});
+    const config = configManager.readConfig(storeDir, 'config.json', {
+      domain: '',
+      services: {
+        api: {
+          subdomain: {
+            type: 'index',
+            protocol: 'insecure',
+            proxy: {
+              websocket: null,
+              middleware: null
+            },
+            router: null
+          }
+        },
+        www: {
+          subdomain: {
+            type: 'index',
+            protocol: 'insecure',
+            proxy: {
+              websocket: null,
+              middleware: null
+            },
+            router: null
+          }
+        }
+      }
+    });
     response.setHeader('Content-Type', 'application/json');
     response.send(config);
   } catch (error) {
@@ -69,7 +95,14 @@ configrouter.get('/blocklist', (request, response) => {
 
 configrouter.get('/secrets', (request, response) => {
   try {
-    const secrets = configManager.readConfig(storeDir, 'secrets.json', {});
+    const secrets = configManager.readConfig(storeDir, 'secrets.json', {
+      default: true,
+      admin_email_address: '',
+      shock_password_hash: '',
+      shock_mac: '',
+      api_password_hash: '',
+      api_session_secret: ''
+    });
     response.setHeader('Content-Type', 'application/json');
     response.send(secrets);
   } catch (error) {
@@ -79,7 +112,9 @@ configrouter.get('/secrets', (request, response) => {
 
 configrouter.get('/users', (request, response) => {
   try {
-    const users = configManager.readConfig(storeDir, 'users.json', { users: [] });
+    const users = configManager.readConfig(storeDir, 'users.json', {
+      users: []
+    });
     response.setHeader('Content-Type', 'application/json');
     response.send(users);
   } catch (error) {
@@ -89,7 +124,10 @@ configrouter.get('/users', (request, response) => {
 
 configrouter.get('/certs', (request, response) => {
   try {
-    const certs = configManager.readConfig(storeDir, 'certs.json', { services: [], provisionedAt: null });
+    const certs = configManager.readConfig(storeDir, 'certs.json', {
+      services: [],
+      provisionedAt: null
+    });
     response.setHeader('Content-Type', 'application/json');
     response.send(certs);
   } catch (error) {
@@ -130,7 +168,13 @@ configrouter.get('/ecosystem', (request, response) => {
 
 configrouter.get('/colors', (request, response) => {
   try {
-    const colors = configManager.readConfig(storeDir, 'colors.json', {});
+    const colors = configManager.readConfig(storeDir, 'colors.json', {
+      primary: "#667eea",
+      secondary: "#764ba2",
+      accent: "#48bb78",
+      background: "#ffffff",
+      inverse: "#b84878"
+    });
     response.setHeader('Content-Type', 'application/json');
     response.send(colors);
   } catch (error) {
@@ -140,7 +184,13 @@ configrouter.get('/colors', (request, response) => {
 
 configrouter.get('/ddns', (request, response) => {
   try {
-    const ddns = configManager.readConfig(storeDir, 'ddns.json', {});
+    const ddns = configManager.readConfig(storeDir, 'ddns.json', {
+      active: false,
+      aws_access_key_id: '',
+      aws_secret_access_key: '',
+      aws_region: '',
+      route53_hosted_zone_id: ''
+    });
     response.setHeader('Content-Type', 'application/json');
     response.send(ddns);
   } catch (error) {
@@ -150,7 +200,11 @@ configrouter.get('/ddns', (request, response) => {
 
 configrouter.get('/advanced', (request, response) => {
   try {
-    const advanced = configManager.readConfig(storeDir, 'advanced.json', { parsers: {}, extractors: {}, queryTypes: [] });  
+    const advanced = configManager.readConfig(storeDir, 'advanced.json', {
+      parsers: {},
+      extractors: {},
+      queryTypes: []
+    });  
     response.setHeader('Content-Type', 'application/json');
     response.send(advanced);
   } catch (error) {
@@ -260,7 +314,7 @@ configrouter.put('/secrets', async (request, response) => {
 
 configrouter.put('/colors', (request, response) => {
   try {
-    themeManager.updateColors(storeDir, request.body);
+    themeManager.updateColors(rootDir, storeDir, request.body);
     response.status(200).send({ success: true, message: 'Colors updated successfully' });
   } catch (error) {
     const statusCode = error.statusCode || 400;

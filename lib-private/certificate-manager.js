@@ -58,10 +58,6 @@ function provisionCertificates(webDir, baseDir, email, config, env) {
       return config.services[name].subdomain?.protocol === 'secure';
     });
     
-    if (secureServices.length === 0) {
-      return resolve({ message: 'No secure services configured' });
-    }
-    
     secureServices.forEach(name => {
       domains.push(`${name}.${config.domain}`);
     });
@@ -72,11 +68,13 @@ function provisionCertificates(webDir, baseDir, email, config, env) {
     const cronCommandWithHook = `${baseCommand} --deploy-hook "${deployHook}"`;
     
     if (env === 'development') {
-      registerProvisionedCerts(baseDir, secureServices, true, true);
-      return resolve({ message: 'Development mode: Certificates sucessfully not provisioned.' });
+      setTimeout(async () => {
+        registerProvisionedCerts(baseDir, secureServices, true, true);
+        return resolve({ message: 'Development mode: Certificates successfully not provisioned.' });
+      }, 2000);
+      return;
     }
     
-    // Production mode - actually provision certificates
     exec(baseCommand, { windowsHide: true }, (error, stdout, stderr) => {
       if (error) {
         return reject(new Error(error.message));

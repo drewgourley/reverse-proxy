@@ -11,7 +11,7 @@ const toIco = require('to-ico');
  * @param {string} baseDir - Base directory
  * @param {Object} updatedColors - New colors configuration
  */
-function updateColors(webDir, updatedColors) {
+function updateColors(webDir, baseDir, updatedColors) {
   const hexColorRegex = /^#([0-9A-Fa-f]{3}){1,2}$/;
   const colorFields = ['primary', 'secondary', 'accent', 'background', 'inverse'];
   const receivedFields = Object.keys(updatedColors);

@@ -1,7 +1,7 @@
 import * as state from '../state.js';
 import * as api from '../api.js';
 import { parseErrorMessage } from '../utils.js';
-import { reloadPage, waitForServerRestart, showStatus, showLoadingOverlay } from '../ui-components.js';
+import { reloadPage, waitForServerRestart, showStatus, showLoadingOverlay, hideLoadingOverlay } from '../ui-components.js';
 import { hasUnsavedConfigChanges } from '../editors.js';
 
 export function renderCertificatesEditor() {
@@ -74,7 +74,6 @@ export function renderCertificatesEditor() {
         ${statusHtml}
       </div>
       ${warningMessage}
-      <div id="certOutput" class="result-output"></div>
     </div>
   `;
 
@@ -95,7 +94,6 @@ export function renderCertificatesEditor() {
 export async function provisionCertificates() {
   const email = state.secrets.admin_email_address;
   const provisionBtn = document.getElementById('provisionBtn');
-  const outputEl = document.getElementById('certOutput');
 
   if (!email) {
     showStatus('Admin email address is not configured in secrets', 'error');
@@ -104,34 +102,19 @@ export async function provisionCertificates() {
 
   provisionBtn.disabled = true;
   provisionBtn.textContent = 'Provisioning...';
-  outputEl.innerHTML = '<p class="progress-text">Executing certbot command... This may take a few moments.</p>';
+  showLoadingOverlay('Provisioning Certificates...', 'Running certbot commands, this may take a few moments...');
 
   try {
-    const result = await api.provisionCertificates(email);
-
-    outputEl.innerHTML = `
-      <div class="result-success">
-        <strong><span class="material-icons">check_circle</span> Success!</strong>
-        <p class="result-message">${result.message}</p>
-        ${result.output ? `<pre class="result-output-pre">${result.output}</pre>` : ''}
-      </div>
-    `;
+    await api.provisionCertificates(email);
+    hideLoadingOverlay();
     showStatus('Certificates provisioned successfully!', 'success');
-    
     showLoadingOverlay('Server Restarting...', 'Certificates provisioned. Waiting for the server to restart...');
-
     let reboot = await waitForServerRestart();
     if (reboot) {
       state.setRebooting(true);
       reloadPage();
     }
   } catch (error) {
-    outputEl.innerHTML = `
-      <div class="result-error">
-        <strong><span class="material-icons">error</span> Error</strong>
-        <p class="result-message">${parseErrorMessage(error)}</p>
-      </div>
-    `;
     showStatus('Error provisioning certificates: ' + parseErrorMessage(error), 'error');
     provisionBtn.disabled = false;
     provisionBtn.textContent = 'Provision Certificates';

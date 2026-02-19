@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     editors.selectItem('management-application');
   } else if (state.secretsSaved === false) {
     editors.selectItem('management-secrets');
-  } else if (state.config.domain === '' || state.config.domain.trim() === '') {
+  } else if (!state.config.domain || state.config.domain.trim() === '') {
     editors.selectItem('config-domain');
   } else if (canProvision) {
     editors.selectItem('management-certificates');

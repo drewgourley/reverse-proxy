@@ -10,7 +10,7 @@ export function getDefaultConfig() {
       api: {
         subdomain: {
           type: 'index',
-          protocol: state.secrets.admin_email_address ? 'secure' : 'insecure',
+          protocol: 'insecure',
           proxy: {
             websocket: null,
             middleware: null
@@ -21,7 +21,7 @@ export function getDefaultConfig() {
       www: {
         subdomain: {
           type: 'index',
-          protocol: state.secrets.admin_email_address ? 'secure' : 'insecure',
+          protocol: 'insecure',
           proxy: {
             websocket: null,
             middleware: null
@@ -61,26 +61,45 @@ export function getDefaultAdvanced() {
   };
 }
 
+export function getDefaultCerts() {
+  return {
+    services: [],
+    provisionedAt: null
+  };
+}
+
+export function getDefaultColors() {
+  return {
+    primary: "#667eea",
+    secondary: "#764ba2",
+    accent: "#48bb78",
+    background: "#ffffff",
+    inverse: "#b84878"
+  }
+}
+
+export function getDefaultUsers() {
+  return {
+    users: []
+  };
+}
+
+export function getDefaultBlocklist() {
+  return [];
+}
+
 // Load operations
 export async function loadConfig(suppressStatus = false) {
   try {
     const response = await fetch('/config');
-    
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load config`);
+
+    const loadedConfig = await response.json();
     
-    const text = await response.text();
-    
-    if (!text) {
-      throw new Error('Empty response from server');
-    }
-    
-    const loadedConfig = JSON.parse(text);
-    
+    const defaults = getDefaultConfig();
     if (!loadedConfig.services) {
       loadedConfig.services = {};
     }
-    
-    const defaults = getDefaultConfig();
     if (!loadedConfig.services.api) {
       loadedConfig.services.api = defaults.services.api;
     }
@@ -101,24 +120,22 @@ export async function loadConfig(suppressStatus = false) {
 export async function loadSecrets(suppressStatus = false) {
   try {
     const response = await fetch('/secrets');
-    
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load secrets`);
     
-    const text = await response.text();
-    
-    if (!text) {
-      throw new Error('Empty response from server');
-    }
-    
-    state.setSecretsSaved(true);
-    const loadedSecrets = JSON.parse(text);
-    
+    const loadedSecrets = await response.json();
+
+    if (!loadedSecrets.default) {
+      state.setSecretsSaved(true);
+    } 
+    delete loadedSecrets.default;
+
     const defaults = getDefaultSecrets();
     Object.keys(defaults).forEach(key => {
       if (!(key in loadedSecrets)) {
         loadedSecrets[key] = defaults[key];
       }
     });
+
     
     state.setSecrets(loadedSecrets);
     state.setOriginalSecrets(JSON.parse(JSON.stringify(loadedSecrets)));
@@ -134,24 +151,17 @@ export async function loadSecrets(suppressStatus = false) {
 export async function loadUsers(suppressStatus = false) {
   try {
     const response = await fetch('/users');
-    
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load users`);
     
-    const text = await response.text();
-    
-    if (!text) {
-      state.setUsers({ users: [] });
-      state.setOriginalUsers(JSON.parse(JSON.stringify({ users: [] })));
-      return;
-    }
-    
-    const loadedUsers = JSON.parse(text);
+    const loadedUsers = await response.json();
     if (!loadedUsers.users) loadedUsers.users = [];
+
     state.setUsers(loadedUsers);
     state.setOriginalUsers(JSON.parse(JSON.stringify(loadedUsers)));
   } catch (error) {
-    state.setUsers({ users: [] });
-    state.setOriginalUsers(JSON.parse(JSON.stringify({ users: [] })));
+    const defaultUsers = getDefaultUsers();
+    state.setUsers(defaultUsers);
+    state.setOriginalUsers(JSON.parse(JSON.stringify(defaultUsers)));
     if (!suppressStatus) showStatus('Could not load Users: ' + error.message, 'error');
   }
 }
@@ -159,21 +169,16 @@ export async function loadUsers(suppressStatus = false) {
 export async function loadBlocklist(suppressStatus = false) {
   try {
     const response = await fetch('/blocklist');
-    
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load blocklist`);
     
-    const text = await response.text();
-    
-    if (!text) {
-      throw new Error('Empty response from server');
-    }
-    
-    const loadedBlocklist = JSON.parse(text);
+    const loadedBlocklist = await response.json();
+
     state.setBlocklist(loadedBlocklist);
     state.setOriginalBlocklist(JSON.parse(JSON.stringify(loadedBlocklist)));
   } catch (error) {
-    state.setBlocklist([]);
-    state.setOriginalBlocklist([]);
+    const defaultBlocklist = getDefaultBlocklist();
+    state.setBlocklist(defaultBlocklist);
+    state.setOriginalBlocklist(defaultBlocklist);
     if (!suppressStatus) showStatus('Could not load Blocklist: ' + error.message, 'error');
   }
 }
@@ -181,19 +186,9 @@ export async function loadBlocklist(suppressStatus = false) {
 export async function loadDdns(suppressStatus = false) {
   try {
     const response = await fetch('/ddns');
-    
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load DDNS config`);
     
-    const text = await response.text();
-    
-    if (!text) {
-      const defaultDdns = getDefaultDdns();
-      state.setDdns(defaultDdns);
-      state.setOriginalDdns(JSON.parse(JSON.stringify(defaultDdns)));
-      return;
-    }
-    
-    const loadedDdns = JSON.parse(text);
+    const loadedDdns = await response.json();;
     
     const defaults = getDefaultDdns();
     Object.keys(defaults).forEach(key => {
@@ -213,16 +208,10 @@ export async function loadDdns(suppressStatus = false) {
 export async function loadEcosystem(suppressStatus = false) {
   try {
     const response = await fetch('/ecosystem');
-    
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load ecosystem config`);
     
-    const text = await response.text();
-    
-    if (!text) {
-      throw new Error('Empty response from server');
-    }
-    
-    const loadedEcosystem = JSON.parse(text);
+    const loadedEcosystem = await response.json();
+
     state.setEcosystem(loadedEcosystem);
     state.setOriginalEcosystem(JSON.parse(JSON.stringify(loadedEcosystem)));
     state.setEnvironment(loadedEcosystem.apps[0].env.NODE_ENV);
@@ -234,20 +223,10 @@ export async function loadEcosystem(suppressStatus = false) {
 export async function loadAdvanced(suppressStatus = false) {
   try {
     const response = await fetch('/advanced');
-    
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load Advanced config`);
     
-    const text = await response.text();
-    
-    if (!text) {
-      const defaultAdvanced = getDefaultAdvanced();
-      state.setAdvanced(defaultAdvanced);
-      state.setOriginalAdvanced(JSON.parse(JSON.stringify(defaultAdvanced)));
-      return;
-    }
-    
-    const loadedAdvanced = JSON.parse(text);
-    
+    const loadedAdvanced = await response.json();
+
     const defaults = getDefaultAdvanced();
     Object.keys(defaults).forEach(key => {
       if (loadedAdvanced[key] === undefined) loadedAdvanced[key] = defaults[key];
@@ -266,22 +245,14 @@ export async function loadAdvanced(suppressStatus = false) {
 export async function loadCerts(suppressStatus = false) {
   try {
     const response = await fetch('/certs');
-    
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load certificate data`);
-    
-    const text = await response.text();
-    
-    let loadedCerts;
-    if (!text) {
-      loadedCerts = { services: [], provisionedAt: null };
-    } else {
-      loadedCerts = JSON.parse(text);
-    }
-    
+
+    const loadedCerts = await response.json();
+
     state.setCerts(loadedCerts);
     state.setOriginalCerts(JSON.parse(JSON.stringify(loadedCerts)));
   } catch (error) {
-    const defaultCerts = { services: [], provisionedAt: null };
+    const defaultCerts = getDefaultCerts();
     state.setCerts(defaultCerts);
     state.setOriginalCerts(defaultCerts);
     if (!suppressStatus) showStatus('Could not load certificate data: ' + error.message, 'error');
@@ -294,17 +265,17 @@ export async function loadColors(suppressStatus = false) {
     if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load colors`);
     
     const loadedColors = await response.json();
+
+    const defaults = getDefaultColors();
+    Object.keys(defaults).forEach(key => {
+      if (loadedColors[key] === undefined) loadedColors[key] = defaults[key];
+    });
+
     state.setColors(loadedColors);
     state.setOriginalColors(JSON.parse(JSON.stringify(loadedColors)));
   } catch (error) {
+    const defaultColors = getDefaultColors();
     if (!suppressStatus) showStatus('Could not load colors: ' + error.message, 'error');
-    const defaultColors = {
-      primary: '#667eea',
-      secondary: '#764ba2',
-      accent: '#48bb78',
-      background: '#ffffff',
-      inverse: '#b84878'
-    };
     state.setColors(defaultColors);
     state.setOriginalColors(JSON.parse(JSON.stringify(defaultColors)));
   }

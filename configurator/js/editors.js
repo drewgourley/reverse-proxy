@@ -100,8 +100,6 @@ export function renderServicesList() {
   const fragment = document.createDocumentFragment();
   
   const isFirstTimeSetup = state.ecosystem.default === true;
-  const secretsEnabled = !isFirstTimeSetup;
-  const usersEnabled = secretsEnabled && !isFirstTimeSetup && state.secretsSaved;
 
   const monitorHeader = document.createElement('h2');
   monitorHeader.textContent = 'Activity Monitor';
@@ -111,7 +109,7 @@ export function renderServicesList() {
   logsItem.className = 'service-item' + (state.currentSelection === 'monitor-logs' ? ' active' : '');
   logsItem.innerHTML = '<span class="material-icons">article</span> Logs';
   logsItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'monitor-logs' }) : '#monitor-logs';
-  if (isFirstTimeSetup) {
+  if (isFirstTimeSetup || !state.secretsSaved) {
     logsItem.style.opacity = '0.5';
     logsItem.style.cursor = 'default';
     logsItem.style.pointerEvents = 'none';
@@ -124,7 +122,7 @@ export function renderServicesList() {
   blocklistItem.className = 'service-item' + (state.currentSelection === 'monitor-blocklist' ? ' active' : '');
   blocklistItem.innerHTML = `<span class="material-icons">shield</span> Blocklist`;
   blocklistItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'monitor-blocklist' }) : '#monitor-blocklist';
-  if (isFirstTimeSetup) {
+  if (isFirstTimeSetup || !state.secretsSaved) {
     blocklistItem.style.opacity = '0.5';
     blocklistItem.style.cursor = 'default';
     blocklistItem.style.pointerEvents = 'none';
@@ -141,14 +139,20 @@ export function renderServicesList() {
   appItem.className = 'service-item' + (state.currentSelection === 'management-application' ? ' active' : '');
   appItem.innerHTML = '<span class="material-icons">settings</span> Application';
   appItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-application' }) : '#management-application';
-  appItem.onclick = preventDefaultThen(() => selectItem('management-application'));
+  if (!isFirstTimeSetup && !state.secretsSaved) {
+    appItem.style.opacity = '0.5';
+    appItem.style.cursor = 'default';
+    appItem.style.pointerEvents = 'none';
+  } else {
+    appItem.onclick = preventDefaultThen(() => selectItem('management-application'));
+  }
   fragment.appendChild(appItem);
 
   const secretsItem = document.createElement('a');
   secretsItem.className = 'service-item' + (state.currentSelection === 'management-secrets' ? ' active' : '');
   secretsItem.innerHTML = '<span class="material-icons">vpn_key</span> Secrets';
   secretsItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-secrets' }) : '#management-secrets';
-  if (!secretsEnabled) {
+  if (isFirstTimeSetup) {
     secretsItem.style.opacity = '0.5';
     secretsItem.style.cursor = 'default';
     secretsItem.style.pointerEvents = 'none';
@@ -161,7 +165,7 @@ export function renderServicesList() {
   usersItem.className = 'service-item' + (state.currentSelection === 'management-users' ? ' active' : '');
   usersItem.innerHTML = '<span class="material-icons">group</span> Users';
   usersItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-users' }) : '#management-users';
-  if (!usersEnabled) {
+  if (isFirstTimeSetup || !state.secretsSaved) {
     usersItem.style.opacity = '0.5';
     usersItem.style.cursor = 'default';
     usersItem.style.pointerEvents = 'none';
@@ -171,10 +175,12 @@ export function renderServicesList() {
   fragment.appendChild(usersItem);
 
   const certsItem = document.createElement('a');
-  certsItem.className = 'service-item' + (state.currentSelection === 'management-certificates' ? ' active' : '');
-  certsItem.innerHTML = '<span class="material-icons">lock</span> Certificates';
+  const cerStatus = getCertificateStatus();
+  const canProvision = cerStatus.needDeprovisioning.length > 0 || cerStatus.needProvisioning.length > 0;
+  certsItem.className = 'service-item' + (state.currentSelection === 'management-certificates' ? ' active' : '') + (canProvision ? ' insecure' : '');
+  certsItem.innerHTML = '<span class="material-icons">lock</span> Certificates ' + (canProvision ? '<span class="hint">Reprovision</span>' : '') + '</span>';
   certsItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-certificates' }) : '#management-certificates';
-  if (!usersEnabled) {
+  if (isFirstTimeSetup || !state.secretsSaved) {
     certsItem.style.opacity = '0.5';
     certsItem.style.cursor = 'default';
     certsItem.style.pointerEvents = 'none';
@@ -187,7 +193,7 @@ export function renderServicesList() {
   ddnsItem.className = 'service-item' + (state.currentSelection === 'management-ddns' ? ' active' : '');
   ddnsItem.innerHTML = '<span class="material-icons">public</span> Dynamic DNS';
   ddnsItem.href = window.buildAppRoute ? window.buildAppRoute({ section: 'management-ddns' }) : '#management-ddns';
-  if (!usersEnabled) {
+  if (isFirstTimeSetup || !state.secretsSaved) {
     ddnsItem.style.opacity = '0.5';
     ddnsItem.style.cursor = 'default';
     ddnsItem.style.pointerEvents = 'none';

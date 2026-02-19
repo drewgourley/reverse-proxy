@@ -31,8 +31,10 @@ function checkService(name, config, protocols, parsers, extractors, odalpapiServ
     if (check.meta) {
       report.meta = { ...check.meta };
     }
-    if (report.meta?.link) {
+    if (report.meta?.link && service.subdomain?.protocol) {
       report.meta.link = `${protocols[service.subdomain.protocol]}${name}.${config.domain}`;
+    } else {
+      delete report.meta?.link;
     }
 
     if (check.type === 'http') {
