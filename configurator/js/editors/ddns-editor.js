@@ -3,6 +3,10 @@ import * as api from '../api.js';
 import { parseErrorMessage } from '../utils.js';
 import { reloadPage, waitForServerRestart, showStatus, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
 
+/**
+ * Render the DDNS editor UI
+ * @returns {void}
+ */
 export function renderDdnsEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -79,10 +83,20 @@ export function renderDdnsEditor() {
   `;
 }
 
+/**
+ * Update in-memory DDNS config value
+ * @param {string} key - DDNS property name
+ * @param {string} value - New value
+ * @returns {void}
+ */
 export function updateDdns(key, value) {
   state.ddns[key] = value;
 }
 
+/**
+ * Persist DDNS configuration and handle server restart flow
+ * @returns {Promise<void>}
+ */
 export async function saveDdns() {
   const saveBtn = document.getElementById('saveDdnsBtn');
   saveBtn.disabled = true;
@@ -109,6 +123,10 @@ export async function saveDdns() {
   }
 }
 
+/**
+ * Revert DDNS UI to last saved state (after confirmation)
+ * @returns {void}
+ */
 export function revertDdns() {
   showConfirmModal(
     '<span class="material-icons">undo</span> Revert DDNS Config',

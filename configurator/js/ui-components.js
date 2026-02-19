@@ -2,7 +2,12 @@
 let confirmCallback = null;
 let promptCallback = null;
 
-// Status messages
+/**
+ * Display a transient status/notification message in the UI
+ * @param {string} message - Message text to display
+ * @param {'error'|'success'|'warning'|'info'} [type] - Message type (controls styling)
+ * @returns {void}
+ */
 export function showStatus(message, type) {
   const container = document.getElementById('statusContainer');
   let icon;
@@ -33,6 +38,11 @@ export function showStatus(message, type) {
   }, 5000);
 }
 
+/**
+ * Remove a shown status element from the UI (animated)
+ * @param {HTMLElement} statusEl - The status element to remove
+ * @returns {void}
+ */
 export function removeStatus(statusEl) {
   if (!statusEl || !statusEl.parentNode) return;
   
@@ -44,7 +54,13 @@ export function removeStatus(statusEl) {
   }, 300);
 }
 
-// Confirm modal
+/**
+ * Open a confirmation modal with OK/Cancel
+ * @param {string} title - Modal title
+ * @param {string} message - Message body
+ * @param {function} callback - Callback called with boolean result
+ * @returns {void}
+ */
 export function showConfirmModal(title, message, callback) {
   document.getElementById('confirmTitle').innerHTML = title;
   document.getElementById('confirmMessage').textContent = message;
@@ -52,11 +68,19 @@ export function showConfirmModal(title, message, callback) {
   document.getElementById('confirmModal').classList.add('active');
 }
 
+/**
+ * Close the confirmation modal and clear its callback
+ * @returns {void}
+ */
 export function closeConfirmModal() {
   document.getElementById('confirmModal').classList.remove('active');
   confirmCallback = null;
 }
 
+/**
+ * Invoke the confirm modal callback with a positive result
+ * @returns {void}
+ */
 export function confirmAction() {
   if (confirmCallback) {
     confirmCallback(true);
@@ -64,7 +88,16 @@ export function confirmAction() {
   closeConfirmModal();
 }
 
-// Prompt modal
+/**
+ * Show an input prompt modal and invoke callback on submit
+ * @param {string} title - Modal title
+ * @param {string} message - Prompt message
+ * @param {string} [hint] - Optional hint text
+ * @param {string} [defaultValue] - Default input value
+ * @param {string} [placeholder] - Placeholder text
+ * @param {function} callback - Callback invoked with the entered value or a Promise
+ * @returns {void}
+ */
 export function showPromptModal(title, message, hint = '', defaultValue = '', placeholder = 'Enter text here', callback) {
   const modalContent = `
     <div class="modal-header">${title}</div>
@@ -97,17 +130,30 @@ export function showPromptModal(title, message, hint = '', defaultValue = '', pl
   }, 100);
 }
 
+/**
+ * Display an error message inside the prompt modal
+ * @param {string} errorMessage - Error text to show
+ * @returns {void}
+ */
 export function showPromptError(errorMessage) {
   const errorEl = document.getElementById('promptError');
   errorEl.textContent = errorMessage;
   errorEl.style.display = 'block';
 }
 
+/**
+ * Close the prompt modal and clear its callback
+ * @returns {void}
+ */
 export function closePromptModal() {
   document.getElementById('promptModal').classList.remove('active');
   promptCallback = null;
 }
 
+/**
+ * Submit the prompt modal value (handles sync/async callbacks)
+ * @returns {Promise<void>}
+ */
 export async function submitPrompt() {
   const value = document.getElementById('promptInput').value;
   if (!promptCallback) return;
@@ -147,7 +193,13 @@ export async function submitPrompt() {
   }
 }
 
-// Loading overlay
+/**
+ * Show a modal loading overlay (optionally display an error state)
+ * @param {string} title - Title shown on the overlay
+ * @param {string} message - Message shown on the overlay
+ * @param {boolean} [error=false] - Whether to show error icon instead of spinner
+ * @returns {void}
+ */
 export function showLoadingOverlay(title, message, error) {
   const overlay = document.getElementById('loadingOverlay');
   const spinner = document.getElementById('loadingSpinner');
@@ -167,6 +219,10 @@ export function showLoadingOverlay(title, message, error) {
   overlay.classList.add('active');
 }
 
+/**
+ * Hide the loading overlay
+ * @returns {void}
+ */
 export function hideLoadingOverlay() {
   const overlay = document.getElementById('loadingOverlay');
   overlay.classList.add('hiding');
@@ -177,7 +233,11 @@ export function hideLoadingOverlay() {
   }, 300);
 }
 
-// Mobile panel switcher
+/**
+ * Switch mobile view panel in the UI
+ * @param {'services'|'editor'} panel - Panel to show
+ * @returns {void}
+ */
 export function showMobilePanel(panel) {
   const mainContent = document.querySelector('.main-content');
   const servicesBtn = document.getElementById('navServicesBtn');
@@ -194,7 +254,6 @@ export function showMobilePanel(panel) {
   }
 }
 
-/* REUSABLE DROPDOWN COMPONENT */
 /**
  * Creates a reusable dropdown component that supports both single-select and multi-select modes
  * @param {Object} options Configuration object
@@ -263,7 +322,12 @@ export function createDropdown(options) {
   `;
 }
 
-// Toggles a dropdown open/closed
+/**
+ * Toggle a reusable dropdown component
+ * @param {string} id - Dropdown element id
+ * @param {Event} event - Event that triggered toggle
+ * @returns {void}
+ */
 export function toggleDropdown(id, event) {
   event.stopPropagation();
   
@@ -314,7 +378,14 @@ export function toggleDropdown(id, event) {
   }
 }
 
-// Handles option selection in dropdown
+/**
+ * Handle user selecting an option in a reusable dropdown
+ * @param {string} id - Dropdown id
+ * @param {string} value - Chosen value
+ * @param {boolean} multiSelect - Whether dropdown is multi-select
+ * @param {Event} event - Triggering event
+ * @returns {void}
+ */
 export function selectDropdownOption(id, value, multiSelect, event) {
   event.stopPropagation();
   
@@ -365,7 +436,13 @@ export function selectDropdownOption(id, value, multiSelect, event) {
   }
 }
 
-// Removes a tag from a multi-select dropdown
+/**
+ * Remove a selected tag from a multi-select dropdown and notify callback
+ * @param {string} id - Dropdown id
+ * @param {string} value - Value to remove
+ * @param {Event} event - Triggering event
+ * @returns {void}
+ */
 export function removeDropdownTag(id, value, event) {
   event.stopPropagation();
   
@@ -389,7 +466,12 @@ export function removeDropdownTag(id, value, event) {
   }
 }
 
-// Updates the display of a dropdown based on current selection
+/**
+ * Update the visible display of a dropdown component after selection changes
+ * @param {string} id - Dropdown id
+ * @param {boolean} multiSelect - Whether dropdown is multi-select
+ * @returns {void}
+ */
 export function updateDropdownDisplay(id, multiSelect) {
   const select = document.getElementById(id);
   if (!select) return;
@@ -419,7 +501,11 @@ export function updateDropdownDisplay(id, multiSelect) {
   }
 }
 
-// Gets the selected value(s) from a dropdown
+/**
+ * Retrieve currently selected value(s) from a dropdown
+ * @param {string} id - Dropdown id
+ * @returns {string|string[]|null} Selected value or array of values
+ */
 export function getDropdownValue(id) {
   const select = document.getElementById(id);
   if (!select) return null;
@@ -431,7 +517,12 @@ export function getDropdownValue(id) {
   return isMulti ? values : (values[0] || null);
 }
 
-// Sets the selected value(s) for a dropdown
+/**
+ * Programmatically set the selected value(s) of a dropdown
+ * @param {string} id - Dropdown id
+ * @param {string|string[]} value - Value or array of values to select
+ * @returns {void}
+ */
 export function setDropdownValue(id, value) {
   const select = document.getElementById(id);
   if (!select) return;
@@ -456,7 +547,12 @@ export function setDropdownValue(id, value) {
   updateDropdownDisplay(id, isMulti);
 }
 
-// Password visibility toggle
+/**
+ * Toggle visibility of a password input field and update button icon
+ * @param {string} inputId - ID of the input element
+ * @param {HTMLElement} button - Button element containing the icon
+ * @returns {void}
+ */
 export function togglePasswordVisibility(inputId, button) {
   const input = document.getElementById(inputId);
   const icon = button.querySelector('.material-icons');
@@ -470,7 +566,11 @@ export function togglePasswordVisibility(inputId, button) {
   }
 }
 
-// Server restart ui functions
+/**
+ * Poll the server until it becomes responsive after a restart
+ * @param {number} [delay=5000] - Initial delay before polling (ms)
+ * @returns {Promise<boolean>} True if server became available
+ */
 export async function waitForServerRestart(delay = 5000) {
   const maxAttempts = 12;
   const pollInterval = 5000;
@@ -507,6 +607,11 @@ export async function waitForServerRestart(delay = 5000) {
   return false;
 }
 
+/**
+ * Reload the page after a short delay (optionally mark as update)
+ * @param {boolean} [update=false] - If true, adds an 'updated' flag to the URL
+ * @returns {void}
+ */
 export function reloadPage(update = false) {
   const url = new URL(window.location);
   setTimeout(() => {

@@ -2,7 +2,10 @@ import * as state from './state.js';
 import { showStatus } from './ui-components.js';
 import { renderGitStatus, checkForUpdates } from './update.js';
 
-// Establish defaults
+/**
+ * Return the default configuration object used by the UI
+ * @returns {object} Default configuration
+ */
 export function getDefaultConfig() {
   return {
     domain: '',
@@ -33,6 +36,10 @@ export function getDefaultConfig() {
   };
 }
 
+/**
+ * Return the default secrets object used by the UI
+ * @returns {object} Default secrets
+ */
 export function getDefaultSecrets() {
   return {
     admin_email_address: '',
@@ -43,6 +50,10 @@ export function getDefaultSecrets() {
   };
 }
 
+/**
+ * Return the default DDNS configuration object
+ * @returns {object} Default DDNS config
+ */
 export function getDefaultDdns() {
   return {
     active: false,
@@ -53,6 +64,10 @@ export function getDefaultDdns() {
   };
 }
 
+/**
+ * Return the default advanced settings object
+ * @returns {object} Default advanced configuration
+ */
 export function getDefaultAdvanced() {
   return {
     parsers: {},
@@ -61,6 +76,10 @@ export function getDefaultAdvanced() {
   };
 }
 
+/**
+ * Return default certificate metadata object
+ * @returns {object} Default certs structure
+ */
 export function getDefaultCerts() {
   return {
     services: [],
@@ -68,6 +87,10 @@ export function getDefaultCerts() {
   };
 }
 
+/**
+ * Return default color palette used by the UI
+ * @returns {object} Default colors
+ */
 export function getDefaultColors() {
   return {
     primary: "#667eea",
@@ -78,17 +101,29 @@ export function getDefaultColors() {
   }
 }
 
+/**
+ * Return default users payload
+ * @returns {object} Default users object
+ */
 export function getDefaultUsers() {
   return {
     users: []
   };
 }
 
+/**
+ * Return default blocklist (empty)
+ * @returns {Array} Default blocklist
+ */
 export function getDefaultBlocklist() {
   return [];
 }
 
-// Load operations
+/**
+ * Load configuration from the server and update UI state
+ * @param {boolean} [suppressStatus=false] - If true, suppress status messages
+ * @returns {Promise<void>}
+ */
 export async function loadConfig(suppressStatus = false) {
   try {
     const response = await fetch('/config');
@@ -117,6 +152,11 @@ export async function loadConfig(suppressStatus = false) {
   }
 }
 
+/**
+ * Load secrets from the server and update UI state
+ * @param {boolean} [suppressStatus=false]
+ * @returns {Promise<void>}
+ */
 export async function loadSecrets(suppressStatus = false) {
   try {
     const response = await fetch('/secrets');
@@ -148,6 +188,11 @@ export async function loadSecrets(suppressStatus = false) {
   }
 }
 
+/**
+ * Load users from the server and update UI state
+ * @param {boolean} [suppressStatus=false]
+ * @returns {Promise<void>}
+ */
 export async function loadUsers(suppressStatus = false) {
   try {
     const response = await fetch('/users');
@@ -166,6 +211,11 @@ export async function loadUsers(suppressStatus = false) {
   }
 }
 
+/**
+ * Load blocklist from the server and update UI state
+ * @param {boolean} [suppressStatus=false]
+ * @returns {Promise<void>}
+ */
 export async function loadBlocklist(suppressStatus = false) {
   try {
     const response = await fetch('/blocklist');
@@ -183,6 +233,11 @@ export async function loadBlocklist(suppressStatus = false) {
   }
 }
 
+/**
+ * Load DDNS configuration from the server and update UI state
+ * @param {boolean} [suppressStatus=false]
+ * @returns {Promise<void>}
+ */
 export async function loadDdns(suppressStatus = false) {
   try {
     const response = await fetch('/ddns');
@@ -205,6 +260,11 @@ export async function loadDdns(suppressStatus = false) {
   }
 }
 
+/**
+ * Load PM2 ecosystem data and update UI state
+ * @param {boolean} [suppressStatus=false]
+ * @returns {Promise<void>}
+ */
 export async function loadEcosystem(suppressStatus = false) {
   try {
     const response = await fetch('/ecosystem');
@@ -220,6 +280,11 @@ export async function loadEcosystem(suppressStatus = false) {
   }
 }
 
+/**
+ * Load advanced settings from server and update UI state
+ * @param {boolean} [suppressStatus=false]
+ * @returns {Promise<void>}
+ */
 export async function loadAdvanced(suppressStatus = false) {
   try {
     const response = await fetch('/advanced');
@@ -242,6 +307,11 @@ export async function loadAdvanced(suppressStatus = false) {
   }
 }
 
+/**
+ * Load certificate metadata from the server and update UI state
+ * @param {boolean} [suppressStatus=false]
+ * @returns {Promise<void>}
+ */
 export async function loadCerts(suppressStatus = false) {
   try {
     const response = await fetch('/certs');
@@ -259,6 +329,11 @@ export async function loadCerts(suppressStatus = false) {
   }
 }
 
+/**
+ * Load color palette from server and update UI state
+ * @param {boolean} [suppressStatus=false]
+ * @returns {Promise<void>}
+ */
 export async function loadColors(suppressStatus = false) {
   try {
     const response = await fetch('/colors');
@@ -281,7 +356,11 @@ export async function loadColors(suppressStatus = false) {
   }
 }
 
-// Save operations
+/**
+ * Save blocklist to the server
+ * @param {Array} blocklist - Blocklist array to persist
+ * @returns {Promise<object>} Server response JSON
+ */
 export async function saveBlocklist(blocklist) {
   const response = await fetch('/blocklist', {
     method: 'PUT',
@@ -297,6 +376,11 @@ export async function saveBlocklist(blocklist) {
   return await response.json();
 }
 
+/**
+ * Persist secrets to the server
+ * @param {object} secrets - Secrets object to save
+ * @returns {Promise<object>} Server response JSON
+ */
 export async function saveSecrets(secrets) {
   const response = await fetch('/secrets', {
     method: 'PUT',
@@ -312,6 +396,11 @@ export async function saveSecrets(secrets) {
   return await response.json();
 }
 
+/**
+ * Persist users list to the server
+ * @param {object} users - Users payload
+ * @returns {Promise<object>} Server response JSON
+ */
 export async function saveUsers(users) {
   const response = await fetch('/users', {
     method: 'PUT',
@@ -327,6 +416,11 @@ export async function saveUsers(users) {
   return await response.json();
 }
 
+/**
+ * Persist DDNS settings to the server
+ * @param {object} ddns - DDNS config
+ * @returns {Promise<object>} Server response JSON
+ */
 export async function saveDdns(ddns) {
   const response = await fetch('/ddns', {
     method: 'PUT',
@@ -342,6 +436,11 @@ export async function saveDdns(ddns) {
   return await response.json();
 }
 
+/**
+ * Persist PM2 ecosystem configuration to server
+ * @param {object} ecosystem - Ecosystem config
+ * @returns {Promise<object>} Server response JSON
+ */
 export async function saveEcosystem(ecosystem) {
   const response = await fetch('/ecosystem', {
     method: 'PUT',
@@ -357,6 +456,11 @@ export async function saveEcosystem(ecosystem) {
   return await response.json();
 }
 
+/**
+ * Persist advanced settings to the server
+ * @param {object} advanced - Advanced settings
+ * @returns {Promise<object>} Server response JSON
+ */
 export async function saveAdvanced(advanced) {
   const response = await fetch('/advanced', {
     method: 'PUT',
@@ -372,6 +476,11 @@ export async function saveAdvanced(advanced) {
   return await response.json();
 }
 
+/**
+ * Persist main configuration to the server
+ * @param {object} config - Configuration object
+ * @returns {Promise<object>} Server response JSON
+ */
 export async function saveConfig(config) {
   const response = await fetch('/config', {
     method: 'PUT',
@@ -387,6 +496,11 @@ export async function saveConfig(config) {
   return await response.json();
 }
 
+/**
+ * Persist color palette to the server
+ * @param {object} colors - Color values
+ * @returns {Promise<object>} Server response JSON
+ */
 export async function saveColors(colors) {
   const response = await fetch('/colors', {
     method: 'PUT',
@@ -402,6 +516,11 @@ export async function saveColors(colors) {
   return await response.json();
 }
 
+/**
+ * Request certificate provisioning for the given email
+ * @param {string} email - Contact email for certificate provisioning
+ * @returns {Promise<object>} Provision result
+ */
 export async function provisionCertificates(email) {
   const response = await fetch('/certs', {
     method: 'PUT',
@@ -418,7 +537,10 @@ export async function provisionCertificates(email) {
   return result;
 }
 
-// IP fetching utilities
+/**
+ * Fetch public IP from server API
+ * @returns {Promise<object|undefined>} Response containing success/ip or undefined on error
+ */
 export async function fetchPublicIp() {
   try {
     const response = await fetch('/publicip');
@@ -434,6 +556,10 @@ export async function fetchPublicIp() {
   }
 }
 
+/**
+ * Fetch local IP from server API
+ * @returns {Promise<object|undefined>} Response containing success/ip or undefined on error
+ */
 export async function fetchLocalIp() {
   try {
     const response = await fetch('/localip');
@@ -449,7 +575,10 @@ export async function fetchLocalIp() {
   }
 }
 
-// Git operations
+/**
+ * Check git status on the server
+ * @returns {Promise<object>} Git status payload
+ */
 export async function gitCheck() {
   const response = await fetch('/git/check');
   const data = await response.json().catch(() => null);
@@ -459,6 +588,10 @@ export async function gitCheck() {
   return data;
 }
 
+/**
+ * Trigger a git pull on the server
+ * @returns {Promise<object>} Result of git pull
+ */
 export async function gitPull() {
   const response = await fetch('/git/pull', {
     method: 'POST',
@@ -471,6 +604,10 @@ export async function gitPull() {
   return data;
 }
 
+/**
+ * Trigger a forced git reset/pull on the server
+ * @returns {Promise<object>} Result of forced update
+ */
 export async function gitForce() {
   const response = await fetch('/git/force', {
     method: 'POST',
@@ -483,6 +620,12 @@ export async function gitForce() {
   return data;
 }
 
+/**
+ * Load git status from server and update UI state
+ * @param {boolean} [suppressStatus=false]
+ * @param {boolean} [showForceUpdate=false]
+ * @returns {Promise<void>}
+ */
 export async function loadGitStatus(suppressStatus = false, showForceUpdate = false) {
   try {
     const response = await fetch('/git/status');
@@ -505,7 +648,11 @@ export async function loadGitStatus(suppressStatus = false, showForceUpdate = fa
   }
 }
 
-// Special logrotate operations
+/**
+ * Check whether logrotate is installed on the server and update UI state
+ * @param {boolean} [suppressStatus=false]
+ * @returns {Promise<void>}
+ */
 export async function loadLogRotateStatus(suppressStatus = false) {
   try {
     const response = await fetch('/checklogrotate');
@@ -519,6 +666,10 @@ export async function loadLogRotateStatus(suppressStatus = false) {
   }
 }
 
+/**
+ * Trigger installation of PM2 log-rotate module on the server
+ * @returns {Promise<void>}
+ */
 export async function installLogRotate() {
   const response = await fetch('/installlogrotate');
   const data = await response.json().catch(() => null);
@@ -528,7 +679,11 @@ export async function installLogRotate() {
   return data;
 }
 
-// Favicon upload
+/**
+ * Upload a new favicon to the server
+ * @param {FormData} formData - FormData object containing the favicon file
+ * @returns {Promise<object>} Server response JSON
+ */
 export async function uploadFavicon(formData) {
   const response = await fetch('/favicon', {
     method: 'POST',

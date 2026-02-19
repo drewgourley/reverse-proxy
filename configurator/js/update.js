@@ -2,6 +2,12 @@ import * as state from './state.js';
 import * as api from './api.js';
 import { reloadPage, waitForServerRestart, showConfirmModal, showStatus } from './ui-components.js';
 
+/**
+ * Render Git/version status in the UI
+ * @param {object} status - Git status object
+ * @param {boolean} [showForceUpdate=false] - Whether to show force-update control
+ * @returns {void}
+ */
 export function renderGitStatus(status, showForceUpdate = false) {
   const versionInfo = document.getElementById('versionInfo');
   const isFirstTimeSetup = state.ecosystem.default === true;
@@ -40,6 +46,10 @@ export function renderGitStatus(status, showForceUpdate = false) {
   `;
 }
 
+/**
+ * Check remote repository for updates and update the UI accordingly
+ * @returns {Promise<void>}
+ */
 export async function checkForUpdates() {
   const updateBtn = document.getElementById('updateBtn');
   const isFirstTimeSetup = state.ecosystem.default === true;
@@ -76,6 +86,11 @@ export async function checkForUpdates() {
   }
 }
 
+/**
+ * Initiate update flow (normal or forced) with confirmation when needed
+ * @param {boolean} [force=false] - Force update flag
+ * @returns {void}
+ */
 export function handleUpdate(force = false) {
   const updateBtn = document.getElementById('updateBtn');
   const hasUpdates = updateBtn?.getAttribute('data-has-updates') === 'true';
@@ -97,6 +112,11 @@ export function handleUpdate(force = false) {
   }
 }
 
+/**
+ * Pull updates from the remote repository, handle server restart, and update the UI accordingly
+ * @param {boolean} force - Whether to force the update (discard local changes)
+ * @returns {Promise<void>}
+ */
 async function pullUpdates(force) {
   const updateBtn = document.getElementById('updateBtn');
   const loadingOverlay = document.getElementById('loadingOverlay');
@@ -132,9 +152,4 @@ async function pullUpdates(force) {
   } finally {
     updateBtn.disabled = false;
   }
-}
-
-// Expose forceUpdate as alias for backwards compatibility
-export function forceUpdate() {
-  handleUpdate(true);
 }

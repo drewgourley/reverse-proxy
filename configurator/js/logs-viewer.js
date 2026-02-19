@@ -8,6 +8,12 @@ let logLines = [];
 let logType;
 let eventSource;
 
+/**
+ * Render the Logs viewer panel
+ * @param {string} [type='out'] - Log type ('out' or 'error')
+ * @param {boolean} [pushState=true] - Whether to push a history state
+ * @returns {void}
+ */
 export function renderLogsViewer(type = 'out', pushState = true) {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -55,6 +61,11 @@ export function renderLogsViewer(type = 'out', pushState = true) {
   renderLogsViewerContent(type);
 }
 
+/**
+ * Switch between log types (standard/error) in the Logs viewer
+ * @param {string} type - 'out' or 'error'
+ * @returns {void}
+ */
 export function switchLogType(type) {
   const routePath = window.buildAppRoute({ section: 'monitor-logs', type });
   window.history.pushState({}, '', routePath);
@@ -70,6 +81,11 @@ export function switchLogType(type) {
   renderLogsViewerContent(type);
 }
 
+/**
+ * Render the inner content container for the Logs viewer
+ * @param {string} [type='out'] - Log type to display
+ * @returns {void}
+ */
 export function renderLogsViewerContent(type = 'out') {
   const container = document.getElementById('logsContentContainer');
   if (!container) return;
@@ -83,6 +99,11 @@ export function renderLogsViewerContent(type = 'out') {
   startLogStream(type);
 }
 
+/**
+ * Start streaming logs from the server via EventSource
+ * @param {string} [type='out'] - Log stream type ('out' or 'error')
+ * @returns {void}
+ */
 export function startLogStream(type = 'out') {
   const appName = state.ecosystem?.apps?.[0]?.name ? (state.ecosystem.apps[0].name).replace(' ', '-') : 'Reverse-Proxy';
   const maxLines = 10000;
@@ -144,6 +165,11 @@ export function startLogStream(type = 'out') {
   }
 }
 
+/**
+ * Animate install button text while installation is in progress
+ * @param {HTMLElement} installBtn - Button element to animate
+ * @returns {void}
+ */
 export function installButtonTextLoop(installBtn) {
   installBtn.textContent = 'Installing';
   let dotCount = 0;
@@ -157,6 +183,10 @@ export function installButtonTextLoop(installBtn) {
   }, 500);
 }
 
+/**
+ * Handle installation of PM2 log-rotate from the UI
+ * @returns {Promise<void>}
+ */
 export async function installLogRotate() {
   const installBtn = document.getElementById('installLogRotateBtn');
   try {

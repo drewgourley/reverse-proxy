@@ -6,6 +6,14 @@ import { renderServiceEditor } from './editors/service-editor.js';
 let currentFileManagerContext = null;
 let selectedFiles = new Set();
 
+/**
+ * Render the File Manager UI for a given service and path
+ * @param {string} serviceName - Service name
+ * @param {string} [folderType='public'] - Folder type ('public' or 'static')
+ * @param {string} [currentPath=''] - Current path inside the folder
+ * @param {boolean} [pushState=true] - Whether to push history state
+ * @returns {Promise<void>}
+ */
 export async function renderFileManager(serviceName, folderType = 'public', currentPath = '', pushState = true) {
   const panel = document.getElementById('editorPanel');
   const actions = document.getElementById('editorActions');
@@ -55,6 +63,12 @@ export async function renderFileManager(serviceName, folderType = 'public', curr
   await renderFileManagerContent(serviceName, folderType, currentPath);
 }
 
+/**
+ * Switch the displayed folder type in the File Manager and re-render content
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type to switch to
+ * @returns {Promise<void>}
+ */
 export async function switchFolderType(serviceName, folderType) {
   const routePath = window.buildAppRoute({ section: `config-${serviceName}`, folder: folderType });
   window.history.pushState({}, '', routePath);
@@ -78,6 +92,13 @@ export async function switchFolderType(serviceName, folderType) {
   await renderFileManagerContent(serviceName, folderType, '');
 }
 
+/**
+ * Fetch and render file list for a service/folder/path
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type ('public'|'static')
+ * @param {string} [currentPath=''] - Path inside the folder
+ * @returns {Promise<void>}
+ */
 export async function renderFileManagerContent(serviceName, folderType, currentPath = '') {
   const container = document.getElementById('fileManagerContentContainer');
   if (!container) return;
@@ -143,6 +164,13 @@ export async function renderFileManagerContent(serviceName, folderType, currentP
   }
 }
 
+/**
+ * Navigate within file manager and update URL/history
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type
+ * @param {string} currentPath - Path to navigate to
+ * @returns {Promise<void>}
+ */
 export async function navigateFileManager(serviceName, folderType, currentPath) {
   const url = new URL(window.location);
   if (currentPath) {
@@ -155,6 +183,11 @@ export async function navigateFileManager(serviceName, folderType, currentPath) 
   await renderFileManagerContent(serviceName, folderType, currentPath);
 }
 
+/**
+ * Return from file manager view back to the service editor
+ * @param {string} serviceName - Service name
+ * @returns {Promise<void>}
+ */
 export async function backToServiceEditor(serviceName) {
   const url = new URL(window.location);
   url.searchParams.delete('folder');
@@ -166,10 +199,11 @@ export async function backToServiceEditor(serviceName) {
   renderServiceEditor(serviceName);
 }
 
-// ============================================================================
-// FILE SELECTION
-// ============================================================================
-
+/**
+ * Toggle selection state for a file item in the UI
+ * @param {string} filePath - Relative path of the file within current folder
+ * @returns {void}
+ */
 export function toggleFileSelection(filePath) {
   if (selectedFiles.has(filePath)) {
     selectedFiles.delete(filePath);
@@ -180,6 +214,10 @@ export function toggleFileSelection(filePath) {
   updateFileItemStyles();
 }
 
+/**
+ * Clear the current file selection in the UI and reset state
+ * @returns {void}
+ */
 function updateFileItemStyles() {
   const fileItems = document.querySelectorAll('.file-item');
   fileItems.forEach(item => {
@@ -202,6 +240,10 @@ export function clearFileSelection() {
   updateFileItemStyles();
 }
 
+/**
+ * Select all files in the current directory, with special handling for protected folder in dirlist services
+ * @returns {void}
+ */
 export function selectAllFiles() {
   if (!currentFileManagerContext) return;
   
@@ -232,6 +274,10 @@ export function selectAllFiles() {
   updateFileItemStyles();
 }
 
+/**
+ * Update the action buttons in the File Manager based on the current selection state
+ * @returns {void}
+ */
 function updateFileManagerActions() {
   const actionsDiv = document.getElementById('file-manager-actions');
   if (!actionsDiv || !currentFileManagerContext) return;
@@ -266,10 +312,14 @@ function updateFileManagerActions() {
   }
 }
 
-// ============================================================================
-// FILE LIST RENDERING
-// ============================================================================
-
+/**
+ * Render the list of files and directories in the File Manager
+ * @param {Array} files - Array of file objects with { name, path, type, size, modified }
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type ('public'|'static')
+ * @param {string} currentPath - Current path inside the folder
+ * @returns {string} HTML string for the file list
+ */
 function renderFileList(files, serviceName, folderType, currentPath) {
   const service = state.config.services[serviceName];
   const isDirlist = service?.subdomain?.type === 'dirlist';
@@ -348,10 +398,13 @@ function renderFileList(files, serviceName, folderType, currentPath) {
   return html;
 }
 
-// ============================================================================
-// FILE UPLOAD
-// ============================================================================
-
+/**
+ * Show upload file dialog for the File Manager
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type
+ * @param {string} [currentPath=''] - Target path inside folder
+ * @returns {void}
+ */
 export function showUploadDialog(serviceName, folderType, currentPath = '') {
   const pathDisplay = currentPath ? `/${currentPath}` : '';
   const dialogContent = `
@@ -383,6 +436,15 @@ export function showUploadDialog(serviceName, folderType, currentPath = '') {
   });
 }
 
+/**
+ * Upload a file to the server for the given service/folder/path
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type
+ * @param {string} [currentPath=''] - Target path
+ * @param {string|null} [forcedFilename=null] - Optional filename override
+ * @param {File|null} [providedFile=null] - Optional File object (for programmatic upload)
+ * @returns {Promise<void>}
+ */
 export async function uploadFile(serviceName, folderType, currentPath = '', forcedFilename = null, providedFile = null) {
   const fileInput = document.getElementById('fileInput');
   const targetPathInput = document.getElementById('targetPathInput');
@@ -435,6 +497,12 @@ export async function uploadFile(serviceName, folderType, currentPath = '', forc
   }
 }
 
+/**
+ * Generate an auto-renamed filename if a file with the same name already exists
+ * @param {string} filename - Given Filename
+ * @param {Array<string>} existingFiles - Array of existing filenames
+ * @returns {string} - The auto-renamed filename
+ */
 function generateAutoRename(filename, existingFiles) {
   const files = existingFiles || [];
   const fileNames = files.filter(f => f.type === 'file').map(f => f.name);
@@ -460,6 +528,15 @@ function generateAutoRename(filename, existingFiles) {
   return newName;
 }
 
+/**
+ * Show overwrite confirmation dialog when uploading a file with a name that already exists
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type
+ * @param {string} currentPath - Current path inside the folder
+ * @param {File} file - The file being uploaded
+ * @param {string} filename - The filename of the file being uploaded\
+ * @returns {void}
+ */
 function showOverwriteDialog(serviceName, folderType, currentPath, file, filename) {
   const suggestedName = generateAutoRename(filename, currentFileManagerContext.files);
   
@@ -487,6 +564,13 @@ function showOverwriteDialog(serviceName, folderType, currentPath, file, filenam
   _pendingUploadFile = file;
 }
 
+/**
+ * Handle overwrite confirmation for a pending upload
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type
+ * @param {string} currentPath - Current path
+ * @returns {void}
+ */
 export function handleOverwrite(serviceName, folderType, currentPath) {
   const file = _pendingUploadFile;
   if (!file) return;
@@ -496,6 +580,13 @@ export function handleOverwrite(serviceName, folderType, currentPath) {
   _pendingUploadFile = null;
 }
 
+/**
+ * Handle rename action for a pending upload
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type
+ * @param {string} currentPath - Current path
+ * @returns {void}
+ */
 export function handleRename(serviceName, folderType, currentPath) {
   const file = _pendingUploadFile;
   if (!file) return;
@@ -511,10 +602,13 @@ export function handleRename(serviceName, folderType, currentPath) {
   _pendingUploadFile = null;
 }
 
-// ============================================================================
-// DIRECTORY CREATION
-// ============================================================================
-
+/**
+ * Show dialog to create a directory in the File Manager
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type
+ * @param {string} [currentPath=''] - Current path
+ * @return {void}
+ */
 export function showCreateDirectoryDialog(serviceName, folderType, currentPath = '') {
   const pathDisplay = currentPath ? `/${currentPath}` : '';
   const dialogContent = `
@@ -535,6 +629,13 @@ export function showCreateDirectoryDialog(serviceName, folderType, currentPath =
   document.getElementById('promptModal').classList.add('active');
 }
 
+/**
+ * Create a directory on the server for the given service/folder/path
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type
+ * @param {string} currentPath - Current path inside the folder
+ * @returns {Promise<void>}
+ */
 export async function createDirectory(serviceName, folderType, currentPath = '') {
   const directoryNameInput = document.getElementById('directoryNameInput');
   const directoryName = directoryNameInput.value.trim();
@@ -572,10 +673,10 @@ export async function createDirectory(serviceName, folderType, currentPath = '')
   }
 }
 
-// ============================================================================
-// DELETE/RENAME OPERATIONS
-// ============================================================================
-
+/**
+ * Delete the selected files/directories after confirmation
+ * @returns {Promise<void>}
+ */
 export async function deleteSelectedFiles() {
   if (!currentFileManagerContext || selectedFiles.size === 0) return;
   
@@ -631,6 +732,10 @@ export async function deleteSelectedFiles() {
   );
 }
 
+/**
+ * Show dialog to rename the selected file (only if one file is selected)
+ * @returns {Promise<void>}
+ */
 export async function renameSelectedFile() {
   if (!currentFileManagerContext || selectedFiles.size !== 1) return;
   
@@ -691,10 +796,13 @@ export async function renameSelectedFile() {
   );
 }
 
-// ============================================================================
-// ZIP EXTRACTION
-// ============================================================================
-
+/**
+ * Show dialog to unpack a zip archive into the selected folder
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type
+ * @param {string} [currentPath=''] - Target path
+ * @returns {Promise<void>}
+ */
 export function showUnpackZipDialog(serviceName, folderType, currentPath = '') {
   const pathDisplay = currentPath ? `/${currentPath}` : '';
   const dialogContent = `
@@ -729,6 +837,13 @@ export function showUnpackZipDialog(serviceName, folderType, currentPath = '') {
   });
 }
 
+/**
+ * Unpack the selected zip file into the current directory, with optional deployment (clearing existing files)
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type
+ * @param {string} currentPath - Current path inside the folder
+ * @returns {Promise<void>}
+ */
 export async function unpackZip(serviceName, folderType, currentPath = '') {
   const zipFileInput = document.getElementById('zipFileInput');
   const deployCheckbox = document.getElementById('deployFromZip');
@@ -763,6 +878,15 @@ export async function unpackZip(serviceName, folderType, currentPath = '') {
   }
 }
 
+/**
+ * Perform the zip extraction by sending the file to the server and handling the response
+ * @param {string} serviceName - Service name
+ * @param {string} folderType - Folder type
+ * @param {string} currentPath - Current path inside the folder
+ * @param {File} file - The zip file to extract
+ * @param {boolean} isDeploy - Whether to deploy (clear existing files)
+ * @returns {Promise<void>}
+ */
 async function performZipExtraction(serviceName, folderType, currentPath, file, isDeploy) {
   const formData = new FormData();
   formData.append('zipFile', file);

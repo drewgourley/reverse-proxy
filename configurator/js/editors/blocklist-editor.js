@@ -6,6 +6,10 @@ import { reloadPage, waitForServerRestart, showPromptModal, showPromptError, sho
 // Search filter state
 let blocklistSearchTerm = '';
 
+/**
+ * Filter visible blocklist entries in the UI based on search input
+ * @returns {void}
+ */
 export function filterBlocklist() {
   const searchInput = document.getElementById('blocklistSearchInput');
   const panel = document.getElementById('editorPanel');
@@ -64,6 +68,10 @@ function persistBlocklistFiltersToUrl() {
   window.history.replaceState(null, '', url.toString());
 }
 
+/**
+ * Clear any blocklist search filters and refresh display
+ * @returns {void}
+ */
 export function clearBlocklistSearch() {
   blocklistSearchTerm = '';
   const searchInput = document.getElementById('blocklistSearchInput');
@@ -76,6 +84,11 @@ export function clearBlocklistSearch() {
   filterBlocklist();
 } 
 
+/**
+ * Render the Blocklist editor UI (optionally reload data first)
+ * @param {boolean} [reload=true] - Whether to reload data from server
+ * @returns {Promise<void>}
+ */
 export async function renderBlocklistEditor(reload = true) {
   if (reload) {
     await api.loadBlocklist(true);
@@ -133,6 +146,10 @@ export async function renderBlocklistEditor(reload = true) {
   filterBlocklist();
 }
 
+/**
+ * Prompt the user and add a new IP to the blocklist
+ * @returns {void}
+ */
 export function addBlocklistEntry() {
   showPromptModal(
     '<span class="material-icons">add_circle</span> Add New Blocklist Entry',
@@ -162,6 +179,11 @@ export function addBlocklistEntry() {
   );
 }
 
+/**
+ * Remove a blocklist entry after confirmation
+ * @param {number} index - Index of entry to remove
+ * @returns {void}
+ */
 export function removeBlocklistEntry(index) {
   showConfirmModal(
     '<span class="material-icons">remove_circle</span> Remove Blocklist Entry',
@@ -176,6 +198,10 @@ export function removeBlocklistEntry(index) {
   );
 }
 
+/**
+ * Persist blocklist to server and handle restart flow
+ * @returns {Promise<void>}
+ */
 export async function saveBlocklist() {
   const saveBtn = document.getElementById('saveBlocklistBtn');
   saveBtn.disabled = true;
@@ -201,6 +227,10 @@ export async function saveBlocklist() {
   }
 }
 
+/**
+ * Revert blocklist UI to last saved state (after confirmation)
+ * @returns {void}
+ */
 export function revertBlocklist() {
   showConfirmModal(
     '<span class="material-icons">undo</span> Revert Blocklist',

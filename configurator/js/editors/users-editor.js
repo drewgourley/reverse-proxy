@@ -7,6 +7,10 @@ import { reloadPage, waitForServerRestart, createDropdown, setDropdownValue, sho
 let usersSearchUsername = '';
 let usersSearchServices = [];
 
+/**
+ * Filter displayed users based on search criteria (username/UUID and service access)
+ * @returns {void}
+ */
 function filterUsers() {
   const panel = document.getElementById('editorPanel');
   const entries = document.querySelectorAll('.user-entry');
@@ -72,6 +76,10 @@ function filterUsers() {
   }
 }
 
+/**
+ * Persist current user search filters to the URL query parameters for shareable links
+ * @returns {void}
+ */
 function persistUsersFiltersToUrl() {
   const url = new URL(window.location);
 
@@ -90,6 +98,10 @@ function persistUsersFiltersToUrl() {
   window.history.replaceState(null, '', url.toString());
 }
 
+/**
+ * Update username search filter and refresh user list
+ * @returns {void}
+ */
 export function filterUsersUsername() {
   const searchInput = document.getElementById('usersSearchInput');
   usersSearchUsername = searchInput ? searchInput.value.toLowerCase().trim() : '';
@@ -97,12 +109,21 @@ export function filterUsersUsername() {
   filterUsers();
 }
 
+/**
+ * Handler for changes to the users-service filter dropdown
+ * @param {string[]} selectedValues - Selected service values
+ * @returns {void}
+ */
 export function onUsersServiceFilterChange(selectedValues) {
   usersSearchServices = selectedValues.filter(v => v !== '_no_services');
   persistUsersFiltersToUrl();
   filterUsers();
 }
 
+/**
+ * Clear all user list filters and refresh display
+ * @returns {void}
+ */
 export function clearUsersSearch() {
   usersSearchUsername = '';
   usersSearchServices = [];
@@ -119,6 +140,10 @@ export function clearUsersSearch() {
   filterUsers();
 }
 
+/**
+ * Render the Users editor UI and user list
+ * @returns {void}
+ */
 export function renderUsersEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -260,7 +285,11 @@ export function renderUsersEditor() {
   filterUsers();
 }
 
-// Create onChange handler for user services dropdown
+/**
+ * Create change handler for a user's service-access dropdown
+ * @param {number} index - User index
+ * @returns {void}
+ */
 export function createUserServicesChangeHandler(index) {
   window[`onUserServicesChange_${index}`] = function(selectedValues) {
     if (!state.users.users[index]) return;
@@ -280,11 +309,24 @@ export function createUserServicesChangeHandler(index) {
   };
 }
 
+/**
+ * Update an in-memory user field
+ * @param {number} index - Index of user in state.users.users
+ * @param {string} field - Field name to update
+ * @param {*} value - New value
+ * @returns {void}
+ */
 export function updateUser(index, field, value) {
   if (!state.users.users[index]) return;
   state.users.users[index][field] = value;
 }
 
+/**
+ * Update a user's password (plain text) in-memory; will be hashed on save
+ * @param {number} index - Index of the user
+ * @param {string} value - Plain-text password
+ * @returns {void}
+ */
 export function updateUserPassword(index, value) {
   if (!state.users.users[index]) return;
   if (value.trim() !== '') {
@@ -292,6 +334,10 @@ export function updateUserPassword(index, value) {
   }
 }
 
+/**
+ * Add a new user entry to the UI (client-only until saved)
+ * @returns {void}
+ */
 export function addNewUser() {
   if (!state.users.users) state.setUsers({ users: [] });
   state.users.users.unshift({
@@ -312,6 +358,11 @@ export function addNewUser() {
   }, 0);
 }
 
+/**
+ * Remove a user after confirmation
+ * @param {number} index - Index of user to remove
+ * @returns {void}
+ */
 export function removeUser(index) {
   const username = state.users.users[index]?.username || 'this user';
   showConfirmModal(
@@ -327,6 +378,10 @@ export function removeUser(index) {
   );
 }
 
+/**
+ * Revert user changes to last saved state (after confirmation)
+ * @returns {void}
+ */
 export function revertUsers() {
   showConfirmModal(
     '<span class="material-icons">undo</span> Revert Users',
@@ -341,6 +396,10 @@ export function revertUsers() {
   );
 }
 
+/**
+ * Validate and persist users to the server, then handle restart flow
+ * @returns {Promise<void>}
+ */
 export async function saveUsers() {
   const saveBtn = document.getElementById('saveUsersBtn');
   saveBtn.disabled = true;

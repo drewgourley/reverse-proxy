@@ -44,30 +44,7 @@ function extractIpFromSocket(socket) {
   return parts[parts.length - 1];
 };
 
-/**
- * Handle WebSocket upgrade requests for proxied services
- * @param {object} config - Configuration object
- * @param {function} req - Request object
- * @param {function} socket - Socket object
- * @param {function} head - Head buffer
- */
-function handleWebSocketUpgrade(config, req, socket, head) {
-  const websockets = Object.keys(config.services).filter(name => config.services[name].subdomain?.proxy?.socket);
-  let found = false;
-  websockets.forEach(name => {
-    if (req.headers.host === `${name}.${config.domain}`) {
-      config.services[name].subdomain.proxy.websocket.upgrade(req, socket, head);
-      found = true;
-    }
-  });
-  if (!found) {
-    socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
-    socket.destroy();
-  }
-}
-
 module.exports = {
   sendError,
-  extractIpFromSocket,
-  handleWebSocketUpgrade
+  extractIpFromSocket
 };

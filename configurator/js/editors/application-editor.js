@@ -4,6 +4,10 @@ import { parseErrorMessage } from '../utils.js';
 import { selectItem } from '../editors.js';
 import { reloadPage, waitForServerRestart, showStatus, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
 
+/**
+ * Render the Application editor UI
+ * @returns {void}
+ */
 export function renderApplicationEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -36,6 +40,11 @@ export function renderApplicationEditor() {
   `;
 }
 
+/**
+ * Update the application name inside the ecosystem object
+ * @param {string} name - New application name
+ * @returns {void}
+ */
 export function updateEcosystemName(name) {
   if (!state.ecosystem.apps) {
     state.ecosystem.apps = [{}];
@@ -46,6 +55,10 @@ export function updateEcosystemName(name) {
   state.ecosystem.apps[0].name = name;
 }
 
+/**
+ * Save PM2 ecosystem configuration to the server
+ * @returns {Promise<void>}
+ */
 export async function saveEcosystem() {
   const saveBtn = document.getElementById('saveEcosystemBtn');
   const isDefault = state.ecosystem.default === true;
@@ -94,6 +107,10 @@ export async function saveEcosystem() {
   }
 }
 
+/**
+ * Revert application settings to last saved values (after confirmation)
+ * @returns {void}
+ */
 export function revertEcosystem() {
   showConfirmModal(
     '<span class="material-icons">undo</span> Revert Application Settings',

@@ -1,4 +1,8 @@
-// Error handling utilities
+/**
+ * Parse a validation or Error object and return a user-friendly message
+ * @param {Error|object|string} error - Error instance or error payload
+ * @returns {string} Human-readable error message
+ */
 export function parseErrorMessage(error) {
   try {
     const errorObj = JSON.parse(error.message);
@@ -41,7 +45,11 @@ export function parseErrorMessage(error) {
   }
 }
 
-// Color utilities
+/**
+ * Convert a hex color string to HSL components
+ * @param {string} hex - Hex color (e.g. "#rrggbb")
+ * @returns {{h:number,s:number,l:number}} HSL object (h:0-360, s/l:0-100)
+ */
 export function hexToHSL(hex) {
   let r = parseInt(hex.slice(1, 3), 16) / 255;
   let g = parseInt(hex.slice(3, 5), 16) / 255;
@@ -67,6 +75,13 @@ export function hexToHSL(hex) {
   return { h: h * 360, s: s * 100, l: l * 100 };
 }
 
+/**
+ * Convert HSL components to a hex color string
+ * @param {number} h - Hue (0-360)
+ * @param {number} s - Saturation (0-100)
+ * @param {number} l - Lightness (0-100)
+ * @returns {string} Hex color string (e.g. "#rrggbb")
+ */
 export function hslToHex(h, s, l) {
   l /= 100;
   const a = s * Math.min(l, 1 - l) / 100;
@@ -78,30 +93,58 @@ export function hslToHex(h, s, l) {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
+/**
+ * Return the inverse color for the provided hex
+ * @param {string} hex - Hex color string
+ * @returns {string} Inverse hex color string
+ */
 export function getInverseColor(hex) {
   const hsl = hexToHSL(hex);
   hsl.h = (hsl.h + 180) % 360;
   return hslToHex(hsl.h, hsl.s, hsl.l);
 }
 
+/**
+ * Darken a hex color by a percentage
+ * @param {string} hex - Hex color string
+ * @param {number} percent - Amount to reduce lightness (0-100)
+ * @returns {string} Darkened hex color
+ */
 export function darkenColor(hex, percent) {
   const hsl = hexToHSL(hex);
   hsl.l = Math.max(0, hsl.l - percent);
   return hslToHex(hsl.h, hsl.s, hsl.l);
 }
 
+/**
+ * Lighten a hex color by a specified amount (used relative to background)
+ * @param {string} hex - Hex color string
+ * @param {number} lightenAmount - Amount to increase lightness
+ * @returns {string} Lightened hex color
+ */
 export function lightenFromBackground(hex, lightenAmount) {
   const hsl = hexToHSL(hex);
   hsl.l = Math.min(100, hsl.l + lightenAmount);
   return hslToHex(hsl.h, hsl.s, hsl.l);
 }
 
+/**
+ * Darken a hex color relative to background
+ * @param {string} hex - Hex color string
+ * @param {number} percent - Amount to decrease lightness
+ * @returns {string} Darkened hex color
+ */
 export function darkenFromBackground(hex, percent) {
   const hsl = hexToHSL(hex);
   hsl.l = Math.max(0, hsl.l - percent);
   return hslToHex(hsl.h, hsl.s, hsl.l);
 }
 
+/**
+ * Clamp background color to a minimum readable lightness
+ * @param {string} hex - Hex color string
+ * @returns {string} Possibly adjusted hex color
+ */
 export function clampBackgroundColor(hex) {
   const hsl = hexToHSL(hex);
   const minLightness = 9.4;
@@ -111,6 +154,10 @@ export function clampBackgroundColor(hex) {
   return hex;
 }
 
+/**
+ * Generate a RFC4122-like UUID v4 string
+ * @returns {string} UUID string
+ */
 export function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
@@ -119,7 +166,11 @@ export function generateUUID() {
   });
 }
 
-// File utilities
+/**
+ * Format bytes into a human-readable file size string
+ * @param {number} bytes - Number of bytes
+ * @returns {string} Human readable size (e.g. "1.2 MB")
+ */
 export function formatFileSize(bytes) {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -128,6 +179,11 @@ export function formatFileSize(bytes) {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
+/**
+ * Return an HTML icon snippet based on filename extension
+ * @param {string} filename - Filename to inspect
+ * @returns {string} HTML string for the icon
+ */
 export function getFileIcon(filename) {
   const ext = filename.split('.').pop().toLowerCase();
   // Images
@@ -197,6 +253,12 @@ export function getFileIcon(filename) {
   return '<span class="material-icons file">insert_drive_file</span>';
 }
 
+/**
+ * Generate a non-conflicting filename by appending a counter
+ * @param {string} filename - Original filename
+ * @param {Array} existingFiles - Array of existing file objects with a `name` property
+ * @returns {string} New filename that does not conflict
+ */
 export function generateAutoRename(filename, existingFiles) {
   const ext = filename.includes('.') ? '.' + filename.split('.').pop() : '';
   const baseName = filename.includes('.') ? filename.substring(0, filename.lastIndexOf('.')) : filename;
@@ -212,6 +274,11 @@ export function generateAutoRename(filename, existingFiles) {
   return newName;
 }
 
+/**
+ * Deep-clean configuration objects by removing empty/null values
+ * @param {*} obj - Any value to be cleaned
+ * @returns {*} Cleaned value (same structure as input)
+ */
 export function cleanConfig(obj) {
   if (obj === null || obj === undefined) {
     return obj;
@@ -247,6 +314,11 @@ export function cleanConfig(obj) {
 }
 
 // Nav and routing utilities
+/**
+ * Parse an application route into section/type/folder/path components
+ * @param {string} path - Route path (e.g. "/config/service/files/static/x")
+ * @returns {object} Parsed route object
+ */
 export function parseAppRoute(path) {
   // Remove leading/trailing slashes
   const clean = path.replace(/^\/+|\/+$/g, '');
@@ -282,6 +354,15 @@ export function parseAppRoute(path) {
   return {};
 }
 
+/**
+ * Build a URL path from internal route components
+ * @param {object} options - Route components
+ * @param {string} options.section - Section identifier (e.g. "config-service")
+ * @param {string} [options.type] - Optional type (e.g. "error")
+ * @param {string} [options.folder] - Optional folder (e.g. "static")
+ * @param {string} [options.path] - Optional path within folder
+ * @returns {string} URL path for history.pushState
+ */
 export function buildAppRoute({ section, type, folder, path }) {
   // Returns a path string for pushState
   if (!section) return '/';
@@ -311,6 +392,11 @@ export function buildAppRoute({ section, type, folder, path }) {
 }
 
 // Misc utilities
+/**
+ * Return an HTML icon snippet for a given service type
+ * @param {string} serviceType - Service type (index|proxy|dirlist|spa)
+ * @returns {string} HTML icon string
+ */
 export function getServiceIcon(serviceType) {
   switch(serviceType) {
     case 'index': return '<span class="material-icons">description</span>';
@@ -321,6 +407,11 @@ export function getServiceIcon(serviceType) {
   }
 }
 
+/**
+ * Wrap an event handler to automatically prevent default and then call the callback
+ * @param {function} callback - Handler to call after preventDefault
+ * @returns {function} Event handler wrapper
+ */
 export function preventDefaultThen(callback) {
   return function(event) {
     event.preventDefault();
@@ -328,6 +419,11 @@ export function preventDefaultThen(callback) {
   };
 }
 
+/**
+ * Programmatically click an element by id if it exists
+ * @param {string} id - Element id to click
+ * @returns {void}
+ */
 export function clickItemByID(id) {
   const el = document.getElementById(id);
   if (el) {

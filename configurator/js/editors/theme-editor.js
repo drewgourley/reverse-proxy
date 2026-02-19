@@ -3,6 +3,10 @@ import * as api from '../api.js';
 import { showStatus, showConfirmModal } from '../ui-components.js';
 import { hexToHSL, getInverseColor, darkenColor, lightenFromBackground, darkenFromBackground, clampBackgroundColor } from '../utils.js';
 
+/**
+ * Initialize theme controls and populate current color values
+ * @returns {void}
+ */
 export function initTheme() {
   updateTheme();
   
@@ -19,6 +23,10 @@ export function initTheme() {
   if (color4) color4.value = state.colors.background;
 }
 
+/**
+ * Apply current color values to document CSS variables and derived styles
+ * @returns {void}
+ */
 export function updateTheme() {
   const primary = state.colors.primary;
   const secondary = state.colors.secondary;
@@ -76,6 +84,10 @@ export function updateTheme() {
   document.body.style.background = `linear-gradient(135deg, ${gradientPrimary} 0%, ${gradientSecondary} 100%)`;
 }
 
+/**
+ * Revert theme changes to original values (prompts for confirmation)
+ * @returns {void}
+ */
 export function revertTheme() {
   showConfirmModal(
     '<span class="material-icons">undo</span> Revert Theme',
@@ -107,6 +119,11 @@ export function revertTheme() {
   );
 }
 
+/**
+ * Validate and preview a selected favicon PNG file
+ * @param {Event} event - File input change event
+ * @returns {Promise<void>}
+ */
 export async function handleFaviconPreview(event) {
   const file = event.target.files[0];
   if (!file) {
@@ -143,6 +160,10 @@ export async function handleFaviconPreview(event) {
   reader.readAsDataURL(file);
 }
 
+/**
+ * Upload pending favicon to the server
+ * @returns {Promise<boolean>} True if upload succeeded
+ */
 export async function uploadFavicon() {
   if (!state.pendingFaviconFile) return true;
   
@@ -174,6 +195,10 @@ export async function uploadFavicon() {
   }
 } 
 
+/**
+ * Persist theme colors (and optional favicon) to the server
+ * @returns {Promise<void>}
+ */
 export async function saveTheme() {
   const saveBtn = document.getElementById('saveThemeBtn');
   saveBtn.disabled = true;
@@ -208,6 +233,10 @@ export async function saveTheme() {
   } 
 }
 
+/**
+ * Render the Theme editor UI into the editor panel
+ * @returns {void}
+ */
 export function renderThemeEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');

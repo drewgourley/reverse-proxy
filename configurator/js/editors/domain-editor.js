@@ -2,6 +2,10 @@ import * as state from '../state.js';
 import * as api from '../api.js';
 import { createDropdown } from '../ui-components.js';
 
+/**
+ * Render the Domain editor UI and setup route/port instructions
+ * @returns {void}
+ */
 export function renderDomainEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -130,14 +134,29 @@ export function renderDomainEditor() {
   fetchLocalIp();
 }
 
+/**
+ * Update a top-level configuration key in-memory
+ * @param {string} key - Config key to update
+ * @param {string} value - New value
+ * @returns {void}
+ */
 export function updateConfig(key, value) {
   state.config[key] = value;
 }
 
+/**
+ * Handler for changing which service is served at the root domain
+ * @param {string} value - Selected service name
+ * @returns {void}
+ */
 export function onRootServiceChange(value) {
   updateConfig('rootservice', value);
 }
 
+/**
+ * Fetch and display the public IP in the Domain editor
+ * @returns {Promise<void>}
+ */
 export async function fetchPublicIp() {
   const displayElement = document.getElementById('publicIpDisplay');
   const route53Ip1 = document.getElementById('route53Ip1');
@@ -168,6 +187,10 @@ export async function fetchPublicIp() {
   }
 }
 
+/**
+ * Fetch and display the local IP in the Domain editor
+ * @returns {Promise<void>}
+ */
 export async function fetchLocalIp() {
   const localIpDisplay = document.getElementById('localIpDisplay');
   const localIp1 = document.getElementById('localIp1');

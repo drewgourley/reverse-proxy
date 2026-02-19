@@ -103,7 +103,6 @@ setTimeout(() => {
     initApplication({ config, secrets, users, blocklist, env, protocols, parsers, extractors, odalpapiService, __dirname }).then((app) => {
       const portHttp = (env === 'development' || env === 'test') ? 80 : 8080;
 
-      // Use shared bot-blocker helper for fast blocklist checks
       const earlyHandler = (req, res) => {
         const ip = extractIpFromSocket(req.socket);
         if (isIpBlocked(ip, blocklist)) {
@@ -115,7 +114,22 @@ setTimeout(() => {
         return app(req, res);
       };
 
-      const setupServerListener = (config, blocklist, server, port, type) => {
+      const handleWebSocketUpgrade = (req, socket, head) => {
+        const websockets = Object.keys(config.services).filter(name => config.services[name].subdomain?.proxy?.socket);
+        let found = false;
+        websockets.forEach(name => {
+          if (req.headers.host === `${name}.${config.domain}`) {
+            config.services[name].subdomain.proxy.websocket.upgrade(req, socket, head);
+            found = true;
+          }
+        });
+        if (!found) {
+          socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+          socket.destroy();
+        }
+      }
+
+      const setupServerListener = (server, port, type) => {
         server.listen(port, () => {
           const now = new Date().toISOString();
           console.log(`${now}: ${type} Server running on port ${port}`);
@@ -126,20 +140,20 @@ setTimeout(() => {
               try { socket.destroy(); } catch (e) { /* ignore */ }
               return;
             }
-            handleWebSocketUpgrade(config, req, socket, head);
+            handleWebSocketUpgrade(req, socket, head);
           });
         });
       }
 
       // Always Create HTTP server
       const httpServer = http.createServer(earlyHandler);
-      setupServerListener(config, blocklist, httpServer, portHttp, 'HTTP');
+      setupServerListener(httpServer, portHttp, 'HTTP');
 
       // Only create HTTPS server if certs are available
       const httpsServer = cert ? https.createServer(cert, earlyHandler) : null;
       if (httpsServer) {
         const portHttps = 8443;
-        setupServerListener(config, blocklist, httpsServer, portHttps, 'HTTPS');
+        setupServerListener(httpsServer, portHttps, 'HTTPS');
       }
     }).catch((err) => {
       const now = new Date().toISOString();

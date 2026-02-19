@@ -171,7 +171,6 @@ window.unpackZip = fileManager.unpackZip;
 
 // Update Module - Git & Updates
 window.handleUpdate = update.handleUpdate;
-window.forceUpdate = update.forceUpdate;
 
 // Theme Editor
 window.revertTheme = themeEditor.revertTheme;
@@ -199,6 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize theme after colors are loaded
   themeEditor.initTheme();
 
+  // Render the main editors list and placeholder view
   editors.renderServicesList();
   editors.renderPlaceholderEditor();
 
@@ -207,14 +207,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   const justUpdated = url.searchParams.get('updated') === 'true';
   const justRestarted = url.searchParams.get('restarted') === 'true';
 
+  // Show status messages for update/restart if applicable, then clean up params
   if (justUpdated) {
     url.searchParams.delete('updated');
     ui.showStatus('Update completed successfully!', 'success');
   }
+
+  // Show restart status after update if applicable, then clean up params
   if (justRestarted) {
     url.searchParams.delete('restarted');
     ui.showStatus('Server restarted successfully!', 'success');
   }
+
+  // Clean URL if either parameter was present
   if (justUpdated || justRestarted) {
     window.history.replaceState({}, '', url);
   }
@@ -225,6 +230,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const canProvision = certStatus.needDeprovisioning.length > 0 || certStatus.needProvisioning.length > 0;
   const addServiceBtn = document.getElementById('addServiceBtn');
 
+  // Disable "Add Service" button if in first-time setup or secrets are not saved, to enforce setup flow
   if (addServiceBtn && (isFirstTimeSetup || !state.secretsSaved)) {
     addServiceBtn.disabled = true;
   }
@@ -244,6 +250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Parse path for route
   const route = parseAppRoute(window.location.pathname);
 
+  // Determine initial view based on setup state and route
   if (isFirstTimeSetup) {
     editors.selectItem('management-application');
   } else if (state.secretsSaved === false) {
@@ -303,5 +310,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // All done, show the app
   document.documentElement.classList.add('loaded');
 });

@@ -6,10 +6,13 @@ import { blockNavigation, hasUnsavedManagementChanges, renderPlaceholderEditor, 
 import { renderDomainEditor } from './domain-editor.js';
 import { renderCertificatesEditor } from './certificates-editor.js';
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
+/**
+ * Update a nested property on a service config object
+ * @param {string} serviceName - Service identifier
+ * @param {string} path - Dot-separated path to the property (e.g. "subdomain.protocol")
+ * @param {*} value - Value to set
+ * @returns {void}
+ */
 export function updateServiceProperty(serviceName, path, value) {
   const parts = path.split('.');
   let obj = state.config.services[serviceName];
@@ -25,6 +28,11 @@ export function updateServiceProperty(serviceName, path, value) {
   obj[parts[parts.length - 1]] = value;
 }
 
+/**
+ * Show/hide editor fields based on selected subdomain type
+ * @param {string} serviceName - Service identifier
+ * @returns {void}
+ */
 export function toggleFieldVisibility(serviceName) {
   const selectedType = getDropdownValue(`subdomain_type_${serviceName}`);
   const basicAuthFields = document.querySelectorAll(`.basicauth-field[data-service="${serviceName}"]`);
@@ -59,6 +67,11 @@ export function toggleFieldVisibility(serviceName) {
   });
 }
 
+/**
+ * Toggle visibility of healthcheck-related fields in the editor
+ * @param {string} serviceName - Service identifier
+ * @returns {void}
+ */
 export function toggleHealthcheckFieldVisibility(serviceName) {
   const selectedType = getDropdownValue(`hc_type_${serviceName}`);
   const httpOnlyFields = document.querySelectorAll(`.http-only-field[data-service="${serviceName}"]`);
@@ -93,6 +106,11 @@ export function toggleHealthcheckFieldVisibility(serviceName) {
   });
 }
 
+/**
+ * Toggle visibility for extractor-dependent meta fields
+ * @param {string} serviceName - Service identifier
+ * @returns {void}
+ */
 export function toggleMetaFieldVisibility(serviceName) {
   const selectedExtractor = getDropdownValue(`hc_extractor_${serviceName}`);
   const extractorDependentFields = document.querySelectorAll(`.extractor-dependent-field[data-service="${serviceName}"]`);
@@ -107,10 +125,11 @@ export function toggleMetaFieldVisibility(serviceName) {
   });
 }
 
-// ============================================================================
-// SUBDOMAIN & HEALTHCHECK MANAGEMENT
-// ============================================================================
-
+/**
+ * Add a default subdomain configuration for a service (if missing)
+ * @param {string} serviceName - Service identifier
+ * @returns {void}
+ */
 export function addSubdomain(serviceName) {
   if (!state.config.services[serviceName].subdomain) {
     state.config.services[serviceName].subdomain = {
@@ -123,6 +142,11 @@ export function addSubdomain(serviceName) {
   }
 }
 
+/**
+ * Remove a subdomain configuration for a service (with confirmation)
+ * @param {string} serviceName - Service identifier
+ * @returns {void}
+ */
 export function removeSubdomain(serviceName) {
   showConfirmModal(
     '<span class="material-icons">remove_circle</span> Remove Subdomain',
@@ -138,6 +162,11 @@ export function removeSubdomain(serviceName) {
   );
 }
 
+/**
+ * Add a default healthcheck object for the specified service
+ * @param {string} serviceName - Service identifier
+ * @returns {void}
+ */
 export function addHealthcheck(serviceName) {
   if (!state.config.services[serviceName].healthcheck) {
     state.config.services[serviceName].healthcheck = {
@@ -156,6 +185,11 @@ export function addHealthcheck(serviceName) {
   }
 }
 
+/**
+ * Remove the healthcheck configuration for a service (with confirmation)
+ * @param {string} serviceName - Service identifier
+ * @returns {void}
+ */
 export function removeHealthcheck(serviceName) {
   showConfirmModal(
     '<span class="material-icons">remove_circle</span> Remove Health Check',
@@ -170,10 +204,11 @@ export function removeHealthcheck(serviceName) {
   );
 }
 
-// ============================================================================
-// CHANGE HANDLERS
-// ============================================================================
-
+/**
+ * Create window-scoped change handler functions for subdomain controls
+ * @param {string} serviceName - Service identifier
+ * @returns {void}
+ */
 export function createSubdomainChangeHandlers(serviceName) {
   window[`onSubdomainTypeChange_${serviceName}`] = function(value) {
     updateServiceProperty(serviceName, 'subdomain.type', value);
@@ -185,6 +220,11 @@ export function createSubdomainChangeHandlers(serviceName) {
   };
 }
 
+/**
+ * Create window-scoped change handler functions for healthcheck controls
+ * @param {string} serviceName - Service identifier
+ * @returns {void}
+ */
 export function createHealthcheckChangeHandlers(serviceName) {
   window[`onHealthcheckTypeChange_${serviceName}`] = function(value) {
     updateServiceProperty(serviceName, 'healthcheck.type', value);
@@ -209,10 +249,12 @@ export function createHealthcheckChangeHandlers(serviceName) {
   };
 }
 
-// ============================================================================
-// RENDER HELPERS
-// ============================================================================
-
+/**
+ * Render the default service editor UI for a specific service
+ * @param {string} serviceName - Service identifier
+ * @param {object} subdomain - Subdomain configuration object
+ * @returns {void}
+ */
 function renderDefaultSubdomainSection(serviceName, subdomain) {
   const isWww = serviceName === 'www';
   return `
@@ -250,6 +292,12 @@ function renderDefaultSubdomainSection(serviceName, subdomain) {
   `;
 }
 
+/**
+ * Render the service editor UI for a specific service
+ * @param {string} serviceName - Service identifier
+ * @param {object} subdomain - Subdomain configuration object
+ * @returns {void}
+ */
 function renderSubdomainSection(serviceName, subdomain) {
   return `
     <div class="section">
@@ -333,6 +381,12 @@ function renderSubdomainSection(serviceName, subdomain) {
   `;
 }
 
+/**
+ * Render the simplified healthcheck editor UI for a specific service
+ * @param {string} serviceName - Service identifier
+ * @param {object} healthcheck - Healtcheck configuration object
+ * @returns {void}
+ */
 function renderApiHealthcheckSection(serviceName, healthcheck) {
   return `
     <div class="section">
@@ -352,6 +406,12 @@ function renderApiHealthcheckSection(serviceName, healthcheck) {
   `;
 }
 
+/**
+ * Render the healthcheck editor UI for a specific service
+ * @param {string} serviceName - Service identifier
+ * @param {object} healthcheck - Healtcheck configuration object
+ * @returns {void}
+ */
 function renderHealthcheckSection(serviceName, healthcheck) {
   // Build parser options from both defaults and advanced config
   const parserOptions = ['hass', 'radio', 'body'];
@@ -501,6 +561,12 @@ function renderHealthcheckSection(serviceName, healthcheck) {
   `;
 }
 
+/**
+ * Render the meta editor UI for a specific service
+ * @param {string} serviceName - Service identifier
+ * @param {object} meta - Meta data configuration object
+ * @returns {void}
+ */
 function renderMetaSection(serviceName, meta) {
   let html = '<div class="form-group form-group-no-margin"><p class="label">Meta Data Defaults</p><div class="nested-object">';
   
@@ -539,10 +605,11 @@ function renderMetaSection(serviceName, meta) {
   return html;
 }
 
-// ============================================================================
-// MAIN SERVICE EDITOR
-// ============================================================================
-
+/**
+ * Render the whole editor UI for a specific service
+ * @param {string} serviceName - Service identifier
+ * @returns {void}
+ */
 export function renderServiceEditor(serviceName) {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -641,10 +708,11 @@ export function renderServiceEditor(serviceName) {
   }
 }
 
-// ============================================================================
-// SERVICE MANAGEMENT
-// ============================================================================
-
+/**
+ * Remove a service from the configuration (with confirmation)
+ * @param {string} serviceName - Service identifier
+ * @returns {void}
+ */
 export function removeService(serviceName) {
   showConfirmModal(
     '<span class="material-icons">remove_circle</span> Remove Service',
@@ -672,6 +740,10 @@ export function removeService(serviceName) {
   );
 }
 
+/**
+ * Add a new service to the configuration with a default template)
+ * @returns {void}
+ */
 export function addNewService() {
   if (hasUnsavedManagementChanges()) {
     blockNavigation();
@@ -719,10 +791,11 @@ export function addNewService() {
   );
 }
 
-// ============================================================================
-// CONFIG OPERATIONS
-// ============================================================================
-
+/**
+ * Recursively clean the configuration object by removing empty strings and empty objects, while preserving null values for specific keys
+ * @param {*} obj 
+ * @returns {*} Cleaned configuration object
+ */
 export function cleanConfig(obj) {
   if (Array.isArray(obj)) {
     return obj.map(item => cleanConfig(item));
@@ -757,6 +830,10 @@ export function cleanConfig(obj) {
   return obj;
 }
 
+/**
+ * Save the current configuration to the server
+ * @returns {void}
+ */
 export async function saveConfig() {
   const saveBtn = document.getElementById('saveBtn');
   saveBtn.disabled = true;
@@ -805,6 +882,10 @@ export async function saveConfig() {
   }
 }
 
+/**
+ * Reset the editor to the original configuration with confirmation
+ * @returns {void}
+ */
 export function resetEditor() {
   showConfirmModal(
     '<span class="material-icons">undo</span> Revert Changes',

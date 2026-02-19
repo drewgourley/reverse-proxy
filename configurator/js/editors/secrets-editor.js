@@ -3,6 +3,10 @@ import * as api from '../api.js';
 import { parseErrorMessage } from '../utils.js';
 import { reloadPage, waitForServerRestart, showStatus, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
 
+/**
+ * Render the Secrets editor UI
+ * @returns {void}
+ */
 export function renderSecretsEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -118,16 +122,34 @@ export function renderSecretsEditor() {
   `;
 }
 
+/**
+ * Update an in-memory secret value
+ * @param {string} key - Secret key
+ * @param {string} value - New value
+ * @returns {void}
+ */
 export function updateSecret(key, value) {
   state.secrets[key] = value;
 }
 
+/**
+ * Update a password (plain text) for a secret entry; will be hashed on save
+ * @param {string} key - Secret key
+ * @param {string} value - Password/plain text value
+ * @param {boolean} wasExistingHash - Whether an existing hash was present
+ * @returns {void}
+ */
 export function updatePasswordHash(key, value, wasExistingHash) {
   if (value.trim() !== '') {
     state.secrets[key] = value;
   }
 }
 
+/**
+ * Remove a secret (after confirmation)
+ * @param {string} key - Secret key to remove
+ * @returns {void}
+ */
 export function removeSecret(key) {
   showConfirmModal(
     '<span class="material-icons">remove_circle</span> Remove Secret',
@@ -146,6 +168,10 @@ export function removeSecret(key) {
   );
 }
 
+/**
+ * Persist secrets to server and handle restart flow
+ * @returns {Promise<void>}
+ */
 export async function saveSecrets() {
   const saveBtn = document.getElementById('saveSecretsBtn');
   saveBtn.disabled = true;
@@ -173,6 +199,10 @@ export async function saveSecrets() {
   }
 }
 
+/**
+ * Revert secrets UI to the last saved values (after confirmation)
+ * @returns {void}
+ */
 export function revertSecrets() {
   showConfirmModal(
     '<span class="material-icons">undo</span> Revert Secrets',

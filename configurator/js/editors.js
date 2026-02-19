@@ -14,6 +14,12 @@ import { renderBlocklistEditor } from './editors/blocklist-editor.js';
 import { renderFileManager } from './file-manager.js';
 import { renderServiceEditor } from './editors/service-editor.js';
 
+/**
+ * Render a placeholder editor view with optional actions
+ * @param {string} [message='Select an item from the sidebar to view or edit its settings.'] - Message to display
+ * @param {string} [actionsHtml=''] - HTML for editor actions
+ * @returns {void}
+ */
 export function renderPlaceholderEditor(message = 'Select an item from the sidebar to view or edit its settings.', actionsHtml = '') {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -33,8 +39,17 @@ export function renderPlaceholderEditor(message = 'Select an item from the sideb
   actions.innerHTML = actionsHtml;
 }
 
+/**
+ * Select and render a sidebar item (editor or monitor view)
+ * @param {string} prefixedName - Item identifier (e.g. 'config-api' or 'management-theme')
+ * @param {string} type - Type parameter (used for logs etc.)
+ * @param {string} folder - Folder context for file manager
+ * @param {string} path - Path context for file manager
+ * @param {boolean} [pushState=true] - Whether to push a history state
+ * @returns {void}
+ */
 export function selectItem(prefixedName, type, folder, path, pushState = true) {
-  try {
+  try { 
     if (pushState && state.currentSelection && state.currentSelection !== prefixedName) {
       if (!canNavigateAway(state.currentSelection, prefixedName)) {
         blockNavigation();
@@ -94,6 +109,10 @@ export function selectItem(prefixedName, type, folder, path, pushState = true) {
   }
 }
 
+/**
+ * Render the left-hand services and management list in the sidebar
+ * @returns {void}
+ */
 export function renderServicesList() {
   const list = document.getElementById('servicesList');
   
@@ -318,16 +337,23 @@ export function renderServicesList() {
   });
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
+/**
+ * Get the section type based on the prefixed name
+ * @param {string} prefixedName - The prefixed name of the section
+ * @returns {string|null} - 'management', 'config', or null if unknown
+ */
 function getSectionType(prefixedName) {
   if (prefixedName.startsWith('management-') || prefixedName.startsWith('monitor-')) return 'management';
   if (prefixedName.startsWith('config-')) return 'config';
   return null;
 }
 
+/**
+ * Determine if navigation away from a section is allowed (checks unsaved changes)
+ * @param {string} fromSection - Current section identifier
+ * @param {string} toSection - Target section identifier
+ * @returns {boolean} True if navigation is allowed
+ */
 export function canNavigateAway(fromSection, toSection) {
   const fromType = getSectionType(fromSection);
   const toType = getSectionType(toSection);
@@ -350,6 +376,10 @@ export function canNavigateAway(fromSection, toSection) {
   return true;
 }
 
+/**
+ * Block navigation and show a UI hint to save or revert changes
+ * @returns {void}
+ */
 export function blockNavigation() {
   showMobilePanel('editor');
   const actions = document.getElementById('editorActions');
@@ -358,38 +388,74 @@ export function blockNavigation() {
   actionsContainer.classList.add('spotlight');
 }
 
+/**
+ * Check whether there are unsaved configuration changes
+ * @returns {boolean} True if config has unsaved changes
+ */
 export function hasUnsavedConfigChanges() {
   return JSON.stringify(state.config) !== JSON.stringify(state.originalConfig);
 }
 
+/**
+ * Check whether there are unsaved secrets changes
+ * @returns {boolean} True if secrets have unsaved changes
+ */
 export function hasUnsavedSecretsChanges() {
   return JSON.stringify(state.secrets) !== JSON.stringify(state.originalSecrets);
 }
 
+/**
+ * Check whether there are unsaved users changes
+ * @returns {boolean} True if users have unsaved changes
+ */
 export function hasUnsavedUsersChanges() {
   return JSON.stringify(state.users) !== JSON.stringify(state.originalUsers);
 }
 
+/**
+ * Check whether there are unsaved DDNS changes
+ * @returns {boolean} True if DDNS has unsaved changes
+ */
 export function hasUnsavedDdnsChanges() {
   return JSON.stringify(state.ddns) !== JSON.stringify(state.originalDdns);
 }
 
+/**
+ * Check whether there are unsaved blocklist changes
+ * @returns {boolean} True if blocklist has unsaved changes
+ */
 export function hasUnsavedBlocklistChanges() {
   return JSON.stringify(state.blocklist) !== JSON.stringify(state.originalBlocklist);
 }
 
+/**
+ * Check whether there are unsaved theme (colors/favicon) changes
+ * @returns {boolean} True if theme has unsaved changes
+ */
 export function hasUnsavedThemeChanges() {
   return JSON.stringify(state.colors) !== JSON.stringify(state.originalColors) || state.pendingFaviconFile !== null;
 }
 
+/**
+ * Check whether there are unsaved ecosystem (PM2) changes
+ * @returns {boolean} True if ecosystem has unsaved changes
+ */
 export function hasUnsavedEcosystemChanges() {
   return JSON.stringify(state.ecosystem) !== JSON.stringify(state.originalEcosystem);
 }
 
+/**
+ * Check whether there are unsaved advanced-settings changes
+ * @returns {boolean} True if advanced settings have unsaved changes
+ */
 export function hasUnsavedAdvancedChanges() {
   return JSON.stringify(state.advanced) !== JSON.stringify(state.originalAdvanced);
 }
 
+/**
+ * Check whether there are any unsaved management-related changes
+ * @returns {boolean} True if any management area has unsaved changes
+ */
 export function hasUnsavedManagementChanges() {
   return hasUnsavedEcosystemChanges() || 
          hasUnsavedSecretsChanges() || 
@@ -400,10 +466,18 @@ export function hasUnsavedManagementChanges() {
          hasUnsavedBlocklistChanges();
 }
 
+/**
+ * Check whether there are any unsaved changes across the entire UI
+ * @returns {boolean} True if any unsaved changes exist
+ */
 export function hasUnsavedChanges() {
   return hasUnsavedConfigChanges() || hasUnsavedManagementChanges();
 }
 
+/**
+ * Get certificate provisioning status summary for the UI
+ * @returns {object} Certificate status object
+ */
 export function getCertificateStatus() {
   return gcs();
 }

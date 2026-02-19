@@ -4,6 +4,10 @@ import { parseErrorMessage } from '../utils.js';
 import { reloadPage, waitForServerRestart, showStatus, showLoadingOverlay, hideLoadingOverlay } from '../ui-components.js';
 import { hasUnsavedConfigChanges } from '../editors.js';
 
+/**
+ * Render the Certificates editor UI and show certificate status
+ * @returns {void}
+ */
 export function renderCertificatesEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -91,6 +95,10 @@ export function renderCertificatesEditor() {
   }
 }
 
+/**
+ * Trigger certificate provisioning flow on the server
+ * @returns {Promise<void>}
+ */
 export async function provisionCertificates() {
   const email = state.secrets.admin_email_address;
   const provisionBtn = document.getElementById('provisionBtn');
@@ -121,6 +129,10 @@ export async function provisionCertificates() {
   }
 }
 
+/**
+ * Determine certificate provisioning status for configured services
+ * @returns {{provisioned:string[],needProvisioning:string[],needDeprovisioning:string[]}}
+ */
 export function getCertificateStatus() {
   const status = {
     provisioned: [],

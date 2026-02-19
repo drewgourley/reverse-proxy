@@ -2,6 +2,10 @@ import * as state from '../state.js';
 import * as api from '../api.js';
 import { reloadPage, waitForServerRestart, showPromptModal, showStatus, showConfirmModal, showLoadingOverlay } from '../ui-components.js';
 
+/**
+ * Render the Advanced configuration editor UI
+ * @returns {void}
+ */
 export function renderAdvancedEditor() {
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -83,6 +87,10 @@ export function renderAdvancedEditor() {
   `;
 }
 
+/**
+ * Prompt and add a new parser to advanced configuration
+ * @returns {void}
+ */
 export function addAdvancedParser() {
   showPromptModal(
     '<span class="material-icons">add_circle</span> Add Parser',
@@ -106,6 +114,10 @@ export function addAdvancedParser() {
   );
 }
 
+/**
+ * Prompt and add a new extractor to advanced configuration
+ * @returns {void}
+ */
 export function addAdvancedExtractor() {
   showPromptModal(
     '<span class="material-icons">add_circle</span> Add Extractor',
@@ -129,6 +141,10 @@ export function addAdvancedExtractor() {
   );
 }
 
+/**
+ * Prompt and add a new GameDig query type
+ * @returns {void}
+ */
 export function addAdvancedQueryType() {
   showPromptModal(
     '<span class="material-icons">add_circle</span> Add Query Type',
@@ -152,18 +168,41 @@ export function addAdvancedQueryType() {
   );
 }
 
+/**
+ * Update parser source code in advanced config
+ * @param {string} name - Parser name
+ * @param {string} value - Parser source code
+ * @returns {void}
+ */
 export function updateAdvancedParser(name, value) {
   state.advanced.parsers[name] = value;
 }
 
+/**
+ * Update extractor source code in advanced config
+ * @param {string} name - Extractor name
+ * @param {string} value - Extractor source code
+ * @returns {void}
+ */
 export function updateAdvancedExtractor(name, value) {
   state.advanced.extractors[name] = value;
 }
 
+/**
+ * Update a GameDig query type entry
+ * @param {number} index - Index in the queryTypes array
+ * @param {string} value - New value
+ * @returns {void}
+ */
 export function updateAdvancedQueryType(index, value) {
   state.advanced.queryTypes[index] = value;
 }
 
+/**
+ * Remove a parser from advanced configuration (with confirmation)
+ * @param {string} name - Parser name to remove
+ * @returns {void}
+ */
 export function removeAdvancedParser(name) {
   showConfirmModal(
     '<span class="material-icons">remove_circle</span> Remove Parser',
@@ -178,6 +217,11 @@ export function removeAdvancedParser(name) {
   );
 }
 
+/**
+ * Remove an extractor from advanced configuration (with confirmation)
+ * @param {string} name - Extractor name to remove
+ * @returns {void}
+ */
 export function removeAdvancedExtractor(name) {
   showConfirmModal(
     '<span class="material-icons">remove_circle</span> Remove Extractor',
@@ -192,6 +236,11 @@ export function removeAdvancedExtractor(name) {
   );
 }
 
+/**
+ * Remove a GameDig query type (with confirmation)
+ * @param {number} index - Index to remove
+ * @returns {void}
+ */
 export function removeAdvancedQueryType(index) {
   showConfirmModal(
     '<span class="material-icons">remove_circle</span> Remove Query Type',
@@ -206,6 +255,10 @@ export function removeAdvancedQueryType(index) {
   );
 }
 
+/**
+ * Persist advanced configuration to the server and handle restart flow
+ * @returns {Promise<void>}
+ */
 export async function saveAdvanced() {
   const saveBtn = document.getElementById('saveAdvancedBtn');
   saveBtn.disabled = true;
@@ -234,6 +287,10 @@ export async function saveAdvanced() {
   }
 }
 
+/**
+ * Revert advanced configuration to the last saved state (with confirmation)
+ * @returns {void}
+ */
 export function revertAdvanced() {
   showConfirmModal(
     '<span class="material-icons">undo</span> Revert Changes',
