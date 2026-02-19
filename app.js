@@ -55,6 +55,7 @@ webFiles.forEach(file => {
   }
 });
 
+// Load configurations from store directory
 const { config, secrets, users, ddns, advancedConfig, blocklist } = configLoader.loadConfigs(storeDir);
 
 // Load environment variables and set up protocols based on environment
