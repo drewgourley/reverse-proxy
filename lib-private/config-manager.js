@@ -34,6 +34,7 @@ function readConfig(baseDir, fileName, defaultValue = null) {
  * Save configuration and optionally restart
  * @param {string} filePath - Full path to config file
  * @param {Object} data - Data to save
+ * @returns {void}
  */
 function saveConfig(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
@@ -45,6 +46,9 @@ function saveConfig(filePath, data) {
 
 /**
  * Update config.json with validation
+ * @param {string} baseDir - Base directory
+ * @param {Object} updatedConfig - New configuration object
+ * @returns {{domainChanged: boolean}} Object indicating whether domain changed
  */
 function updateConfig(baseDir, updatedConfig) {
   let existingConfig = {};
@@ -94,6 +98,9 @@ function updateConfig(baseDir, updatedConfig) {
 
 /**
  * Update blocklist.json
+ * @param {string} baseDir - Base directory
+ * @param {Array<string>} updatedBlocklist - New blocklist array
+ * @returns {void}
  */
 function updateBlocklist(baseDir, updatedBlocklist) {
   if (!Array.isArray(updatedBlocklist)) {
@@ -108,6 +115,9 @@ function updateBlocklist(baseDir, updatedBlocklist) {
 
 /**
  * Update secrets.json with password hashing
+ * @param {string} baseDir - Base directory
+ * @param {Object} updatedSecrets - Secrets payload (may contain plain-text passwords)
+ * @returns {Promise<void>}
  */
 async function updateSecrets(baseDir, updatedSecrets) {
   const secretsSchema = {
@@ -166,6 +176,9 @@ async function updateSecrets(baseDir, updatedSecrets) {
 
 /**
  * Update users.json with password hashing
+ * @param {string} baseDir - Base directory
+ * @param {Object} updatedUsers - Users payload
+ * @returns {Promise<void>}
  */
 async function updateUsers(baseDir, updatedUsers) {
   const usersSchema = {
@@ -226,6 +239,9 @@ async function updateUsers(baseDir, updatedUsers) {
 
 /**
  * Update ddns.json
+ * @param {string} baseDir - Base directory
+ * @param {Object} updatedDdns - DDNS configuration
+ * @returns {void}
  */
 function updateDDNS(baseDir, updatedDdns) {
   const ddnsSchema = {
@@ -255,6 +271,9 @@ function updateDDNS(baseDir, updatedDdns) {
 
 /**
  * Update advanced.json
+ * @param {string} baseDir - Base directory
+ * @param {Object} updatedAdvanced - Advanced configuration (parsers/extractors/queryTypes)
+ * @returns {void}
  */
 function updateAdvanced(baseDir, updatedAdvanced) {
   const advancedSchema = {

@@ -13,16 +13,31 @@ const TAG_ID = 0xAD0;
 /** Current OdalPapi protocol version */
 const PROTOCOL_VERSION = 9;
 
-/** Extract major version number from protocol version */
+/**
+ * Extract major version number from protocol version
+ * @param {number} V - Protocol version numeric value
+ * @returns {number} Major version number
+ */
 function VERSIONMAJOR(V) { return Math.floor(V / 256); }
 
-/** Extract minor version number from protocol version */
+/**
+ * Extract minor version number from protocol version
+ * @param {number} V - Protocol version numeric value
+ * @returns {number} Minor version number
+ */
 function VERSIONMINOR(V) { return Math.floor((V % 256) / 10); }
 
-/** Extract patch version number from protocol version */
+/**
+ * Extract patch version number from protocol version
+ * @param {number} V - Protocol version numeric value
+ * @returns {number} Patch version number
+ */
 function VERSIONPATCH(V) { return Math.floor((V % 256) % 10); }
 
-/** Calculate full version number for protocol */
+/**
+ * Calculate full version number for protocol
+ * @returns {number} Encoded protocol version number
+ */
 function VERSION() { return Math.floor(0 * 256 + (PROTOCOL_VERSION*10)); }
 
 /**
@@ -179,6 +194,11 @@ class OdalPapiMainService {
     });
   }
 
+  /**
+   * Query a single game server for detailed information
+   * @param {{ip: string, port: number}} serverIdentity - Server address and port
+   * @returns {Promise<object>} Resolves with server info and metadata
+   */
   queryGameServer(serverIdentity) {
     return new Promise((resolve, reject) => {
       const timeout = 10000;
@@ -250,6 +270,11 @@ class OdalPapiMainService {
     });
   }
 
+  /**
+   * Ping a game server and measure latency (ms)
+   * @param {{ip: string, port: number}} serverIdentity - Server address and port
+   * @returns {Promise<number>} Resolves with round-trip time in milliseconds
+   */
   pingGameServer(serverIdentity) {
     return new Promise((resolve, reject) => {
       const pingStart = Date.now();

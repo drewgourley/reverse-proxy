@@ -8,9 +8,10 @@ const path = require('path');
 /**
  * Register provisioned certificates
  * @param {string} baseDir - Base directory
- * @param {Array} secureServices - List of secure services
+ * @param {Array<string>} secureServices - List of secure services
  * @param {boolean} crontab - Whether crontab was set up
  * @param {boolean} permissions - Whether permissions were set
+ * @returns {void}
  */
 function registerProvisionedCerts(baseDir, secureServices, crontab, permissions) {
   try {

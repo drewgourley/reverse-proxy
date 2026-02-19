@@ -17,6 +17,7 @@ const { GameDig } = require('gamedig');
  * @param {object} extractors - Extractor functions
  * @param {object} odalpapiService - OdalPapi service instance
  * @param {function} callback - Callback function
+ * @returns {void}
  */
 function checkService(name, config, protocols, parsers, extractors, odalpapiService, callback) {
   const service = config.services[name];
@@ -104,6 +105,7 @@ function checkService(name, config, protocols, parsers, extractors, odalpapiServ
  * @param {string} name - Service name
  * @param {object} config - Configuration object
  * @param {object} protocols - Protocol mapping
+ * @returns {Promise<void>}
  */
 async function pingHealthcheck(name, config, protocols) {
   const id = config.services?.[name]?.healthcheck?.id;
@@ -128,6 +130,7 @@ async function pingHealthcheck(name, config, protocols) {
  * @param {object} odalpapiService - OdalPapi service instance
  * @param {string} env - Environment (production, development, etc.)
  * @param {object} cron - Node-cron instance
+ * @returns {Promise<void>}
  */
 async function initHealthchecks(config, protocols, parsers, extractors, odalpapiService, env, cron) {
   if (config.services) {

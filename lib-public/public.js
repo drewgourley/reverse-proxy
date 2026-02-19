@@ -61,6 +61,8 @@ async function initApplication(options) {
   /**
    * Get or create a Redis session store for a specific service
    * Each service gets its own session namespace to prevent conflicts
+   * @param {string} serviceName - Name of the service to get a Redis store for
+   * @returns {RedisStore|undefined} - RedisStore instance for the service, or undefined if Redis is unavailable
    */
   const getRedisStore = (serviceName) => {
     if (!redisClient) return undefined; // Use in-memory if Redis unavailable

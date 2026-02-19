@@ -16,6 +16,7 @@ const fileUpload = multer({
  * @param {Object} service - Service configuration object
  * @param {string} serviceName - Name of the service
  * @throws {Error} If service is not allowed to manage files
+ * @returns {void}
  */
 function validateServiceForFileManagement(service, serviceName) {
   if (!service) {
@@ -42,6 +43,7 @@ function validateServiceForFileManagement(service, serviceName) {
  * Validates folder type
  * @param {string} folderType - Type of folder (public or static)
  * @throws {Error} If folder type is invalid
+ * @returns {void}
  */
 function validateFolderType(folderType) {
   if (!['public', 'static'].includes(folderType)) {
@@ -56,6 +58,7 @@ function validateFolderType(folderType) {
  * @param {string} fullPath - Full path to validate
  * @param {string} basePath - Base path that fullPath must be within
  * @throws {Error} If path is invalid
+ * @returns {void}
  */
 function validatePath(fullPath, basePath) {
   if (!fullPath.startsWith(basePath)) {
@@ -67,6 +70,12 @@ function validatePath(fullPath, basePath) {
 
 /**
  * Get files and directories in a service folder
+ * @param {string} baseDir - Base directory
+ * @param {string} serviceName - Service name
+ * @param {'public'|'static'} folderType - Folder type
+ * @param {Object} config - Application configuration
+ * @param {string} [subPath=''] - Subpath inside the folder
+ * @returns {{files: Array, currentPath: string}} Object containing files and currentPath
  */
 function listFiles(baseDir, serviceName, folderType, config, subPath = '') {
   validateFolderType(folderType);
@@ -119,6 +128,13 @@ function listFiles(baseDir, serviceName, folderType, config, subPath = '') {
 
 /**
  * Upload a file to a service folder
+ * @param {string} baseDir - Base directory
+ * @param {string} serviceName - Service name
+ * @param {'public'|'static'} folderType - Folder type
+ * @param {Object} config - Application configuration
+ * @param {Object} file - Multer file object (buffer, originalname, size, mimetype)
+ * @param {string} [targetPath=''] - Target path inside the folder
+ * @returns {{name:string, size:number, path:string}} Metadata about the uploaded file
  */
 function uploadFile(baseDir, serviceName, folderType, config, file, targetPath = '') {
   if (!file) {
@@ -156,6 +172,12 @@ function uploadFile(baseDir, serviceName, folderType, config, file, targetPath =
 
 /**
  * Delete a file or directory from a service folder
+ * @param {string} baseDir - Base directory
+ * @param {string} serviceName - Service name
+ * @param {'public'|'static'} folderType - Folder type
+ * @param {Object} config - Application configuration
+ * @param {string} filePath - Relative path to file or directory
+ * @returns {void}
  */
 function deleteFile(baseDir, serviceName, folderType, config, filePath) {
   if (!filePath) {
@@ -199,6 +221,12 @@ function deleteFile(baseDir, serviceName, folderType, config, filePath) {
 
 /**
  * Create a directory in a service folder
+ * @param {string} baseDir - Base directory
+ * @param {string} serviceName - Service name
+ * @param {'public'|'static'} folderType - Folder type
+ * @param {Object} config - Application configuration
+ * @param {string} directoryPath - Directory path to create (relative)
+ * @returns {void}
  */
 function createDirectory(baseDir, serviceName, folderType, config, directoryPath) {
   if (!directoryPath) {
@@ -239,6 +267,13 @@ function createDirectory(baseDir, serviceName, folderType, config, directoryPath
 
 /**
  * Rename a file or directory in a service folder
+ * @param {string} baseDir - Base directory
+ * @param {string} serviceName - Service name
+ * @param {'public'|'static'} folderType - Folder type
+ * @param {Object} config - Application configuration
+ * @param {string} oldPath - Existing relative path
+ * @param {string} newPath - New relative path
+ * @returns {void}
  */
 function renameFile(baseDir, serviceName, folderType, config, oldPath, newPath) {
   if (!oldPath || !newPath) {
@@ -284,6 +319,14 @@ function renameFile(baseDir, serviceName, folderType, config, oldPath, newPath) 
 
 /**
  * Unpack a zip file into a service folder
+ * @param {string} baseDir - Base directory
+ * @param {string} serviceName - Service name
+ * @param {'public'|'static'} folderType - Folder type
+ * @param {Object} config - Application configuration
+ * @param {Object} file - Multer file object for the uploaded zip
+ * @param {string} targetPath - Target directory inside the service folder
+ * @param {boolean} [deploy=false] - If true, deploy mode clears target folder first
+ * @returns {{filesExtracted: number}} Result containing number of files extracted
  */
 function unpackZip(baseDir, serviceName, folderType, config, file, targetPath, deploy = false) {
   if (!file) {

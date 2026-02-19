@@ -13,6 +13,7 @@ const got = require('got');
  * @param {object} config - Main configuration
  * @param {string} env - Environment (production, development, etc.)
  * @param {object} cron - Node-cron instance
+ * @returns {void}
  */
 function initDDNS(ddns, config, env, cron) {
   if (!ddns || !ddns.active || !ddns.aws_access_key_id || !ddns.aws_secret_access_key || 

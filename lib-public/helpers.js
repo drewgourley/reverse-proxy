@@ -10,6 +10,7 @@
  * @param {object} response - Express response object
  * @param {number} statusCode - HTTP status code
  * @param {string|Error} error - Error message or Error object
+ * @returns {void}
  */
 function sendError(response, statusCode, error) {
   response.status(statusCode).send({ 

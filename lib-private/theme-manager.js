@@ -10,6 +10,7 @@ const toIco = require('to-ico');
  * @param {string} webDir - Web directory
  * @param {string} baseDir - Base directory
  * @param {Object} updatedColors - New colors configuration
+ * @returns {void}
  */
 function updateColors(webDir, baseDir, updatedColors) {
   const hexColorRegex = /^#([0-9A-Fa-f]{3}){1,2}$/;
@@ -82,6 +83,7 @@ function updateColors(webDir, baseDir, updatedColors) {
  * Upload and process favicon files
  * @param {string} webDir - Base directory
  * @param {Object} file - Uploaded file object
+ * @returns {Promise<void>}
  */
 async function uploadFavicon(webDir, file) {
   if (!file) {

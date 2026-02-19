@@ -8,6 +8,7 @@ const path = require('path');
  * Stream PM2 log file via Server-Sent Events
  * @param {object} request - Express request object
  * @param {object} response - Express response object
+ * @returns {void}
  */
 function streamLogs(request, response) {
   const appName = request.params.appName;

@@ -13,7 +13,7 @@ const { initDDNS } = require('./lib-public/ddns-manager');
 const { initHealthchecks } = require('./lib-public/health-checker');
 const { initApplication } = require('./lib-public/public');
 const { isIpBlocked } = require('./lib-public/bot-blocker');
-const { extractIpFromSocket, handleWebSocketUpgrade } = require('./lib-public/helpers');
+const { extractIpFromSocket } = require('./lib-public/helpers');
 
 const { OdalPapiMainService } = require('./lib-public/odalpapi.js');
 const odalpapiService = new OdalPapiMainService();
@@ -85,6 +85,7 @@ setTimeout(() => {
     console.log(`${now}: Configurator running on port 3000`);
   });
 
+  // Load SSL certificates if in production environment
   let cert;
   if (env === 'production') {
     try {
@@ -99,10 +100,17 @@ setTimeout(() => {
     }
   }
 
+  // Main application initialization and server setup
   if (config.domain) {
     initApplication({ config, secrets, users, blocklist, env, protocols, parsers, extractors, odalpapiService, __dirname }).then((app) => {
       const portHttp = (env === 'development' || env === 'test') ? 80 : 8080;
 
+      /**
+       * Early request handler to block connections from IPs in the blocklist before they reach the main application
+       * @param {Object} req - Express request object
+       * @param {Object} res - Express response object
+       * @returns {void|Object} - Returns void if connection is blocked, otherwise returns the main app handler
+       */
       const earlyHandler = (req, res) => {
         const ip = extractIpFromSocket(req.socket);
         if (isIpBlocked(ip, blocklist)) {
@@ -114,6 +122,13 @@ setTimeout(() => {
         return app(req, res);
       };
 
+      /**
+       * Handle WebSocket upgrade requests and route them to the appropriate service based on the Host header
+       * @param {Object} req - HTTP request object
+       * @param {Object} socket - Network socket between the server and client
+       * @param {Buffer} head - First packet of the upgraded stream, may contain data
+       * @return {void} - This function does not return a value, it either upgrades the connection or destroys the socket
+      */
       const handleWebSocketUpgrade = (req, socket, head) => {
         const websockets = Object.keys(config.services).filter(name => config.services[name].subdomain?.proxy?.socket);
         let found = false;
@@ -129,6 +144,13 @@ setTimeout(() => {
         }
       }
 
+      /**
+       * Set up a server listener for either HTTP or HTTPS, and handle WebSocket upgrade requests
+       * @param {Object} server - HTTP or HTTPS server instance
+       * @param {number} port - Port number to listen on
+       * @param {string} type - Type of server ('HTTP' or 'HTTPS') for logging purposes
+       * @returns {void}
+       */
       const setupServerListener = (server, port, type) => {
         server.listen(port, () => {
           const now = new Date().toISOString();
