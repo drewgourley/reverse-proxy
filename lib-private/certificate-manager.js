@@ -5,6 +5,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const isContainerized = process.env.CONTAINERIZED === 'true' || fs.existsSync('/.dockerenv');
+
 /**
  * Register provisioned certificates
  * @param {string} baseDir - Base directory
@@ -67,10 +69,9 @@ function provisionCertificates(webDir, baseDir, email, config, env) {
     });
     
     const domainFlags = domains.map(d => `-d ${d}`).join(' ');
-    const deployHook = `sudo -u ${os.userInfo().username} bash -c '. ~/.bashrc; pm2 restart all'`;
-    const baseCommand = `sudo certbot certonly --webroot --webroot-path ${path.join(webDir, 'web', 'all')} --cert-name ${config.domain} ${domainFlags} --non-interactive --agree-tos --email ${email}`;
-    const cronCommandWithHook = `${baseCommand} --deploy-hook "${deployHook}"`;
-    
+const deployHook = isContainerized ? '' : `sudo -u ${os.userInfo().username} bash -c '. ~/.bashrc; pm2 restart all'`;
+const baseCommand = `${isContainerized ? '' : 'sudo '}certbot certonly --webroot --webroot-path ${path.join(webDir, 'web', 'all')} --cert-name ${config.domain} ${domainFlags} --non-interactive --agree-tos --email ${email}`.trim();
+const cronCommandWithHook = deployHook ? `${baseCommand} --deploy-hook "${deployHook}"` : baseCommand;
     if (env === 'development') {
       registerProvisionedCerts(baseDir, secureServices, true, true);
       return resolve({ message: 'Development mode: Certificates sucessfully not provisioned.' });
@@ -100,11 +101,12 @@ function provisionCertificates(webDir, baseDir, email, config, env) {
           }
           
           // Set permissions
+          const findCmdPrefix = isContainerized ? '' : 'sudo ';
           const chmodCommands = [
-            'sudo find /etc/letsencrypt/live -type d -exec sudo chmod 755 {} \\;',
-            'sudo find /etc/letsencrypt/archive -type d -exec sudo chmod 755 {} \\;',
-            'sudo find /etc/letsencrypt/live -type f -name "*.pem" -exec sudo chmod 644 {} \\;',
-            'sudo find /etc/letsencrypt/archive -type f -name "*.pem" -exec sudo chmod 644 {} \\;'
+            `${findCmdPrefix}find /etc/letsencrypt/live -type d -exec ${findCmdPrefix}chmod 755 {} \\;`,
+            `${findCmdPrefix}find /etc/letsencrypt/archive -type d -exec ${findCmdPrefix}chmod 755 {} \\;`,
+            `${findCmdPrefix}find /etc/letsencrypt/live -type f -name "*.pem" -exec ${findCmdPrefix}chmod 644 {} \\;`,
+            `${findCmdPrefix}find /etc/letsencrypt/archive -type f -name "*.pem" -exec ${findCmdPrefix}chmod 644 {} \\;`
           ];
           
           let chmodFailed = false;

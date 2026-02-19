@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  reverse-proxy:
+    build: .
+    image: estate-manager-reverse-proxy:latest
+    container_name: reverse-proxy
+    environment:
+      - NODE_ENV=production
+      - CONTAINERIZED=true
+    ports:
+      - "80:8080"   # HTTP
+      - "443:8443"  # HTTPS
+      - "3000:3000" # Configurator UI
+    volumes:
+      - ./store:/usr/src/app/store
+      - certs:/etc/letsencrypt
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  certs:
+    driver: local
