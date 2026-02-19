@@ -49,7 +49,9 @@ async function initApplication(options) {
   let redisClient;
   const redisStores = {}; // Cache of per-service Redis stores
   try {
-    redisClient = createClient({ url: 'redis://127.0.0.1:6379', socket: { connectTimeout: 1000 } });
+    // Prefer container override via REDIS_URL / REDIS_HOST; fallback to localhost for non-container installs
+    const redisUrl = process.env.REDIS_URL || (process.env.REDIS_HOST ? `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}` : 'redis://127.0.0.1:6379');
+    redisClient = createClient({ url: redisUrl, socket: { connectTimeout: 1000 } });
     await redisClient.connect();
   } catch (error) {
     // Fall back to in-memory sessions if Redis is unavailable (sessions lost on restart)

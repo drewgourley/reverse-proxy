@@ -8,6 +8,7 @@ services:
     environment:
       - NODE_ENV=production
       - CONTAINERIZED=true
+      - REDIS_URL=redis://redis:6379
     ports:
       - "80:8080"   # HTTP
       - "443:8443"  # HTTPS
@@ -22,6 +23,15 @@ services:
       timeout: 10s
       retries: 3
 
+  redis:
+    image: redis:7-alpine
+    container_name: reverse-proxy-redis
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
 volumes:
   certs:
+    driver: local
+  redis-data:
     driver: local
