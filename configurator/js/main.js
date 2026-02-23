@@ -126,8 +126,10 @@ window.toggleMetaFieldVisibility = serviceEditor.toggleMetaFieldVisibility;
 // Service Editor Module - Subdomain/Healthcheck Management
 window.addSubdomain = serviceEditor.addSubdomain;
 window.removeSubdomain = serviceEditor.removeSubdomain;
+window.toggleSubdomain = serviceEditor.toggleSubdomain;
 window.addHealthcheck = serviceEditor.addHealthcheck;
 window.removeHealthcheck = serviceEditor.removeHealthcheck;
+window.toggleHealthcheck = serviceEditor.toggleHealthcheck;
 
 // Service Editor Module - Change Handlers
 window.createSubdomainChangeHandlers = serviceEditor.createSubdomainChangeHandlers;

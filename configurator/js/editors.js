@@ -288,6 +288,7 @@ export function renderServicesList() {
     const isActive = state.currentSelection === `config-${serviceName}`;
     const protocol = service?.subdomain?.protocol;
     const serviceType = service?.subdomain?.type;
+    const disabled = service?.subdomain?.disabled;
     const icon = getServiceIcon(serviceType);
     const serviceItem = document.createElement('a');
 
@@ -296,7 +297,7 @@ export function renderServicesList() {
       + (protocol === 'insecure' ? ' insecure' : '') 
       + (rootService ? ' root-service' : '');
     
-    const hintParts = [];
+    let hintParts = [];
 
     if (rootService) {
       hintParts.push('Root Service');
@@ -304,6 +305,10 @@ export function renderServicesList() {
 
     if (protocol === 'insecure') {
       hintParts.push('Not Secure');
+    }
+
+    if (disabled) {
+      hintParts = ['Disabled'];
     }
     
     serviceItem.innerHTML = `${icon} <span id="${serviceName}NameContainer" class="name-container"><span class="subdomain-name-container">${serviceName}</span>${nicename ? `<span class="nicename-container"> - ${nicename}</span>` : ''}</span>` + (hintParts.length > 0 ? ' <span class="hint">' + hintParts.join(', ') + '</span>' : '');

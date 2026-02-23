@@ -122,7 +122,7 @@ async function pingHealthcheck(name, config, protocols) {
 }
 
 /**
- * Initializes health checks for services with healthcheck URLs in the configuration
+ * Initializes healthchecks for services with healthcheck URLs in the configuration
  * @param {object} config - Service configuration object
  * @param {object} protocols - Protocol mapping
  * @param {object} parsers - Parser functions

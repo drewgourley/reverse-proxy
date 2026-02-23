@@ -120,7 +120,7 @@ You can protect the API web page (/web/public/api/) with authentication by setti
   - Subdomain settings
   - Protocol (HTTP/HTTPS)
   - Proxy targets
-  - Health checks
+  - Healthchecks
 ### Service Types
 
 The reverse proxy supports different service types for different use cases:

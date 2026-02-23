@@ -73,7 +73,7 @@ const { parsers, extractors } = parsersExtractors.setupParsersAndExtractors(adva
 // Initialize DDNS manager to handle dynamic DNS updates for services
 initDDNS(ddns, config, env, cron);
 
-// Schedule health checks for services with healthcheck URLs
+// Schedule healthchecks for services with healthcheck URLs
 initHealthchecks(config, protocols, parsers, extractors, odalpapiService, env, cron);
 
 // Create and start the internal configurator server

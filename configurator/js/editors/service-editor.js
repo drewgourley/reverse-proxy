@@ -163,6 +163,18 @@ export function removeSubdomain(serviceName) {
 }
 
 /**
+ * Enable or disable a subdomain for a service
+ * @param {string} serviceName - Service identifier
+ * @param {boolean} button - Button element that was clicked (used to update text/icon)
+ */
+export function toggleSubdomain(serviceName, button) {
+  const subdomain = state.config.services[serviceName].subdomain;
+  const disabled = !subdomain.disabled;
+  updateServiceProperty(serviceName, 'subdomain.disabled', disabled);
+  button.classList.toggle('btn-toggle-on', !disabled);
+}
+
+/**
  * Add a default healthcheck object for the specified service
  * @param {string} serviceName - Service identifier
  * @returns {void}
@@ -186,19 +198,31 @@ export function addHealthcheck(serviceName) {
 }
 
 /**
+ * Enable or disable a healthcheck for a service
+ * @param {string} serviceName - Service identifier
+ * @param {boolean} button - Button element that was clicked (used to update text/icon)
+ */
+export function toggleHealthcheck(serviceName, button) {
+  const healthcheck = state.config.services[serviceName].healthcheck;
+  const disabled = !healthcheck.disabled;
+  updateServiceProperty(serviceName, 'healthcheck.disabled', disabled);
+  button.classList.toggle('btn-toggle-on', !disabled);
+}
+
+/**
  * Remove the healthcheck configuration for a service (with confirmation)
  * @param {string} serviceName - Service identifier
  * @returns {void}
  */
 export function removeHealthcheck(serviceName) {
   showConfirmModal(
-    '<span class="material-icons">remove_circle</span> Remove Health Check',
-    'Are you sure you want to remove the health check configuration?',
+    '<span class="material-icons">remove_circle</span> Remove Healthcheck',
+    'Are you sure you want to remove the healthcheck configuration?',
     (confirmed) => {
       if (confirmed) {
         delete state.config.services[serviceName].healthcheck;
         renderServiceEditor(serviceName);
-        showStatus('Health check removed', 'success');
+        showStatus('Healthcheck removed', 'success');
       }
     }
   );
@@ -303,7 +327,11 @@ function renderSubdomainSection(serviceName, subdomain) {
     <div class="section">
       <div class="section-title">Subdomain Settings - <a class="title-link" href="${subdomain.protocol === 'secure' && state.environment === 'production'  ? 'https' : 'http'}://${serviceName}.${state.config.domain}" target="_blank">${serviceName}.${state.config.domain}</a></div>
       <div class="nested-object">
-        <button class="btn-remove" onclick="removeSubdomain('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Subdomain</button>
+        <div class="subdomain-actions">
+          <button class="btn-remove" onclick="removeSubdomain('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Subdomain</button>
+          <div class="flex-spacer"></div>
+          <button class="btn-toggle${subdomain.disabled ? '' : ' btn-toggle-on'}" onclick="toggleSubdomain('${serviceName}', this)"><span class="btn-toggle-area"><span class="btn-toggle-handle"></span><span class="btn-toggle-label">Enabled</span><span class="btn-toggle-label">Disabled</span></span></button>
+        </div>
         <div class="form-group">
           <p class="label" onclick="toggleDropdown('subdomain_type_${serviceName}', event)">Type</p>
           ${createDropdown({
@@ -390,14 +418,14 @@ function renderSubdomainSection(serviceName, subdomain) {
 function renderApiHealthcheckSection(serviceName, healthcheck) {
   return `
     <div class="section">
-      <div class="section-title">Health Check Configuration</div>
+      <div class="section-title">Healthcheck Configuration</div>
       <div class="nested-object">
-        <button class="btn-remove" onclick="removeHealthcheck('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Health Check</button>
+        <button class="btn-remove" onclick="removeHealthcheck('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Healthcheck</button>
         <div class="form-group">
-          <label for="hc_id_${serviceName}">Health Check ID (UUID)</label>
+          <label for="hc_id_${serviceName}">Healthcheck ID (UUID)</label>
           <input type="text" id="hc_id_${serviceName}" value="${healthcheck.id || ''}" 
               onchange="updateServiceProperty('${serviceName}', 'healthcheck.id', this.value)"
-              placeholder="UUID for healthchecks.io health check">
+              placeholder="UUID for healthchecks.io healthcheck">
           <div class="hint">Optional, used for pinging a healthchecks.io healthcheck</div>
         </div>
       </div>
@@ -480,14 +508,18 @@ function renderHealthcheckSection(serviceName, healthcheck) {
   
   return `
     <div class="section">
-      <div class="section-title">Health Check Configuration</div>
+      <div class="section-title">Healthcheck Configuration</div>
       <div class="nested-object">
-        <button class="btn-remove" onclick="removeHealthcheck('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Health Check</button>
+        <div class="healthcheck-actions">
+          <button class="btn-remove" onclick="removeHealthcheck('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Healthcheck</button>
+          <div class="flex-spacer"></div>
+          <button class="btn-toggle${healthcheck.disabled ? '' : ' btn-toggle-on'}" onclick="toggleHealthcheck('${serviceName}', this)"><span class="btn-toggle-area"><span class="btn-toggle-handle"></span><span class="btn-toggle-label">Enabled</span><span class="btn-toggle-label">Disabled</span></span></button>
+        </div>
         <div class="form-group">
-          <label for="hc_id_${serviceName}">Health Check ID (UUID)</label>
+          <label for="hc_id_${serviceName}">Healthcheck ID (UUID)</label>
           <input type="text" id="hc_id_${serviceName}" value="${healthcheck.id || ''}" 
               onchange="updateServiceProperty('${serviceName}', 'healthcheck.id', this.value)"
-              placeholder="UUID for healthchecks.io health check">
+              placeholder="UUID for healthchecks.io healthcheck">
           <div class="hint">Optional, used for pinging a healthchecks.io healthcheck</div>
         </div>
         <div class="form-group">
@@ -664,10 +696,10 @@ export function renderServiceEditor(serviceName) {
     } else {
       html += `
         <div class="section">
-          <div class="section-title">Health Check</div>
+          <div class="section-title">Healthcheck</div>
           <div class="form-group">
-            <p class="hint">No health check configured for this service</p>
-            <button class="btn-add-field" onclick="addHealthcheck('${serviceName}')"><span class="material-icons">add_circle</span> Add Health Check</button>
+            <p class="hint">No healthcheck configured for this service</p>
+            <button class="btn-add-field" onclick="addHealthcheck('${serviceName}')"><span class="material-icons">add_circle</span> Add Healthcheck</button>
           </div>
         </div>
       `;

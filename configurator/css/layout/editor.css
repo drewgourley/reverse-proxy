@@ -45,6 +45,17 @@
     border-top: 2px solid var(--color-gray-200);
 }
 
+.subdomain-actions, .healthcheck-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+.subdomain-actions .btn-remove, .healthcheck-actions .btn-remove {
+    margin-bottom: 0;
+}
+
 .editor-actions.hidden {
     display: none;
 }

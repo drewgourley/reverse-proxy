@@ -8,7 +8,7 @@
 const cheerio = require('cheerio');
 
 /**
- * Default parsers for health check responses
+ * Default parsers for healthcheck responses
  */
 const defaultParsers = {
   hass: (body) => {
