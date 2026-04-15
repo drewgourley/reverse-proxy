@@ -86,6 +86,12 @@ a.btn-add-field, a.btn-save, a.btn-reset, a.btn-remove, a.btn-toggle-password, a
     margin-top: 10px
 }
 
+.btn-pagination {
+    background: var(--color-primary);
+    color: white;
+    font-size: 40px;
+}
+
 .btn-add-field.secondary {
     background: var(--color-secondary);
 }

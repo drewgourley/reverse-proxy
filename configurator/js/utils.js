@@ -345,7 +345,9 @@ export function parseAppRoute(path) {
       return { section: 'monitor-logs', type: parts[2] === 'error' ? 'error' : 'out' };
     }
     if (parts[1] === 'blocklist') {
-      return { section: 'monitor-blocklist' };
+      const rawPage = parts[2] === 'page' && parts[3] ? parseInt(parts[3], 10) : 1;
+      const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+      return { section: 'monitor-blocklist', page };
     }
   }
   if (parts[0] === 'config-domain') {
@@ -363,7 +365,7 @@ export function parseAppRoute(path) {
  * @param {string} [options.path] - Optional path within folder
  * @returns {string} URL path for history.pushState
  */
-export function buildAppRoute({ section, type, folder, path }) {
+export function buildAppRoute({ section, type, folder, path, page }) {
   // Returns a path string for pushState
   if (!section) return '/';
   if (section.startsWith('config-')) {
@@ -383,7 +385,7 @@ export function buildAppRoute({ section, type, folder, path }) {
     return `/monitor/logs${type === 'error' ? '/error' : ''}`;
   }
   if (section === 'monitor-blocklist') {
-    return '/monitor/blocklist';
+    return page && page > 1 ? `/monitor/blocklist/page/${page}` : '/monitor/blocklist';
   }
   if (section === 'config-domain') {
     return '/config/domain';

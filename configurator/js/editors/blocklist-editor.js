@@ -5,55 +5,24 @@ import { reloadPage, waitForServerRestart, showPromptModal, showPromptError, sho
 
 // Search filter state
 let blocklistSearchTerm = '';
+const BLOCKLIST_PAGE_SIZE = 50;
+let blocklistPage = 1;
+let blocklistTotalPages = 1;
 
 /**
  * Filter visible blocklist entries in the UI based on search input
  * @returns {void}
  */
-export function filterBlocklist() {
+export async function filterBlocklist() {
   const searchInput = document.getElementById('blocklistSearchInput');
-  const panel = document.getElementById('editorPanel');
-  const entries = document.querySelectorAll('.blocklist-entry');
-  let entryCount = 0;
-  
   blocklistSearchTerm = searchInput?.value.toLowerCase().trim() || '';
-  
-  entries.forEach((entry) => {
-    const ipInput = entry.querySelector('input[type="text"]');
-    const ip = ipInput.value.toLowerCase();
-    const matches = blocklistSearchTerm === '' || ip.includes(blocklistSearchTerm);
-    if (matches) {
-      entry.style.display = '';
-      entryCount++;
-    } else {
-      entry.style.display = 'none';
-    }
-  });
-
-  const noResultsMessage = document.getElementById('noResultsMessage');
-  if (state.blocklist.length > 0 && entryCount === 0) {
-    if (!noResultsMessage) {
-      const noResultsMessageEl = document.createElement('div');
-      noResultsMessageEl.id = 'noResultsMessage';
-      noResultsMessageEl.className = 'no-results-message';
-      noResultsMessageEl.innerHTML = '<p class="placeholder-message">No matching IP addresses found</p><button class="btn-remove" onclick="clearBlocklistSearch()"><span class="material-icons">search_off</span> Clear Search</button>';
-      panel.appendChild(noResultsMessageEl);
-    }
-  } else if (state.blocklist.length === 0) {
-    if (!noResultsMessage) {
-      const noResultsMessageEl = document.createElement('div');
-      noResultsMessageEl.id = 'noResultsMessage';
-      noResultsMessageEl.className = 'no-results-message';
-      noResultsMessageEl.innerHTML = '<p class="placeholder-message">No blocklist entries</p><button class="btn-add-field" onclick="addBlocklistEntry()"><span class="material-icons">add_circle</span> Add Blocklist Entry</button>';
-      panel.appendChild(noResultsMessageEl);
-    }
-  } else {
-    if (noResultsMessage) {
-      noResultsMessage.remove();
-    }
+  blocklistPage = 1;
+  await renderBlocklistEditor(false);
+  const newInput = document.getElementById('blocklistSearchInput');
+  if (newInput) {
+    newInput.focus();
+    newInput.setSelectionRange(newInput.value.length, newInput.value.length);
   }
-
-  persistBlocklistFiltersToUrl();
 }
 
 function persistBlocklistFiltersToUrl() {
@@ -65,7 +34,16 @@ function persistBlocklistFiltersToUrl() {
     url.searchParams.delete('blocklist_search');
   }
 
-  window.history.replaceState(null, '', url.toString());
+  const basePath = blocklistPage > 1
+    ? `/monitor/blocklist/page/${blocklistPage}`
+    : '/monitor/blocklist';
+
+  const newUrl = new URL(basePath, window.location.origin);
+  if (blocklistSearchTerm && blocklistSearchTerm.trim() !== '') {
+    newUrl.searchParams.set('blocklist_search', blocklistSearchTerm);
+  }
+
+  window.history.replaceState(null, '', newUrl.toString());
 }
 
 /**
@@ -74,15 +52,40 @@ function persistBlocklistFiltersToUrl() {
  */
 export function clearBlocklistSearch() {
   blocklistSearchTerm = '';
+  blocklistPage = 1;
   const searchInput = document.getElementById('blocklistSearchInput');
 
   if (searchInput) {
     searchInput.value = '';
   }
 
-  persistBlocklistFiltersToUrl();
-  filterBlocklist();
+  renderBlocklistEditor(false);
 } 
+
+export function gotoPreviousBlocklistPage() {
+  if (blocklistPage > 1) {
+    blocklistPage -= 1;
+    renderBlocklistEditor(false);
+  }
+}
+
+export function gotoNextBlocklistPage() {
+  blocklistPage += 1;
+  renderBlocklistEditor(false);
+}
+
+export function navigateBlocklistPage() {
+  const pageInput = document.getElementById('blocklistPageInput');
+  if (!pageInput) return;
+
+  let page = Number(pageInput.value);
+  if (!Number.isFinite(page) || page < 1) {
+    page = 1;
+  }
+
+  blocklistPage = Math.min(Math.max(1, Math.floor(page)), blocklistTotalPages);
+  renderBlocklistEditor(false);
+}
 
 /**
  * Render the Blocklist editor UI (optionally reload data first)
@@ -99,9 +102,18 @@ export async function renderBlocklistEditor(reload = true) {
   
   try {
     const params = new URL(window.location).searchParams;
-    const q = params.get('blocklist_search');
-    if (q !== null) {
-      blocklistSearchTerm = String(q).toLowerCase();
+    if (reload) {
+      const q = params.get('blocklist_search');
+      if (q !== null) {
+        blocklistSearchTerm = String(q).toLowerCase();
+      }
+
+      const pathParts = window.location.pathname.split('/');
+      const pageIdx = pathParts.indexOf('page');
+      if (pageIdx !== -1 && pathParts[pageIdx + 1]) {
+        const parsedPage = parseInt(pathParts[pageIdx + 1], 10);
+        blocklistPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+      }
     }
   } catch (err) {
     /* ignore malformed url */
@@ -109,6 +121,22 @@ export async function renderBlocklistEditor(reload = true) {
 
   actions.classList.remove('hidden');
   panel.classList.add('scrollable');
+
+  const filteredBlocklist = state.blocklist
+    .map((ip, index) => ({ ip, index }))
+    .filter((entry) => {
+      return blocklistSearchTerm === '' || entry.ip.toLowerCase().includes(blocklistSearchTerm);
+    });
+
+  const totalItems = filteredBlocklist.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / BLOCKLIST_PAGE_SIZE));
+  blocklistTotalPages = totalPages;
+  if (blocklistPage > totalPages) {
+    blocklistPage = totalPages;
+  }
+
+  const pageStart = (blocklistPage - 1) * BLOCKLIST_PAGE_SIZE;
+  const pageEntries = filteredBlocklist.slice(pageStart, pageStart + BLOCKLIST_PAGE_SIZE);
 
   let html = `
     <div class="section">
@@ -119,31 +147,49 @@ export async function renderBlocklistEditor(reload = true) {
         <input type="text" id="blocklistSearchInput" class="blocklist-search" placeholder="Filter IPs..." value="${blocklistSearchTerm}" oninput="filterBlocklist()" />
       </div>
   `;
-  state.blocklist.forEach((ip, index) => {
+
+  if (totalItems === 0) {
     html += `
-      <div class="blocklist-entry">
-        <div class="form-group form-group-no-margin">
-          <div class="blocklist-input-group">
-            <input type="text" id="blocklist_ip_${index}" value="${ip}" readonly />
-            <button class="btn-remove" onclick="removeBlocklistEntry(${index})"><span class="material-icons">remove_circle</span> Remove</button>
-          </div>
-        </div>
+      <div class="no-results-message">
+        <p class="placeholder-message">${blocklistSearchTerm ? 'No matching IP addresses found' : 'No blocklist entries'}</p>
+        <button class="${blocklistSearchTerm ? 'btn-remove' : 'btn-add-field'}" onclick="${blocklistSearchTerm ? 'clearBlocklistSearch()' : 'addBlocklistEntry()'}">
+          <span class="material-icons">${blocklistSearchTerm ? 'search_off' : 'add_circle'}</span> ${blocklistSearchTerm ? 'Clear Search' : 'Add Blocklist Entry'}
+        </button>
       </div>
     `;
-  });
+  } else {
+    pageEntries.forEach((entry) => {
+      html += `
+        <div class="blocklist-entry">
+          <div class="form-group form-group-no-margin">
+            <div class="blocklist-input-group">
+              <input type="text" id="blocklist_ip_${entry.index}" value="${entry.ip}" readonly />
+              <button class="btn-remove" onclick="removeBlocklistEntry(${entry.index})"><span class="material-icons">remove_circle</span> Remove</button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
   html += `
     </div>
   `;
   panel.innerHTML = html;
   
   actions.innerHTML = `
+    <div class="blocklist-pagination">
+      <button class="btn-pagination btn-icon" onclick="gotoPreviousBlocklistPage()" ${blocklistPage === 1 ? 'disabled' : ''} aria-label="Previous page" title="Previous page"><span class="material-icons">chevron_left</span></button>
+      <input id="blocklistPageInput" type="number" min="1" max="${totalPages}" value="${blocklistPage}" onblur="navigateBlocklistPage()" onkeydown="if (event.key === 'Enter') { navigateBlocklistPage(); this.blur(); }" />
+      <button class="btn-pagination btn-icon" onclick="gotoNextBlocklistPage()" ${blocklistPage === totalPages ? 'disabled' : ''} aria-label="Next page" title="Next page"><span class="material-icons">chevron_right</span></button>
+      <span class="page-count">of ${totalPages}</span>
+    </div>
     <div class="flex-spacer"></div>
     <button class="btn-reset" onclick="revertBlocklist()"><span class="material-icons">undo</span> Revert</button>
     <button class="btn-save" id="saveBlocklistBtn" onclick="saveBlocklist()"><span class="material-icons">save</span> Save Blocklist</button>
   `;
   
   persistBlocklistFiltersToUrl();
-  filterBlocklist();
 }
 
 /**
