@@ -98,7 +98,7 @@ audio::-webkit-media-controls-panel {
 .fullscreen.mouseout .heading, .fullscreen.mouseout .content {
   left:-100%;
 }
-.ready #visualizer {
+body.ready #visualizer {
   opacity:1;
 }
 .rotate #visualizer {
