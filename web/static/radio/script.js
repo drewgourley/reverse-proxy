@@ -27,8 +27,9 @@ const requestNewColors = () => {
   const $style = document.getElementById('style');
   if ($style) $style.remove();
   pointers.palette = randomIndex(colorbank, pointers.palette);
-  colors = colorbank[pointers.palette]?.palette;
-  if (!colors) return;
+  newcolors = colorbank[pointers.palette]?.palette;
+  if (!newcolors) return;
+  colors = newcolors;
   const root = document.documentElement;
   root.style.setProperty('--color-primary', colors[3]);
   root.style.setProperty('--color-secondary', colors[1]);
