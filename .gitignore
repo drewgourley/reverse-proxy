@@ -2,6 +2,7 @@
 store/*
 !store/store.md
 ecosystem.config.js
+.env
 
 # Ignore everything in web/public by default (user-specific content)
 web/public/*

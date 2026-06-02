@@ -612,7 +612,8 @@ const handleStreamEnd = () => {
   });
 };
 
-const init = async () => {
+const init = async (themecolors) => {
+  colors = [themecolors.primary, themecolors.secondary, themecolors.accent, themecolors.secondary, themecolors.primary];
   if (reviewInterval) clearInterval(reviewInterval);
   reviewInterval = setInterval(colorReview, csstrans);
   window.addEventListener('resize', debounce(setupAnimations));
@@ -634,18 +635,17 @@ const init = async () => {
   $player.addEventListener('play', handleStreamStart);
   $player.addEventListener('ended', handleStreamEnd);
   $player.addEventListener('pause', handleStreamEnd);
-  
   setupAnimations();
   runIntroAnimations();
 };
 
-const requestPalettes = async (colors) => {
-  const json_data = {"num_colors":5,"temperature":"1.3","num_results":1,"adjacency":[0,"15","30","45","60","15",0,"15","30","45","30","15",0,"15","30","45","30","15",0,"15","60","45","30","15",0],"palette":["-","-","-","-","-"],"mode":"transformer","palette_multi":[[colors.primary,"-","-","-",colors.secondary],[colors.primary,"-","-","-",colors.inverse],[colors.secondary,"-","-","-",colors.inverse],[colors.primary,"-","-","-",colors.accent],[colors.secondary,"-","-","-",colors.accent],[colors.accent,"-","-","-",colors.inverse]],"preset":"hyper-color"};
+const requestPalettes = async (themecolors) => {
+  const json_data = {"num_colors":5,"temperature":"1.3","num_results":1,"adjacency":[0,"15","30","45","60","15",0,"15","30","45","30","15",0,"15","30","45","30","15",0,"15","60","45","30","15",0],"palette":["-","-","-","-","-"],"mode":"transformer","palette_multi":[[themecolors.primary,"-","-","-",themecolors.secondary],[themecolors.primary,"-","-","-",themecolors.inverse],[themecolors.secondary,"-","-","-",themecolors.inverse],[themecolors.primary,"-","-","-",themecolors.accent],[themecolors.secondary,"-","-","-",themecolors.accent],[themecolors.accent,"-","-","-",themecolors.inverse]],"preset":"hyper-color"};
   const xhr = new XMLHttpRequest();
   xhr.open('POST', 'https://api.huemint.com/color', true);
   xhr.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
   xhr.onload = () => {
-    colorbank = [{palette: [colors.primary, colors.secondary, colors.accent, colors.secondary, colors.primary], score: 0}];
+    colorbank = [{palette: [themecolors.primary, themecolors.secondary, themecolors.accent, themecolors.secondary, themecolors.primary], score: 0}];
     if (xhr.status >= 200 && xhr.status < 300) {
       const data = JSON.parse(xhr.response);
       if (data && data.results && data.results.length > 0) {
@@ -685,12 +685,14 @@ let reviewInterval;
 let forceAnimation;
 let lockColor = false;
 let colors = [];
-let themeColors = null;
-let colorbank = [{palette: [colors.primary, colors.secondary, colors.accent, colors.secondary, colors.primary], score: 0}];
+let colorbank = [];
 
 if ( globalColors ) {
-  globalColors.subscribe((colors) => {
-    requestPalettes(colors);
+  globalColors.subscribe((themecolors) => {
+    requestPalettes(themecolors);
+    init(themecolors);
   });
+} else {
+  requestPalettes({primary: '#FF0000', secondary: '#00FFFF', accent: '#FF00FF', inverse: '#00FF00'});
+  init({primary: '#FF0000', secondary: '#00FFFF', accent: '#FF00FF', inverse: '#00FF00'});
 }
-init();
