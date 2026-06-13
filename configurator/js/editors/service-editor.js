@@ -442,7 +442,7 @@ function renderApiHealthcheckSection(serviceName, healthcheck) {
  */
 function renderHealthcheckSection(serviceName, healthcheck) {
   // Build parser options from both defaults and advanced config
-  const parserOptions = ['hass', 'radio', 'body'];
+  const parserOptions = ['hass', 'radio', 'radio_legacy', 'body'];
   if (state.advanced.parsers) {
     Object.keys(state.advanced.parsers).forEach(key => {
       if (!parserOptions.includes(key)) {
@@ -459,7 +459,7 @@ function renderHealthcheckSection(serviceName, healthcheck) {
   );
   
   // Build extractor options from both defaults and advanced config
-  const extractorOptions = ['doom', 'minecraft', 'valheim', 'radio'];
+  const extractorOptions = ['doom', 'minecraft', 'valheim', 'radio', 'radio_legacy'];
   if (state.advanced.extractors) {
     Object.keys(state.advanced.extractors).forEach(key => {
       if (!extractorOptions.includes(key)) {

@@ -16,9 +16,13 @@ const defaultParsers = {
     const health = dom('.connected').last().text();
     return health && health.toLowerCase().indexOf('healthy') > -1;
   },
-  radio: (body) => {
+  radio_legacy: (body) => {
     const json = JSON.parse(body);
     return json.icestats && json.icestats.source;
+  },
+  radio: (body) => {
+    const json = JSON.parse(body);
+    return json.mounts && Object.keys(json.mounts).length > 0;
   },
   body: (body) => body !== null && body !== undefined,
 };
@@ -42,12 +46,21 @@ const defaultExtractors = {
     max: state.maxplayers,
     version: state.raw?.version,
   }),
-  radio: (state) => {
+  radio_legacy: (state) => {
     const json = JSON.parse(state);
     if (json.icestats && json.icestats.source) {
       return {
         online: json.icestats.source.listeners || 0,
         version: json.icestats.source.title,
+      };
+    }
+  },
+  radio: (state) => {
+    const json = JSON.parse(state);
+    if (json.mounts && Object.keys(json.mounts).length > 0) {
+      return {
+        online: json.mounts[Object.keys(json.mounts)[0]].listener_count || 0,
+        version: json.mounts[Object.keys(json.mounts)[0]].metadata.now_playing,
       };
     }
   },
