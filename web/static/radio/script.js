@@ -10,6 +10,13 @@ const pointers = { intro: -1, fullscreen: -1, palette: -1 };
 const visdelay = 2000;
 const visduration = 30000;
 const wave = new Wave($player, $visualizer);
+const VOLUME_KEY = 'radio-volume';
+
+// Restore persisted volume before autoplay begins
+const savedVolume = localStorage.getItem(VOLUME_KEY);
+if (savedVolume !== null) {
+  $player.volume = parseFloat(savedVolume);
+}
 
 const isFullscreen = () => {
   return document.webkitIsFullScreen || document.mozFullScreen || false;
@@ -596,7 +603,45 @@ const handleStreamAnalysis = () => {
   debounce(window.requestAnimationFrame(handleStreamAnalysis));
 };
 
+const scheduleRetry = () => {
+  if (retryTimer) clearTimeout(retryTimer);
+  if (retryCount >= maxRetries) {
+    notify('Stream unavailable.', 'error');
+    retryCount = 0;
+    return;
+  }
+  const delay = Math.min(baseRetryDelay * Math.pow(1.5, retryCount), 30000);
+  retryCount++;
+  retryTimer = setTimeout(() => {
+    $player.load();
+    $player.play().catch(() => {});
+  }, delay);
+};
+
+const handleStreamError = () => {
+  scheduleRetry();
+};
+
+const handleStreamStalled = () => {
+  if (stallTimer) clearTimeout(stallTimer);
+  stallTimer = setTimeout(() => {
+    if ($player.paused || $player.readyState < 3) {
+      scheduleRetry();
+    }
+  }, stallTimeout);
+};
+
+const handleStreamPause = () => {
+  handleStreamEnd();
+  if ($player.error !== null) {
+    scheduleRetry();
+  }
+};
+
 const handleStreamStart = () => {
+  if (retryTimer) clearTimeout(retryTimer);
+  if (stallTimer) clearTimeout(stallTimer);
+  retryCount = 0;
   $body.classList.add('playing');
   if (navigator.wakeLock && typeof navigator.wakeLock.request === 'function') {
     navigator.wakeLock.request().then((wakeLock) => {
@@ -607,9 +652,11 @@ const handleStreamStart = () => {
 
 const handleStreamEnd = () => {
   $body.classList.remove('playing');
-  screenBlocker.release().then(() => {
-    screenBlocker = null;
-  });
+  if (screenBlocker) {
+    screenBlocker.release().then(() => {
+      screenBlocker = null;
+    });
+  }
 };
 
 const init = async (themecolors) => {
@@ -631,10 +678,17 @@ const init = async (themecolors) => {
   $trash.removeAttribute('disabled');
   $transition.addEventListener('click', changeVisualizer);
   $transition.removeAttribute('disabled');
-  $player.addEventListener('volumechange', handleMute);
+  $player.addEventListener('volumechange', () => {
+    if (!$player.muted) {
+      localStorage.setItem(VOLUME_KEY, $player.volume);
+    }
+    handleMute();
+  });
   $player.addEventListener('play', handleStreamStart);
   $player.addEventListener('ended', handleStreamEnd);
-  $player.addEventListener('pause', handleStreamEnd);
+  $player.addEventListener('pause', handleStreamPause);
+  $player.addEventListener('error', handleStreamError);
+  $player.addEventListener('stalled', handleStreamStalled);
   setupAnimations();
   runIntroAnimations();
 };
@@ -686,6 +740,12 @@ let forceAnimation;
 let lockColor = false;
 let colors = [];
 let colorbank = [];
+let retryTimer = null;
+let stallTimer = null;
+let retryCount = 0;
+const maxRetries = 10;
+const baseRetryDelay = 3000;
+const stallTimeout = 10000;
 
 if ( globalColors ) {
   globalColors.subscribe((themecolors) => {
