@@ -58,6 +58,7 @@ window.clearBlocklistSearch = blocklistEditor.clearBlocklistSearch;
 window.gotoPreviousBlocklistPage = blocklistEditor.gotoPreviousBlocklistPage;
 window.gotoNextBlocklistPage = blocklistEditor.gotoNextBlocklistPage;
 window.navigateBlocklistPage = blocklistEditor.navigateBlocklistPage;
+window.updateBlocklistEnabled = blocklistEditor.updateBlocklistEnabled;
 window.revertBlocklist = blocklistEditor.revertBlocklist;
 
 // Secrets Editor

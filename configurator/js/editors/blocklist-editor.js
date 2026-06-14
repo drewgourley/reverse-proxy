@@ -95,6 +95,7 @@ export function navigateBlocklistPage() {
 export async function renderBlocklistEditor(reload = true) {
   if (reload) {
     await api.loadBlocklist(true);
+    await api.loadBlocklistEnabled(true);
   }
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -140,7 +141,12 @@ export async function renderBlocklistEditor(reload = true) {
 
   let html = `
     <div class="section">
-      <div class="section-title"><span class="material-icons">shield</span> Blocklist Management (${state.blocklist.length} IPs)</div>
+      <div class="section-title">
+        <span class="material-icons">shield</span> Blocklist Management (${state.blocklist.length} IPs)
+        <button class="btn-toggle${state.blocklistEnabled ? ' btn-toggle-on' : ''} blocklist-enabled-toggle" onclick="updateBlocklistEnabled(${!state.blocklistEnabled})" title="${state.blocklistEnabled ? 'Blocklist is active — click to disable' : 'Blocklist is disabled — click to enable'}">
+          <span class="btn-toggle-area"><span class="btn-toggle-handle"></span><span class="btn-toggle-label">Active</span><span class="btn-toggle-label">Disabled</span></span>
+        </button>
+      </div>
       <div class="hint hint-section">Add or remove IP addresses from the blocklist</div>
       <div class="blocklist-controls">
         <button class="btn-add-field no-top" onclick="addBlocklistEntry()"><span class="material-icons">add_circle</span> Add Blocklist Entry</button>
@@ -190,6 +196,11 @@ export async function renderBlocklistEditor(reload = true) {
   `;
   
   persistBlocklistFiltersToUrl();
+}
+
+export function updateBlocklistEnabled(enabled) {
+  state.setBlocklistEnabled(enabled);
+  renderBlocklistEditor(false);
 }
 
 /**
@@ -254,6 +265,7 @@ export async function saveBlocklist() {
   saveBtn.textContent = 'Saving...';
 
   try {
+    await api.saveBlocklistEnabled(state.blocklistEnabled);
     await api.saveBlocklist(state.blocklist);
 
     state.setOriginalBlocklist(JSON.parse(JSON.stringify(state.blocklist)));

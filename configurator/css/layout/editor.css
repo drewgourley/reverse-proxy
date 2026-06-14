@@ -76,6 +76,16 @@
     margin-top: 2px;
 }
 
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.blocklist-enabled-toggle {
+    margin-left: auto;
+}
+
 .blocklist-pagination {
     display: flex;
     align-items: center;

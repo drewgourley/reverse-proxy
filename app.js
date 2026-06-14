@@ -103,7 +103,7 @@ setTimeout(() => {
 
   // Main application initialization and server setup
   if (config.domain) {
-    initApplication({ config, secrets, users, blocklist, env, protocols, parsers, extractors, odalpapiService, __dirname }).then((app) => {
+    initApplication({ config, secrets, users, blocklist, advancedConfig, env, protocols, parsers, extractors, odalpapiService, __dirname }).then((app) => {
       const portHttp = (env === 'development' || env === 'test') ? 80 : 8080;
 
       /**
@@ -114,7 +114,7 @@ setTimeout(() => {
        */
       const earlyHandler = (req, res) => {
         const ip = extractIpFromSocket(req.socket);
-        if (isIpBlocked(ip, blocklist)) {
+        if (advancedConfig?.blocklistEnabled !== false && isIpBlocked(ip, blocklist)) {
           const now = new Date().toISOString();
           console.log(`${now}: [early-block] Destroying connection from ${ip}`);
           try { res.socket.destroy(); } catch (e) { /* ignore */ }
@@ -158,7 +158,7 @@ setTimeout(() => {
           console.log(`${now}: ${type} Server running on port ${port}`);
           server.on('upgrade', (req, socket, head) => {
             const ip = extractIpFromSocket(socket);
-            if (isIpBlocked(ip, blocklist)) {
+            if (advancedConfig?.blocklistEnabled !== false && isIpBlocked(ip, blocklist)) {
               console.log(`${now}: [early-block-upgrade] Destroying websocket connection from ${ip}`);
               try { socket.destroy(); } catch (e) { /* ignore */ }
               return;

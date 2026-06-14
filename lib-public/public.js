@@ -37,6 +37,7 @@ async function initApplication(options) {
     config,        // Main configuration (services, domain, etc.)
     secrets,       // Sensitive data (passwords, API keys, etc.)
     users,         // User authentication data
+    advancedConfig,// Advanced settings (parsers, blocklist feature flags)
     env,           // Runtime environment (production, development, test)
     protocols,     // HTTP/HTTPS protocol mappings
     parsers,       // Healthcheck response parsers
@@ -182,7 +183,7 @@ async function initApplication(options) {
       });
       
       // Block requests from blacklisted IPs — destroy the socket immediately to avoid any further compute
-      if (isIpBlocked(ip, blocklist)) {
+      if (advancedConfig?.blocklistEnabled !== false && isIpBlocked(ip, blocklist)) {
         const now = new Date().toISOString();
         console.log(`${now}: [blocklist] Early-destroying connection from ${ip}`);
         try { response.socket.destroy(); } catch (err) { /* ignore */ }

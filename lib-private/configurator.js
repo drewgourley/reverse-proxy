@@ -302,6 +302,28 @@ configrouter.put('/blocklist', (request, response) => {
   }
 });
 
+configrouter.get('/blocklist/enabled', (request, response) => {
+  try {
+    const advanced = configManager.readConfig(storeDir, 'advanced.json', { parsers: {}, extractors: {}, queryTypes: [], blocklistEnabled: true });
+    response.setHeader('Content-Type', 'application/json');
+    response.send({ enabled: advanced.blocklistEnabled !== false });
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.put('/blocklist/enabled', (request, response) => {
+  try {
+    const advanced = configManager.readConfig(storeDir, 'advanced.json', { parsers: {}, extractors: {}, queryTypes: [], blocklistEnabled: true });
+    advanced.blocklistEnabled = request.body.enabled !== false;
+    configManager.updateAdvanced(storeDir, advanced);
+    response.status(200).send({ success: true, message: 'Blocklist status updated successfully' });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    sendError(response, statusCode, error);
+  }
+});
+
 configrouter.put('/secrets', async (request, response) => {
   try {
     await configManager.updateSecrets(storeDir, request.body);

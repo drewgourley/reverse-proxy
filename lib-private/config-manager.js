@@ -284,7 +284,8 @@ function updateAdvanced(baseDir, updatedAdvanced) {
       queryTypes: { 
         type: 'array',
         items: { type: 'string' }
-      }
+      },
+      blocklistEnabled: { type: 'boolean' }
     },
     additionalProperties: false
   };

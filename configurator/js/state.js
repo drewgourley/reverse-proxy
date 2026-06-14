@@ -148,6 +148,9 @@ export function setBlocklist(value) { blocklist = value; }
  */
 export function setOriginalBlocklist(value) { originalBlocklist = value; }
 
+export let blocklistEnabled = true;
+export function setBlocklistEnabled(value) { blocklistEnabled = value; }
+
 /**
  * Set the global `colors` state
  * @param {Object} value - Colors object

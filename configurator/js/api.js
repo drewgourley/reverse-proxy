@@ -376,6 +376,33 @@ export async function saveBlocklist(blocklist) {
   return await response.json();
 }
 
+export async function loadBlocklistEnabled(suppressStatus = false) {
+  try {
+    const response = await fetch('/blocklist/enabled');
+    if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to load blocklist status`);
+    const data = await response.json();
+    state.setBlocklistEnabled(data.enabled !== false);
+  } catch (error) {
+    state.setBlocklistEnabled(true);
+    if (!suppressStatus) showStatus('Could not load blocklist status: ' + error.message, 'error');
+  }
+}
+
+export async function saveBlocklistEnabled(enabled) {
+  const response = await fetch('/blocklist/enabled', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error);
+  }
+
+  return await response.json();
+}
+
 /**
  * Persist secrets to the server
  * @param {object} secrets - Secrets object to save
