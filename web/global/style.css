@@ -211,8 +211,11 @@ button[disabled] {
   z-index:2;
   opacity:0.8;
 }
-header,footer {
+header {
   padding:100px 40px 0;
+}
+footer {
+  padding:0 40px 100px;
 }
 .content {
   position:relative;
@@ -299,8 +302,11 @@ only screen and (                min-resolution: 2dppx) and (max-width: 1200px) 
     font-size:30px;
     line-height:10px;
   }
-  header,footer {
+  header {
     padding:40px 40px 0;
+  }
+  footer {
+    padding:0 40px 40px;
   }
   .stripes {
     top:-138px;

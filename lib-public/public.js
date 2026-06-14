@@ -20,6 +20,7 @@ const { createClient } = require('redis');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { RedisStore } = require('connect-redis');
 
+const got = require('got');
 const authHelpers = require('./auth-helpers');
 const { sendError, extractIpFromSocket } = require('./helpers');
 const { checkSuspiciousRequest, addToBlocklist, isIpBlocked } = require('./bot-blocker');
@@ -121,6 +122,45 @@ async function initApplication(options) {
         if (config.services[name].subdomain.type !== 'proxy' && config.services[name].subdomain.proxy.path && config.services[name].subdomain.path) {
           config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}` });
           config.services[name].subdomain.router.use(config.services[name].subdomain.proxy.path, config.services[name].subdomain.proxy.middleware);
+
+          // /nowplaying endpoint for Icecast-backed services
+          const hcExtractor = config.services[name].healthcheck?.extractor;
+          if (hcExtractor === 'radio' || hcExtractor === 'radio_legacy') {
+            const icecastBase = `${protocols.insecure}${config.services[name].subdomain.path}`;
+            let npCache = null;
+            let npCacheTime = 0;
+            config.services[name].subdomain.router.get('/nowplaying', async (req, res) => {
+              const now = Date.now();
+              if (npCache && now - npCacheTime < 10000) {
+                return res.json(npCache);
+              }
+              try {
+                const response = await got(`${icecastBase}/status-json.xsl`, { timeout: { request: 3000 } });
+                const json = JSON.parse(response.body);
+                let nowPlaying = '';
+                if (json.mounts && Object.keys(json.mounts).length > 0) {
+                  nowPlaying = json.mounts[Object.keys(json.mounts)[0]].metadata?.now_playing || '';
+                } else if (json.icestats?.source) {
+                  const src = json.icestats.source;
+                  nowPlaying = (Array.isArray(src) ? src[0] : src).title || '';
+                }
+                const separatorIndex = nowPlaying.indexOf(' - ');
+                let artist = '';
+                let title = nowPlaying;
+                if (separatorIndex > -1) {
+                  title = nowPlaying.slice(0, separatorIndex).trim();
+                  artist = nowPlaying.slice(separatorIndex + 3).trim();
+                }
+                npCache = { title, artist, nowPlaying };
+                npCacheTime = now;
+                res.json(npCache);
+              } catch (err) {
+                const timestamp = new Date().toISOString();
+                console.error(`${timestamp}: [nowplaying] Failed to fetch ${icecastBase}/status-json.xsl:`, err.message || err);
+                res.json({ title: '', artist: '', nowPlaying: '' });
+              }
+            });
+          }
         }
       }
     });

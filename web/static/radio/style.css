@@ -33,7 +33,7 @@ audio::-webkit-media-controls-panel {
   background:var(--color-primary);
   color:var(--color-text-alternate);
 } 
-.heading, .content {
+.heading, .content, .footing {
   position:relative;
   transition:left 2s ease-in-out;
   left:0;
@@ -95,7 +95,7 @@ audio::-webkit-media-controls-panel {
 .fullscreen.mouseout .stripes, .fullscreen.mouseout #fullscreen {
   right:-1034px;
 }
-.fullscreen.mouseout .heading, .fullscreen.mouseout .content {
+.fullscreen.mouseout .heading, .fullscreen.mouseout .content, .fullscreen.mouseout .footing {
   left:-100%;
 }
 body.ready #visualizer {
@@ -113,4 +113,23 @@ body.ready #visualizer {
       -webkit-transform: rotate(360deg); 
       transform:rotate(360deg); 
   } 
+}
+#nowplaying {
+  opacity:0;
+  transition:opacity 0.5s ease-in-out;
+  pointer-events:none;
+}
+#nowplaying.visible {
+  opacity:1;
+}
+.now-playing {
+  font-family:'Barlow', sans-serif;
+  font-size:24px;
+  color:var(--color-secondary);
+  text-transform:uppercase;
+}
+.now-playing-data {
+  font-family:'Nunito', sans-serif;
+  font-size:18px;
+  color:var(--color-text-alternate);
 }

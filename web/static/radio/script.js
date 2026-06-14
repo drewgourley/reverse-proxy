@@ -6,6 +6,9 @@ const $palette = document.querySelector('#palette');
 const $lock = document.querySelector('#lock');
 const $trash = document.querySelector('#trash');
 const $transition = document.querySelector('#transition');
+const $nowplaying = document.querySelector('#nowplaying');
+const $trackArtist = document.querySelector('.track-artist');
+const $trackTitle = document.querySelector('.track-title');
 const pointers = { intro: -1, fullscreen: -1, palette: -1 };
 const visdelay = 2000;
 const visduration = 30000;
@@ -603,11 +606,30 @@ const handleStreamAnalysis = () => {
   debounce(window.requestAnimationFrame(handleStreamAnalysis));
 };
 
+const startRecoveryPoller = () => {
+  if (recoveryInterval) return;
+  recoveryInterval = setInterval(async () => {
+    try {
+      const res = await fetch('/nowplaying');
+      if (res.ok) {
+        clearInterval(recoveryInterval);
+        recoveryInterval = null;
+        retryCount = 0;
+        notify('Stream recovered. Reconnecting…', 'info');
+        $player.load();
+        $player.play().catch(() => {});
+      }
+    } catch {
+      // Server still unreachable
+    }
+  }, recoveryPollRate);
+};
+
 const scheduleRetry = () => {
   if (retryTimer) clearTimeout(retryTimer);
   if (retryCount >= maxRetries) {
-    notify('Stream unavailable.', 'error');
-    retryCount = 0;
+    notify('Stream unavailable. Will retry in the background.', 'error');
+    startRecoveryPoller();
     return;
   }
   const delay = Math.min(baseRetryDelay * Math.pow(1.5, retryCount), 30000);
@@ -638,18 +660,6 @@ const handleStreamPause = () => {
   }
 };
 
-const handleStreamStart = () => {
-  if (retryTimer) clearTimeout(retryTimer);
-  if (stallTimer) clearTimeout(stallTimer);
-  retryCount = 0;
-  $body.classList.add('playing');
-  if (navigator.wakeLock && typeof navigator.wakeLock.request === 'function') {
-    navigator.wakeLock.request().then((wakeLock) => {
-      screenBlocker = wakeLock;
-    });
-  }
-};
-
 const handleStreamEnd = () => {
   $body.classList.remove('playing');
   if (screenBlocker) {
@@ -659,10 +669,54 @@ const handleStreamEnd = () => {
   }
 };
 
+const handleStreamEnded = () => {
+  handleStreamEnd();
+  scheduleRetry();
+};
+
+const handleStreamStart = () => {
+  if (retryTimer) clearTimeout(retryTimer);
+  if (stallTimer) clearTimeout(stallTimer);
+  if (recoveryInterval) {
+    clearInterval(recoveryInterval);
+    recoveryInterval = null;
+  }
+  retryCount = 0;
+  $body.classList.add('playing');
+  if (navigator.wakeLock && typeof navigator.wakeLock.request === 'function') {
+    navigator.wakeLock.request().then((wakeLock) => {
+      screenBlocker = wakeLock;
+    });
+  }
+};
+
+const pollNowPlaying = async () => {
+  try {
+    const res = await fetch('/nowplaying');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.nowPlaying !== lastNowPlaying) {
+      lastNowPlaying = data.nowPlaying;
+      if (data.nowPlaying) {
+        $trackArtist.textContent = data.artist || '';
+        $trackTitle.textContent = data.title || data.nowPlaying;
+        $nowplaying.classList.add('visible');
+      } else {
+        $nowplaying.classList.remove('visible');
+      }
+    }
+  } catch {
+    // Silently ignore fetch errors
+  }
+};
+
 const init = async (themecolors) => {
   colors = [themecolors.primary, themecolors.secondary, themecolors.accent, themecolors.secondary, themecolors.primary];
   if (reviewInterval) clearInterval(reviewInterval);
+  if (nowPlayingInterval) clearInterval(nowPlayingInterval);
   reviewInterval = setInterval(colorReview, csstrans);
+  nowPlayingInterval = setInterval(pollNowPlaying, 10000);
+  pollNowPlaying();
   window.addEventListener('resize', debounce(setupAnimations));
   window.requestAnimationFrame(handleStreamAnalysis);
   document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -685,7 +739,7 @@ const init = async (themecolors) => {
     handleMute();
   });
   $player.addEventListener('play', handleStreamStart);
-  $player.addEventListener('ended', handleStreamEnd);
+  $player.addEventListener('ended', handleStreamEnded);
   $player.addEventListener('pause', handleStreamPause);
   $player.addEventListener('error', handleStreamError);
   $player.addEventListener('stalled', handleStreamStalled);
@@ -736,17 +790,20 @@ let deadairTimer;
 let transitionTimer;
 let nextInterval;
 let reviewInterval;
+let nowPlayingInterval;
 let forceAnimation;
 let lockColor = false;
 let colors = [];
 let colorbank = [];
+let lastNowPlaying = '';
 let retryTimer = null;
 let stallTimer = null;
+let recoveryInterval = null;
 let retryCount = 0;
 const maxRetries = 10;
 const baseRetryDelay = 3000;
 const stallTimeout = 10000;
-
+const recoveryPollRate = 30000;
 if ( globalColors ) {
   globalColors.subscribe((themecolors) => {
     requestPalettes(themecolors);
