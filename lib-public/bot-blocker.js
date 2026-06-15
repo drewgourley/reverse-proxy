@@ -39,7 +39,7 @@ const suspiciousPatterns = [
   
   // Common exploit paths
   { pattern: /cgi-bin\/.*\.(sh|pl|cgi)/i, score: 9, name: 'cgi-exploit' },
-  { pattern: /\/shell|c99\.php|r57\.php|ak\.php/i, score: 10, name: 'webshell' },
+  { pattern: /\/shell(?!\w)|c99\.php|r57\.php|ak\.php/i, score: 10, name: 'webshell' },
   
   // Installation/setup files (shouldn't be public)
   { pattern: /install\.php|setup\.php|upgrade\.php/i, score: 7, name: 'install-files' },
