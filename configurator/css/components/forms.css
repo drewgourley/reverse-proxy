@@ -207,8 +207,36 @@ input[type="checkbox"]:disabled {
     align-items: flex-start;
 }
 
-.password-input-group input, .blocklist-input-group input {
+.password-input-group input, .blocklist-input-group input[type="text"] {
     flex: 1;
+}
+
+.blocklist-entry.selected .blocklist-input-group input[type="text"] {
+    background: color-mix(in srgb, var(--color-primary) 8%, var(--color-background));
+    border-color: var(--color-primary);
+}
+
+.blocklist-select-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 8px 0;
+    border-bottom: 1px solid var(--color-gray-200);
+    margin-bottom: 8px;
+}
+
+.blocklist-select-all-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.blocklist-select-bar .btn-remove {
+    margin-bottom: 0;
 }
 
 .blocklist-input-group .btn-remove {

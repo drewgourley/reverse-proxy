@@ -8,6 +8,33 @@ let blocklistSearchTerm = '';
 const BLOCKLIST_PAGE_SIZE = 50;
 let blocklistPage = 1;
 let blocklistTotalPages = 1;
+let blocklistSelected = new Set(); // original state.blocklist indices
+
+function getCurrentPageIndices() {
+  const filtered = state.blocklist
+    .map((ip, index) => ({ ip, index }))
+    .filter(entry => blocklistSearchTerm === '' || entry.ip.toLowerCase().includes(blocklistSearchTerm));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / BLOCKLIST_PAGE_SIZE));
+  const page = Math.min(blocklistPage, totalPages);
+  const pageStart = (page - 1) * BLOCKLIST_PAGE_SIZE;
+  return filtered.slice(pageStart, pageStart + BLOCKLIST_PAGE_SIZE).map(e => e.index);
+}
+
+function updateBlocklistSelectionUI() {
+  const count = blocklistSelected.size;
+  const btn = document.getElementById('blocklistBulkRemoveBtn');
+  if (btn) {
+    btn.style.display = count > 0 ? '' : 'none';
+    btn.innerHTML = `<span class="material-icons">delete_sweep</span> Remove Selected (${count})`;
+  }
+  const selectAllCb = document.getElementById('blocklistSelectAll');
+  if (selectAllCb) {
+    const pageIndices = getCurrentPageIndices();
+    const selectedOnPage = pageIndices.filter(i => blocklistSelected.has(i));
+    selectAllCb.checked = selectedOnPage.length > 0 && selectedOnPage.length === pageIndices.length;
+    selectAllCb.indeterminate = selectedOnPage.length > 0 && selectedOnPage.length < pageIndices.length;
+  }
+}
 
 /**
  * Filter visible blocklist entries in the UI based on search input
@@ -17,6 +44,7 @@ export async function filterBlocklist() {
   const searchInput = document.getElementById('blocklistSearchInput');
   blocklistSearchTerm = searchInput?.value.toLowerCase().trim() || '';
   blocklistPage = 1;
+  blocklistSelected.clear();
   await renderBlocklistEditor(false);
   const newInput = document.getElementById('blocklistSearchInput');
   if (newInput) {
@@ -53,6 +81,7 @@ function persistBlocklistFiltersToUrl() {
 export function clearBlocklistSearch() {
   blocklistSearchTerm = '';
   blocklistPage = 1;
+  blocklistSelected.clear();
   const searchInput = document.getElementById('blocklistSearchInput');
 
   if (searchInput) {
@@ -96,6 +125,7 @@ export async function renderBlocklistEditor(reload = true) {
   if (reload) {
     await api.loadBlocklist(true);
     await api.loadBlocklistEnabled(true);
+    blocklistSelected.clear();
   }
   const actions = document.getElementById('editorActions');
   const panel = document.getElementById('editorPanel');
@@ -164,11 +194,22 @@ export async function renderBlocklistEditor(reload = true) {
       </div>
     `;
   } else {
+    html += `
+      <div class="blocklist-select-bar">
+        <label class="blocklist-select-all-label" title="Select / deselect all entries on this page">
+          <input type="checkbox" id="blocklistSelectAll" class="file-checkbox" onchange="toggleSelectAllBlocklist(this.checked)" />
+          Select page
+        </label>
+        <button id="blocklistBulkRemoveBtn" class="btn-remove" onclick="removeSelectedBlocklistEntries()" style="display:${blocklistSelected.size > 0 ? '' : 'none'}"><span class="material-icons">delete_sweep</span> Remove Selected (${blocklistSelected.size})</button>
+      </div>
+    `;
     pageEntries.forEach((entry) => {
+      const checked = blocklistSelected.has(entry.index) ? 'checked' : '';
       html += `
-        <div class="blocklist-entry">
+        <div class="blocklist-entry${blocklistSelected.has(entry.index) ? ' selected' : ''}">
           <div class="form-group form-group-no-margin">
             <div class="blocklist-input-group">
+              <input type="checkbox" class="file-checkbox blocklist-cb" ${checked} onchange="toggleBlocklistSelection(${entry.index}, this.checked)" />
               <input type="text" id="blocklist_ip_${entry.index}" value="${entry.ip}" readonly />
               <button class="btn-remove" onclick="removeBlocklistEntry(${entry.index})"><span class="material-icons">remove_circle</span> Remove</button>
             </div>
@@ -196,11 +237,64 @@ export async function renderBlocklistEditor(reload = true) {
   `;
   
   persistBlocklistFiltersToUrl();
+  updateBlocklistSelectionUI();
+}
+
+export function toggleSelectAllBlocklist(checked) {
+  const pageIndices = getCurrentPageIndices();
+  pageIndices.forEach(i => {
+    if (checked) {
+      blocklistSelected.add(i);
+    } else {
+      blocklistSelected.delete(i);
+    }
+    const inputEl = document.getElementById(`blocklist_ip_${i}`);
+    if (inputEl) {
+      const row = inputEl.closest('.blocklist-entry');
+      const cb = row?.querySelector('.blocklist-cb');
+      if (row) row.classList.toggle('selected', checked);
+      if (cb) cb.checked = checked;
+    }
+  });
+  updateBlocklistSelectionUI();
+}
+
+export function removeSelectedBlocklistEntries() {
+  const count = blocklistSelected.size;
+  if (count === 0) return;
+  showConfirmModal(
+    '<span class="material-icons">delete_sweep</span> Remove Selected Entries',
+    `Are you sure you want to remove ${count} selected IP ${count === 1 ? 'address' : 'addresses'} from the blocklist?`,
+    (confirmed) => {
+      if (!confirmed) return;
+      const sortedIndices = [...blocklistSelected].sort((a, b) => b - a);
+      sortedIndices.forEach(i => state.blocklist.splice(i, 1));
+      blocklistSelected.clear();
+      renderBlocklistEditor(false);
+      showStatus(`${count} blocklist ${count === 1 ? 'entry' : 'entries'} removed`, 'success');
+    }
+  );
 }
 
 export function updateBlocklistEnabled(enabled) {
   state.setBlocklistEnabled(enabled);
   renderBlocklistEditor(false);
+}
+
+export function toggleBlocklistSelection(index, checked) {
+  if (checked) {
+    blocklistSelected.add(index);
+  } else {
+    blocklistSelected.delete(index);
+  }
+  updateBlocklistSelectionUI();
+
+  // Keep row highlight in sync without full re-render
+  const inputEl = document.getElementById(`blocklist_ip_${index}`);
+  if (inputEl) {
+    const row = inputEl.closest('.blocklist-entry');
+    if (row) row.classList.toggle('selected', checked);
+  }
 }
 
 /**
