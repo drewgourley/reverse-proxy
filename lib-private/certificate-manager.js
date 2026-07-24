@@ -56,7 +56,8 @@ function provisionCertificates(webDir, baseDir, email, config, env) {
     
     const domains = [config.domain];
     const secureServices = Object.keys(config.services || {}).filter(name => {
-      return config.services[name].subdomain?.protocol === 'secure';
+      const sub = config.services[name].subdomain;
+      return sub?.protocol === 'secure' && sub?.disabled !== true;
     });
     
     secureServices.forEach(name => {
