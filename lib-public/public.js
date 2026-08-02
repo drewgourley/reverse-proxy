@@ -104,11 +104,11 @@ async function initApplication(options) {
       if (config.services[name].subdomain.proxy) {
         // Type 'proxy': Pure reverse proxy to another service
         if (config.services[name].subdomain.type === 'proxy') {
-          config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}` });
+          config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, xfwd: true });
           
           // Enable WebSocket proxying if configured (for realtime apps)
           if (config.services[name].subdomain.proxy.socket) {
-            config.services[name].subdomain.proxy.websocket = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, ws: true });
+            config.services[name].subdomain.proxy.websocket = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, ws: true, xfwd: true });
           }
           
           // Mount proxy at specific path or root
@@ -121,7 +121,7 @@ async function initApplication(options) {
         
         // Mixed mode: Static content + proxy for API endpoints
         if (config.services[name].subdomain.type !== 'proxy' && config.services[name].subdomain.proxy.path && config.services[name].subdomain.path) {
-          config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}` });
+          config.services[name].subdomain.proxy.middleware = createProxyMiddleware({ target: `${protocols.insecure}${config.services[name].subdomain.path}`, xfwd: true });
           config.services[name].subdomain.router.use(config.services[name].subdomain.proxy.path, config.services[name].subdomain.proxy.middleware);
 
           // /nowplaying endpoint for Icecast-backed services
