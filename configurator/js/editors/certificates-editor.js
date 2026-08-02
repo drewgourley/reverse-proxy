@@ -143,8 +143,8 @@ export function getCertificateStatus() {
   const currentSecureServices = new Set();
   if (state.originalConfig.services) {
     Object.keys(state.originalConfig.services).forEach(serviceName => {
-      if (state.originalConfig.services[serviceName].subdomain && 
-        state.originalConfig.services[serviceName].subdomain.protocol === 'secure') {
+      const sub = state.originalConfig.services[serviceName].subdomain;
+      if (sub && sub.protocol === 'secure' && sub.disabled !== true) {
         currentSecureServices.add(serviceName);
       }
     });
