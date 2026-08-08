@@ -154,7 +154,9 @@ export function renderUsersEditor() {
 
   const authServices = Object.keys(state.config.services || {}).filter(name => {
     if (name === 'api' || name === 'www') return false;
-    return state.config.services[name]?.subdomain?.requireAuth === true;
+    const subdomain = state.config.services[name]?.subdomain;
+    // requireAuth is only enforced for 'index' and 'spa' service types
+    return subdomain?.requireAuth === true && (subdomain.type === 'index' || subdomain.type === 'spa');
   });
 
   try {
