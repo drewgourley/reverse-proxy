@@ -239,7 +239,7 @@ async function initApplication(options) {
         } 
         // Force secure services to HTTPS in production (except CORS preflight)
         else if (env !== 'development' && env !== 'test') {
-          const isCorsEndpoint = target === 'api' && request.url.startsWith('/service/');
+          const isCorsEndpoint = target === 'api' && (request.url.startsWith('/service/') || request.url.startsWith('/colors'));
           if ((host === config.domain || config.services[target].subdomain.protocol === 'secure') && !request.secure && !isCorsEndpoint) {
             return response.redirect(`${protocols.secure}${host}${request.url}`);
           }
