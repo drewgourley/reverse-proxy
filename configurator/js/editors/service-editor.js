@@ -35,9 +35,11 @@ export function updateServiceProperty(serviceName, path, value) {
  */
 export function toggleFieldVisibility(serviceName) {
   const selectedType = getDropdownValue(`subdomain_type_${serviceName}`);
+  const selectedProtocol = getDropdownValue(`subdomain_protocol_${serviceName}`);
   const basicAuthFields = document.querySelectorAll(`.basicauth-field[data-service="${serviceName}"]`);
   const proxyFields = document.querySelectorAll(`.proxy-field[data-service="${serviceName}"]`);
   const requireAuthFields = document.querySelectorAll(`.requireauth-field[data-service="${serviceName}"]`);
+  const allowInsecureFields = document.querySelectorAll(`.allowinsecure-field[data-service="${serviceName}"]`);
   
   // Basic Auth fields: show only for dirlist
   basicAuthFields.forEach(field => {
@@ -60,6 +62,15 @@ export function toggleFieldVisibility(serviceName) {
   // Require Auth fields: show only for index and spa
   requireAuthFields.forEach(field => {
     if (selectedType === 'index' || selectedType === 'spa') {
+      field.classList.remove('form-group-hidden');
+    } else {
+      field.classList.add('form-group-hidden');
+    }
+  });
+
+  // Allow Insecure fields: show only when the secure protocol is selected
+  allowInsecureFields.forEach(field => {
+    if (selectedProtocol === 'secure') {
       field.classList.remove('form-group-hidden');
     } else {
       field.classList.add('form-group-hidden');
@@ -241,6 +252,7 @@ export function createSubdomainChangeHandlers(serviceName) {
   
   window[`onSubdomainProtocolChange_${serviceName}`] = function(value) {
     updateServiceProperty(serviceName, 'subdomain.protocol', value);
+    toggleFieldVisibility(serviceName);
   };
 }
 
@@ -356,6 +368,14 @@ function renderSubdomainSection(serviceName, subdomain) {
             ],
             onChange: `onSubdomainProtocolChange_${serviceName}`
           })}
+        </div>
+        <div class="form-group allowinsecure-field" data-service="${serviceName}">
+          <div class="checkbox-item">
+            <input type="checkbox" id="subdomain_allowInsecure_${serviceName}" ${subdomain.allowInsecure ? 'checked' : ''} 
+                onchange="updateServiceProperty('${serviceName}', 'subdomain.allowInsecure', this.checked)">
+            <label for="subdomain_allowInsecure_${serviceName}" class="inline-label">Allow Insecure Access</label>
+          </div>
+          <div class="hint">Serve this subdomain over HTTP when navigated to directly instead of forcing a redirect to HTTPS (for legacy client compatibility)</div>
         </div>
         <div class="form-group proxy-field" data-service="${serviceName}">
           <label for="subdomain_path_${serviceName}">IP address and Port to Internal Service</label>
