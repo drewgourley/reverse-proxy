@@ -75,12 +75,54 @@ export function renderDdnsEditor() {
       </div>
     </div>
   `;
+
+  const altDomains = state.config.altDomains || [];
+  if (altDomains.length > 0) {
+    html += `
+    <div class="section">
+      <div class="section-title"><span class="material-icons">domain_add</span> Alternate Domain DDNS</div>
+      <div class="hint hint-section">Optionally update each alternate domain's A record in its own Route 53 hosted zone (uses the AWS credentials above). Leave inactive to manage a domain's DNS manually.</div>
+      ${altDomains.map(domain => {
+        const entry = (state.ddns.altDomains && state.ddns.altDomains[domain]) || {};
+        return `
+        <div class="secret-entry">
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="ddns_alt_active_${domain}" ${entry.active ? 'checked' : ''} onchange="updateDdnsAltDomain('${domain}', 'active', this.checked)">
+              Enable Dynamic DNS for ${domain}
+            </label>
+          </div>
+          <div class="entry-field">
+            <label for="ddns_alt_zone_${domain}">Route 53 Hosted Zone ID</label>
+            <input type="text" id="ddns_alt_zone_${domain}" value="${entry.route53_hosted_zone_id || ''}" onchange="updateDdnsAltDomain('${domain}', 'route53_hosted_zone_id', this.value)">
+            <div class="hint">The ID of the Route 53 hosted zone for ${domain}</div>
+          </div>
+        </div>
+        `;
+      }).join('')}
+    </div>
+    `;
+  }
+
   panel.innerHTML = html;
   actions.innerHTML = `
     <div class="flex-spacer"></div>
     <button class="btn-reset" onclick="revertDdns()"><span class="material-icons">undo</span> Revert Changes</button>
     <button class="btn-save" id="saveDdnsBtn" onclick="saveDdns()"><span class="material-icons">save</span> Save DDNS Config</button>
   `;
+}
+
+/**
+ * Update a per-alternate-domain DDNS setting (active flag or hosted zone id)
+ * @param {string} domain - Alternate domain name
+ * @param {string} key - Property to update ('active' or 'route53_hosted_zone_id')
+ * @param {*} value - New value
+ * @returns {void}
+ */
+export function updateDdnsAltDomain(domain, key, value) {
+  if (!state.ddns.altDomains) state.ddns.altDomains = {};
+  if (!state.ddns.altDomains[domain]) state.ddns.altDomains[domain] = {};
+  state.ddns.altDomains[domain][key] = value;
 }
 
 /**

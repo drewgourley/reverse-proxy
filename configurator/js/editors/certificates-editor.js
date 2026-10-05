@@ -36,8 +36,8 @@ export function renderCertificatesEditor() {
       <div class="cert-status-section">
         <div class="cert-status-header cert-provisioned"><span class="material-icons success">check_circle</span> Provisioned Certificates</div>
         <div class="cert-status-list">
-          ${certStatus.provisioned.map(service => 
-            `<div class="cert-status-item"><span class="cert-domain">${service}.${state.config.domain}</span></div>`
+          ${certStatus.provisioned.map(domainLabel => 
+            `<div class="cert-status-item"><span class="cert-domain">${domainLabel}</span></div>`
           ).join('')}
         </div>
       </div>
@@ -49,8 +49,8 @@ export function renderCertificatesEditor() {
       <div class="cert-status-section">
         <div class="cert-status-header cert-need-provision"><span class="material-icons warning">pending</span> Need Provisioning</div>
         <div class="cert-status-list">
-          ${certStatus.needProvisioning.map(service => 
-            `<div class="cert-status-item"><span class="cert-domain">${service}.${state.config.domain}</span></div>`
+          ${certStatus.needProvisioning.map(domainLabel => 
+            `<div class="cert-status-item"><span class="cert-domain">${domainLabel}</span></div>`
           ).join('')}
         </div>
       </div>
@@ -62,8 +62,8 @@ export function renderCertificatesEditor() {
       <div class="cert-status-section">
         <div class="cert-status-header cert-need-deprovision"><span class="material-icons warning">warning</span> Need Deprovisioning</div>
         <div class="cert-status-list">
-          ${certStatus.needDeprovisioning.map(service => 
-            `<div class="cert-status-item"><span class="cert-domain">${service}.${state.config.domain}</span></div>`
+          ${certStatus.needDeprovisioning.map(domainLabel => 
+            `<div class="cert-status-item"><span class="cert-domain">${domainLabel}</span></div>`
           ).join('')}
         </div>
       </div>
@@ -130,6 +130,17 @@ export async function provisionCertificates() {
 }
 
 /**
+ * Build the domain label (either the bound alternate domain, exclusively, or the default subdomain)
+ * covered by a service's certificate
+ * @param {string} serviceName - Service identifier
+ * @returns {string[]} Single-element array containing the domain label covered by this service's certificate
+ */
+function getServiceDomainLabels(serviceName) {
+  const altDomain = state.originalConfig.services?.[serviceName]?.subdomain?.altDomain;
+  return [altDomain || `${serviceName}.${state.originalConfig.domain}`];
+}
+
+/**
  * Determine certificate provisioning status for configured services
  * @returns {{provisioned:string[],needProvisioning:string[],needDeprovisioning:string[]}}
  */
@@ -154,15 +165,15 @@ export function getCertificateStatus() {
   
   currentSecureServices.forEach(serviceName => {
     if (provisionedServices.has(serviceName)) {
-      status.provisioned.push(serviceName);
+      status.provisioned.push(...getServiceDomainLabels(serviceName));
     } else {
-      status.needProvisioning.push(serviceName);
+      status.needProvisioning.push(...getServiceDomainLabels(serviceName));
     }
   });
   
   provisionedServices.forEach(serviceName => {
     if (!currentSecureServices.has(serviceName)) {
-      status.needDeprovisioning.push(serviceName);
+      status.needDeprovisioning.push(...getServiceDomainLabels(serviceName));
     }
   });
   

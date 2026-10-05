@@ -87,6 +87,7 @@ window.clearUsersSearch = usersEditor.clearUsersSearch;
 // DDNS Editor
 window.renderDdnsEditor = ddnsEditor.renderDdnsEditor;
 window.updateDdns = ddnsEditor.updateDdns;
+window.updateDdnsAltDomain = ddnsEditor.updateDdnsAltDomain;
 window.saveDdns = ddnsEditor.saveDdns;
 window.revertDdns = ddnsEditor.revertDdns;
 
@@ -118,12 +119,15 @@ window.revertAdvanced = advancedEditor.revertAdvanced;
 window.renderDomainEditor = domainEditor.renderDomainEditor;
 window.updateConfig = domainEditor.updateConfig;
 window.onRootServiceChange = domainEditor.onRootServiceChange;
+window.addAltDomain = domainEditor.addAltDomain;
+window.removeAltDomain = domainEditor.removeAltDomain;
 
 // Service Editor Module - Main Rendering
 window.renderServiceEditor = serviceEditor.renderServiceEditor;
 
 // Service Editor Module - Property Updates
 window.updateServiceProperty = serviceEditor.updateServiceProperty;
+window.selectServiceDomain = serviceEditor.selectServiceDomain;
 
 // Service Editor Module - Field Visibility
 window.toggleFieldVisibility = serviceEditor.toggleFieldVisibility;

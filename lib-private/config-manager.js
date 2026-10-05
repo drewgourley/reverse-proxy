@@ -64,6 +64,10 @@ function updateConfig(baseDir, updatedConfig) {
     properties: {
       domain: { type: 'string', minLength: 1 },
       rootservice: { type: 'string' },
+      altDomains: {
+        type: 'array',
+        items: { type: 'string', minLength: 1 }
+      },
       services: {
         type: 'object',
         patternProperties: {
@@ -252,7 +256,20 @@ function updateDDNS(baseDir, updatedDdns) {
       aws_access_key_id: { type: 'string', minLength: 1 },
       aws_secret_access_key: { type: 'string', minLength: 1 },
       aws_region: { type: 'string', minLength: 1 },
-      route53_hosted_zone_id: { type: 'string', minLength: 1 }
+      route53_hosted_zone_id: { type: 'string', minLength: 1 },
+      altDomains: {
+        type: 'object',
+        patternProperties: {
+          '^.+$': {
+            type: 'object',
+            properties: {
+              active: { type: 'boolean' },
+              route53_hosted_zone_id: { type: 'string' }
+            },
+            additionalProperties: false
+          }
+        }
+      }
     },
     additionalProperties: false
   };

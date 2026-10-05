@@ -91,6 +91,18 @@ async function initApplication(options) {
   
   if (config.services) {
     const services = Object.keys(config.services).filter(name => config.services[name].subdomain && !config.services[name].subdomain.disabled);
+    
+    // Reverse lookup: alternate top-level domain (apex) -> service name that should handle it.
+    // A service bound to an alt domain is served ONLY there, not at name.config.domain.
+    const altDomainTargets = {};
+    services.forEach(name => {
+      const altDomain = config.services[name].subdomain.altDomain;
+      if (altDomain) altDomainTargets[altDomain] = name;
+    });
+    
+    // Services still reachable at name.config.domain (i.e. not exclusively bound to an alt domain)
+    const defaultDomainServices = services.filter(name => !config.services[name].subdomain.altDomain);
+    
     // ========== Phase 1: Initialize Routers and Proxy Middleware ==========
     // Create Express routers for each service and set up proxy configurations
     services.forEach(name => {
@@ -205,18 +217,19 @@ async function initApplication(options) {
       // Set forwarded IP header for downstream services
       response.set('x-forwarded-for', ip);
       
-      // Validate hostname against configured domain and subdomains
+      // Validate hostname against configured domain, subdomains, and bound alternate domains
       const isValidHost = host === config.domain || 
                           host === `www.${config.domain}` ||
-                          services.some(name => host === `${name}.${config.domain}`);
+                          defaultDomainServices.some(name => host === `${name}.${config.domain}`) ||
+                          Object.prototype.hasOwnProperty.call(altDomainTargets, host);
       if (!isValidHost) {
         return response.redirect(`${protocols.secure}${config.domain}`);
       }
       
-      // Determine target service based on subdomain
-      let target = services.find((name) => {
+      // Determine target service based on subdomain, falling back to a bound alternate domain
+      let target = defaultDomainServices.find((name) => {
         return `${name}.${config.domain}` === host && config.services[name].subdomain;
-      });
+      }) || altDomainTargets[host];
       
       // ========== HTTPS/HTTP Routing Logic ==========
       if (request.url.includes('.well-known')) {
@@ -751,8 +764,25 @@ async function initApplication(options) {
       }
       
       // ========== Mount Service Router to Subdomain ==========
-      // Attach this service's router to its subdomain (e.g., 'api' → api.domain.com)
-      application.use(subdomain(name, config.services[name].subdomain.router));
+      // Attach this service's router to its subdomain (e.g., 'api' → api.domain.com), unless it's
+      // exclusively bound to an alternate domain (mounted separately below instead)
+      if (!config.services[name].subdomain.altDomain) {
+        application.use(subdomain(name, config.services[name].subdomain.router));
+      }
+    });
+    
+    // ========== Mount Service Routers to Bound Alternate Domains ==========
+    // Alternate domains route at their apex (no subdomain) directly to the bound service's router.
+    // express-subdomain can't match these (it only strips/compares labels under the primary domain),
+    // so match the Host header directly instead.
+    Object.keys(altDomainTargets).forEach(altDomain => {
+      const targetName = altDomainTargets[altDomain];
+      application.use((request, response, next) => {
+        if (request.headers.host === altDomain) {
+          return config.services[targetName].subdomain.router(request, response, next);
+        }
+        next();
+      });
     });
     
     // ========== Root Domain Routing ==========

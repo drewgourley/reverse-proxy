@@ -9,6 +9,7 @@ import { renderGitStatus, checkForUpdates } from './update.js';
 export function getDefaultConfig() {
   return {
     domain: '',
+    altDomains: [],
     services: {
       api: {
         subdomain: {
@@ -60,7 +61,8 @@ export function getDefaultDdns() {
     aws_access_key_id: '',
     aws_secret_access_key: '',
     aws_region: '',
-    route53_hosted_zone_id: ''
+    route53_hosted_zone_id: '',
+    altDomains: {}
   };
 }
 

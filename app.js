@@ -134,7 +134,9 @@ setTimeout(() => {
         const websockets = Object.keys(config.services).filter(name => config.services[name].subdomain?.proxy?.socket);
         let found = false;
         websockets.forEach(name => {
-          if (req.headers.host === `${name}.${config.domain}`) {
+          const altDomain = config.services[name].subdomain.altDomain;
+          const expectedHost = altDomain || `${name}.${config.domain}`;
+          if (req.headers.host === expectedHost) {
             config.services[name].subdomain.proxy.websocket.upgrade(req, socket, head);
             found = true;
           }

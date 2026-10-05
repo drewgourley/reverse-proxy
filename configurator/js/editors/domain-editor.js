@@ -1,6 +1,6 @@
 import * as state from '../state.js';
 import * as api from '../api.js';
-import { createDropdown } from '../ui-components.js';
+import { createDropdown, showPromptModal, showConfirmModal, showStatus } from '../ui-components.js';
 
 /**
  * Render the Domain editor UI and setup route/port instructions
@@ -54,6 +54,17 @@ export function renderDomainEditor() {
           <div class="hint">The service that will be served at the root domain (e.g., ${state.config.domain || 'example.com'})</div>
         </div>
       </div>
+    </div>
+    <div class="section">
+      <div class="section-title"><span class="material-icons">domain_add</span> Alternate Domains</div>
+      <div class="hint hint-section">Additional registered domains that can be bound to a service so it's also reachable at that domain's apex (e.g., unbabel.it &rarr; the unbabel-it service), instead of only at a subdomain of ${state.config.domain || 'your primary domain'}. Bind a service to one from its service editor.</div>
+      ${(state.config.altDomains || []).map((altDomain, index) => `
+        <div class="alt-domain-entry">
+          <span class="alt-domain-name">${altDomain}</span>
+          <button class="btn-remove" onclick="removeAltDomain(${index})"><span class="material-icons">remove_circle</span> Remove</button>
+        </div>
+      `).join('') || '<div class="hint">No alternate domains configured</div>'}
+      <button class="btn-add-field on-top" onclick="addAltDomain()"><span class="material-icons">add_circle</span> Add Alternate Domain</button>
     </div>
     <div class="section">
       <div class="section-title"><span class="material-icons">cell_tower</span> Environment & Setup</div>
@@ -151,6 +162,60 @@ export function updateConfig(key, value) {
  */
 export function onRootServiceChange(value) {
   updateConfig('rootservice', value);
+}
+
+/**
+ * Prompt for and add a new alternate domain
+ * @returns {void}
+ */
+export function addAltDomain() {
+  showPromptModal(
+    '<span class="material-icons">add_circle</span> Add Alternate Domain',
+    'Enter the registered domain name (e.g., unbabel.it):',
+    'Domain name',
+    '',
+    'example.com',
+    (name) => {
+      const domain = (name || '').trim().toLowerCase();
+      if (!domain) {
+        showStatus('Domain cannot be empty', 'error');
+        return false;
+      }
+      if (!state.config.altDomains) state.config.altDomains = [];
+      if (state.config.altDomains.includes(domain)) {
+        showStatus('Domain already exists', 'error');
+        return false;
+      }
+      state.config.altDomains.push(domain);
+      renderDomainEditor();
+      return true;
+    }
+  );
+}
+
+/**
+ * Remove an alternate domain (with confirmation), unbinding it from any service that references it
+ * @param {number} index - Index in config.altDomains to remove
+ * @returns {void}
+ */
+export function removeAltDomain(index) {
+  const domain = state.config.altDomains[index];
+  showConfirmModal(
+    '<span class="material-icons">remove_circle</span> Remove Alternate Domain',
+    `Are you sure you want to remove "${domain}"? It will be unbound from any service using it.`,
+    (confirmed) => {
+      if (confirmed) {
+        state.config.altDomains.splice(index, 1);
+        Object.values(state.config.services || {}).forEach(service => {
+          if (service.subdomain?.altDomain === domain) {
+            service.subdomain.altDomain = null;
+          }
+        });
+        renderDomainEditor();
+        showStatus('Alternate domain removed', 'success');
+      }
+    }
+  );
 }
 
 /**

@@ -29,6 +29,25 @@ export function updateServiceProperty(serviceName, path, value) {
 }
 
 /**
+ * Select which domain a service is served on: the primary domain (default, pass '')
+ * or a single bound alternate domain (exclusive - unsets it from any other service).
+ * @param {string} serviceName - Service identifier
+ * @param {string} domainValue - Alternate domain name, or '' for the default primary domain
+ * @returns {void}
+ */
+export function selectServiceDomain(serviceName, domainValue) {
+  if (domainValue) {
+    Object.entries(state.config.services).forEach(([name, service]) => {
+      if (name !== serviceName && service.subdomain?.altDomain === domainValue) {
+        service.subdomain.altDomain = null;
+      }
+    });
+  }
+  state.config.services[serviceName].subdomain.altDomain = domainValue || null;
+  renderServiceEditor(serviceName);
+}
+
+/**
  * Show/hide editor fields based on selected subdomain type
  * @param {string} serviceName - Service identifier
  * @returns {void}
@@ -335,9 +354,10 @@ function renderDefaultSubdomainSection(serviceName, subdomain) {
  * @returns {void}
  */
 function renderSubdomainSection(serviceName, subdomain) {
+  const activeDomain = subdomain.altDomain || `${serviceName}.${state.config.domain}`;
   return `
     <div class="section">
-      <div class="section-title">Subdomain Settings - <a class="title-link" href="${subdomain.protocol === 'secure' && state.environment === 'production'  ? 'https' : 'http'}://${serviceName}.${state.config.domain}" target="_blank">${serviceName}.${state.config.domain}</a></div>
+      <div class="section-title">Subdomain Settings - <a class="title-link" href="${subdomain.protocol === 'secure' && state.environment === 'production'  ? 'https' : 'http'}://${activeDomain}" target="_blank">${activeDomain}</a></div>
       <div class="nested-object">
         <div class="subdomain-actions">
           <button class="btn-remove" onclick="removeSubdomain('${serviceName}')"><span class="material-icons">remove_circle</span> Remove Subdomain</button>
@@ -376,6 +396,24 @@ function renderSubdomainSection(serviceName, subdomain) {
             <label for="subdomain_allowInsecure_${serviceName}" class="inline-label">Allow Insecure Access</label>
           </div>
           <div class="hint">Serve this subdomain over HTTP when navigated to directly instead of forcing a redirect to HTTPS (for legacy client compatibility)</div>
+        </div>
+        <div class="form-group">
+          <p class="label">Domain</p>
+          <div class="nested-object">
+            <div class="checkbox-item">
+              <input type="radio" name="subdomain_domain_${serviceName}" id="subdomain_domain_default_${serviceName}" ${!subdomain.altDomain ? 'checked' : ''}
+                  onchange="selectServiceDomain('${serviceName}', '')">
+              <label for="subdomain_domain_default_${serviceName}" class="inline-label">Default - ${serviceName}.${state.config.domain}</label>
+            </div>
+            ${(state.config.altDomains || []).map(altDomain => `
+              <div class="checkbox-item">
+                <input type="radio" name="subdomain_domain_${serviceName}" id="subdomain_domain_${serviceName}_${altDomain}" ${subdomain.altDomain === altDomain ? 'checked' : ''}
+                    onchange="selectServiceDomain('${serviceName}', '${altDomain}')">
+                <label for="subdomain_domain_${serviceName}_${altDomain}" class="inline-label">${altDomain}</label>
+              </div>
+            `).join('')}
+          </div>
+          <div class="hint">${subdomain.altDomain ? `Serves exclusively at ${subdomain.altDomain} - ${serviceName}.${state.config.domain} will no longer work for this service` : 'Serves at the default subdomain of the primary domain. Select an alternate domain above to serve this service exclusively at that domain\'s apex instead.'}</div>
         </div>
         <div class="form-group proxy-field" data-service="${serviceName}">
           <label for="subdomain_path_${serviceName}">IP address and Port to Internal Service</label>

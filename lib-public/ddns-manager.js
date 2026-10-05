@@ -41,43 +41,54 @@ function initDDNS(ddns, config, env, cron) {
         return;
       }
 
-      const changes = [{
-        Action: 'UPSERT',
-        ResourceRecordSet: {
-          Name: config.domain,
-          Type: 'A',
-          TTL: 300,
-          ResourceRecords: [{ Value: publicIP }],
-        },
-      },
-      {
-        Action: 'UPSERT',
-        ResourceRecordSet: {
-          Name: `*.${config.domain}`,
-          Type: 'A',
-          TTL: 300,
-          ResourceRecords: [{ Value: publicIP }],
-        },
+      const now = new Date().toISOString();
+
+      // Primary domain + wildcard (covers all subdomains), plus any alternate top-level
+      // domains bound to a service, each updated in its own Route53 hosted zone.
+      const zoneJobs = [{
+        hostedZoneId: ddns.route53_hosted_zone_id,
+        changes: [
+          {
+            Action: 'UPSERT',
+            ResourceRecordSet: { Name: config.domain, Type: 'A', TTL: 300, ResourceRecords: [{ Value: publicIP }] },
+          },
+          {
+            Action: 'UPSERT',
+            ResourceRecordSet: { Name: `*.${config.domain}`, Type: 'A', TTL: 300, ResourceRecords: [{ Value: publicIP }] },
+          },
+        ],
       }];
 
-      const now = new Date().toISOString();
-      
+      Object.entries(ddns.altDomains || {}).forEach(([altDomain, altConfig]) => {
+        if (!altConfig?.active || !altConfig?.route53_hosted_zone_id) return;
+        zoneJobs.push({
+          hostedZoneId: altConfig.route53_hosted_zone_id,
+          changes: [{
+            Action: 'UPSERT',
+            ResourceRecordSet: { Name: altDomain, Type: 'A', TTL: 300, ResourceRecords: [{ Value: publicIP }] },
+          }],
+        });
+      });
+
       if (env === 'development') {
-        console.log(`${now}: DDNS update skipped in development mode:`, changes);
+        console.log(`${now}: DDNS update skipped in development mode:`, zoneJobs);
         lastKnownIP = publicIP;
         return;
       }
 
-      const params = {
-        ChangeBatch: {
-          Changes: changes,
-          Comment: 'Updated automatically by Dynamic DNS',
-        },
-        HostedZoneId: ddns.route53_hosted_zone_id,
-      };
+      for (const job of zoneJobs) {
+        const params = {
+          ChangeBatch: {
+            Changes: job.changes,
+            Comment: 'Updated automatically by Dynamic DNS',
+          },
+          HostedZoneId: job.hostedZoneId,
+        };
 
-      const command = new ChangeResourceRecordSetsCommand(params);
-      await route53.send(command);
+        const command = new ChangeResourceRecordSetsCommand(params);
+        await route53.send(command);
+      }
+
       console.log(`${now}: DDNS updated to ${publicIP}`);
       lastKnownIP = publicIP;
     } catch (error) {
