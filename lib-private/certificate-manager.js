@@ -61,9 +61,13 @@ function provisionCertificates(webDir, baseDir, email, config, env) {
     });
     
     secureServices.forEach(name => {
-      const altDomain = config.services[name].subdomain.altDomain;
+      const sub = config.services[name].subdomain;
       // A service bound to an alt domain is served ONLY there, not at name.config.domain
-      domains.push(altDomain || `${name}.${config.domain}`);
+      if (sub.altDomain) {
+        domains.push(sub.altDomainPrefix ? `${sub.altDomainPrefix}.${sub.altDomain}` : sub.altDomain);
+      } else {
+        domains.push(`${name}.${config.domain}`);
+      }
     });
     
     const domainFlags = domains.map(d => `-d ${d}`).join(' ');

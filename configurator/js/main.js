@@ -128,6 +128,8 @@ window.renderServiceEditor = serviceEditor.renderServiceEditor;
 // Service Editor Module - Property Updates
 window.updateServiceProperty = serviceEditor.updateServiceProperty;
 window.selectServiceDomain = serviceEditor.selectServiceDomain;
+window.toggleAltDomainPrefixInput = serviceEditor.toggleAltDomainPrefixInput;
+window.useRootAltDomain = serviceEditor.useRootAltDomain;
 
 // Service Editor Module - Field Visibility
 window.toggleFieldVisibility = serviceEditor.toggleFieldVisibility;

@@ -209,6 +209,7 @@ export function removeAltDomain(index) {
         Object.values(state.config.services || {}).forEach(service => {
           if (service.subdomain?.altDomain === domain) {
             service.subdomain.altDomain = null;
+            service.subdomain.altDomainPrefix = null;
           }
         });
         renderDomainEditor();

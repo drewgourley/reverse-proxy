@@ -92,12 +92,14 @@ async function initApplication(options) {
   if (config.services) {
     const services = Object.keys(config.services).filter(name => config.services[name].subdomain && !config.services[name].subdomain.disabled);
     
-    // Reverse lookup: alternate top-level domain (apex) -> service name that should handle it.
+    // Reverse lookup: alternate domain host (apex, or subdomain.apex if altDomainPrefix is set) -> service name.
     // A service bound to an alt domain is served ONLY there, not at name.config.domain.
     const altDomainTargets = {};
     services.forEach(name => {
-      const altDomain = config.services[name].subdomain.altDomain;
-      if (altDomain) altDomainTargets[altDomain] = name;
+      const sub = config.services[name].subdomain;
+      if (!sub.altDomain) return;
+      const host = sub.altDomainPrefix ? `${sub.altDomainPrefix}.${sub.altDomain}` : sub.altDomain;
+      altDomainTargets[host] = name;
     });
     
     // Services still reachable at name.config.domain (i.e. not exclusively bound to an alt domain)

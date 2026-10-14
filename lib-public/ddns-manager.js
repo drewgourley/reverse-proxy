@@ -63,10 +63,16 @@ function initDDNS(ddns, config, env, cron) {
         if (!altConfig?.active || !altConfig?.route53_hosted_zone_id) return;
         zoneJobs.push({
           hostedZoneId: altConfig.route53_hosted_zone_id,
-          changes: [{
-            Action: 'UPSERT',
-            ResourceRecordSet: { Name: altDomain, Type: 'A', TTL: 300, ResourceRecords: [{ Value: publicIP }] },
-          }],
+          changes: [
+            {
+              Action: 'UPSERT',
+              ResourceRecordSet: { Name: altDomain, Type: 'A', TTL: 300, ResourceRecords: [{ Value: publicIP }] },
+            },
+            {
+              Action: 'UPSERT',
+              ResourceRecordSet: { Name: `*.${altDomain}`, Type: 'A', TTL: 300, ResourceRecords: [{ Value: publicIP }] },
+            },
+          ],
         });
       });
 

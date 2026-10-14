@@ -136,8 +136,11 @@ export async function provisionCertificates() {
  * @returns {string[]} Single-element array containing the domain label covered by this service's certificate
  */
 function getServiceDomainLabels(serviceName) {
-  const altDomain = state.originalConfig.services?.[serviceName]?.subdomain?.altDomain;
-  return [altDomain || `${serviceName}.${state.originalConfig.domain}`];
+  const sub = state.originalConfig.services?.[serviceName]?.subdomain;
+  if (sub?.altDomain) {
+    return [sub.altDomainPrefix ? `${sub.altDomainPrefix}.${sub.altDomain}` : sub.altDomain];
+  }
+  return [`${serviceName}.${state.originalConfig.domain}`];
 }
 
 /**

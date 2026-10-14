@@ -28,23 +28,63 @@ export function updateServiceProperty(serviceName, path, value) {
   obj[parts[parts.length - 1]] = value;
 }
 
+// Alt-domain rows ("serviceName::altDomain") whose subdomain prefix input is currently expanded
+const expandedAltDomainPrefixRows = new Set();
+
 /**
  * Select which domain a service is served on: the primary domain (default, pass '')
- * or a single bound alternate domain (exclusive - unsets it from any other service).
+ * or a single bound alternate domain (exclusive - unsets it from any other service that
+ * resolves to the same full host, i.e. same altDomain + prefix combination).
  * @param {string} serviceName - Service identifier
  * @param {string} domainValue - Alternate domain name, or '' for the default primary domain
+ * @param {string} [prefix] - Optional subdomain prefix on the alternate domain (e.g. 'app')
  * @returns {void}
  */
-export function selectServiceDomain(serviceName, domainValue) {
+export function selectServiceDomain(serviceName, domainValue, prefix) {
+  const normalizedPrefix = domainValue ? ((prefix || '').trim() || null) : null;
+  const resolvedHost = domainValue ? (normalizedPrefix ? `${normalizedPrefix}.${domainValue}` : domainValue) : null;
+  
   if (domainValue) {
     Object.entries(state.config.services).forEach(([name, service]) => {
-      if (name !== serviceName && service.subdomain?.altDomain === domainValue) {
+      if (name === serviceName || !service.subdomain?.altDomain) return;
+      const otherHost = service.subdomain.altDomainPrefix ? `${service.subdomain.altDomainPrefix}.${service.subdomain.altDomain}` : service.subdomain.altDomain;
+      if (otherHost === resolvedHost) {
         service.subdomain.altDomain = null;
+        service.subdomain.altDomainPrefix = null;
       }
     });
   }
+  
   state.config.services[serviceName].subdomain.altDomain = domainValue || null;
+  state.config.services[serviceName].subdomain.altDomainPrefix = normalizedPrefix;
   renderServiceEditor(serviceName);
+}
+
+/**
+ * Show/hide the subdomain-prefix text input for an alternate domain row
+ * @param {string} serviceName - Service identifier
+ * @param {string} altDomain - Alternate domain name
+ * @returns {void}
+ */
+export function toggleAltDomainPrefixInput(serviceName, altDomain) {
+  const key = `${serviceName}::${altDomain}`;
+  if (expandedAltDomainPrefixRows.has(key)) {
+    expandedAltDomainPrefixRows.delete(key);
+  } else {
+    expandedAltDomainPrefixRows.add(key);
+  }
+  renderServiceEditor(serviceName);
+}
+
+/**
+ * Clear a bound alternate domain's subdomain prefix, reverting it back to serving at its root/apex
+ * @param {string} serviceName - Service identifier
+ * @param {string} altDomain - Alternate domain name
+ * @returns {void}
+ */
+export function useRootAltDomain(serviceName, altDomain) {
+  expandedAltDomainPrefixRows.delete(`${serviceName}::${altDomain}`);
+  selectServiceDomain(serviceName, altDomain, '');
 }
 
 /**
@@ -354,7 +394,7 @@ function renderDefaultSubdomainSection(serviceName, subdomain) {
  * @returns {void}
  */
 function renderSubdomainSection(serviceName, subdomain) {
-  const activeDomain = subdomain.altDomain || `${serviceName}.${state.config.domain}`;
+  const activeDomain = subdomain.altDomain ? (subdomain.altDomainPrefix ? `${subdomain.altDomainPrefix}.${subdomain.altDomain}` : subdomain.altDomain) : `${serviceName}.${state.config.domain}`;
   return `
     <div class="section">
       <div class="section-title">Subdomain Settings - <a class="title-link" href="${subdomain.protocol === 'secure' && state.environment === 'production'  ? 'https' : 'http'}://${activeDomain}" target="_blank">${activeDomain}</a></div>
@@ -405,15 +445,27 @@ function renderSubdomainSection(serviceName, subdomain) {
                   onchange="selectServiceDomain('${serviceName}', '')">
               <label for="subdomain_domain_default_${serviceName}" class="inline-label">Default - ${serviceName}.${state.config.domain}</label>
             </div>
-            ${(state.config.altDomains || []).map(altDomain => `
+            ${(state.config.altDomains || []).map(altDomain => {
+              const rowKey = `${serviceName}::${altDomain}`;
+              const currentPrefix = subdomain.altDomain === altDomain ? (subdomain.altDomainPrefix || '') : '';
+              const expanded = expandedAltDomainPrefixRows.has(rowKey) || currentPrefix !== '';
+              return `
               <div class="checkbox-item">
                 <input type="radio" name="subdomain_domain_${serviceName}" id="subdomain_domain_${serviceName}_${altDomain}" ${subdomain.altDomain === altDomain ? 'checked' : ''}
-                    onchange="selectServiceDomain('${serviceName}', '${altDomain}')">
-                <label for="subdomain_domain_${serviceName}_${altDomain}" class="inline-label">${altDomain}</label>
+                    onchange="selectServiceDomain('${serviceName}', '${altDomain}', document.getElementById('subdomain_domain_prefix_${serviceName}_${altDomain}')?.value || '')">
+                ${expanded
+                  ? `<button type="button" class="btn-subdomain-toggle" onclick="useRootAltDomain('${serviceName}', '${altDomain}')"><span class="material-icons">remove_circle</span> Use Root</button>
+                     <input type="text" id="subdomain_domain_prefix_${serviceName}_${altDomain}" class="alt-domain-prefix-inline" value="${currentPrefix}" placeholder="subdomain"
+                         onchange="selectServiceDomain('${serviceName}', '${altDomain}', this.value)">
+                     <label for="subdomain_domain_${serviceName}_${altDomain}" class="inline-label">.${altDomain}</label>`
+                  : `<button type="button" class="btn-subdomain-toggle" onclick="toggleAltDomainPrefixInput('${serviceName}', '${altDomain}')"><span class="material-icons">add_circle</span> Use Subdomain</button>
+                     <label for="subdomain_domain_${serviceName}_${altDomain}" class="inline-label">${altDomain}</label>`
+                }
               </div>
-            `).join('')}
+            `;
+            }).join('')}
           </div>
-          <div class="hint">${subdomain.altDomain ? `Serves exclusively at ${subdomain.altDomain} - ${serviceName}.${state.config.domain} will no longer work for this service` : 'Serves at the default subdomain of the primary domain. Select an alternate domain above to serve this service exclusively at that domain\'s apex instead.'}</div>
+          <div class="hint">${subdomain.altDomain ? `Serves exclusively at ${activeDomain} - ${serviceName}.${state.config.domain} will no longer work for this service` : 'Serves at the default subdomain of the primary domain. Select an alternate domain above to serve this service exclusively at that domain\'s apex instead, optionally on a subdomain of it.'}</div>
         </div>
         <div class="form-group proxy-field" data-service="${serviceName}">
           <label for="subdomain_path_${serviceName}">IP address and Port to Internal Service</label>

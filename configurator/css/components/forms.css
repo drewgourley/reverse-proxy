@@ -381,6 +381,32 @@ input[type="radio"]:disabled {
     color: var(--color-text-primary);
 }
 
+
+.btn-subdomain-toggle {
+    background: var(--color-gray-200);
+    color: var(--color-text-secondary);
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-right: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-subdomain-toggle:hover {
+    background: var(--color-gray-300);
+}
+
+input.alt-domain-prefix-inline[type="text"] {
+    width: 120px;
+    flex: none;
+    margin-right: 4px;
+}
+
+
 .entry-field {
     margin-bottom: 20px;
 }
