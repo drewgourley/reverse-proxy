@@ -32,6 +32,7 @@ export function renderSecretsEditor() {
   }  
   secretKeys.forEach(key => {
     if (key === 'api_session_secret') return;
+    if (key.startsWith('wildcard_aws_')) return;
     if (key === 'admin_email_address') return;
     if (key === 'api_password_hash') return;
     orderedKeys.push(key);
@@ -110,6 +111,37 @@ export function renderSecretsEditor() {
       </div>
     `;
   });
+
+  const wildcardEnabled = state.config.wildcardCerts === true;
+  const keyId = state.secrets.wildcard_aws_access_key_id || '';
+  const secretKey = state.secrets.wildcard_aws_secret_access_key || '';
+  if (wildcardEnabled || keyId || secretKey) {
+    html += `
+      <div class="secret-entry${wildcardEnabled && (!keyId || !secretKey) ? ' highlight-required' : ''}">
+        <div class="form-group form-group-no-margin">
+          <label for="secret_wildcard_aws_access_key_id">Wildcard Certificates - AWS Access Key ID</label>
+          <input type="text" id="secret_wildcard_aws_access_key_id" value="${keyId}"
+              onchange="updateSecret('wildcard_aws_access_key_id', this.value.trim())"
+              autocomplete="off"
+              placeholder="${wildcardEnabled ? 'Required for wildcard certificates' : ''}">
+        </div>
+        <div class="form-group form-group-no-margin">
+          <label for="secret_wildcard_aws_secret_access_key">Wildcard Certificates - AWS Secret Access Key</label>
+          <div class="password-input-group">
+            <input type="text" id="secret_wildcard_aws_secret_access_key" value="${secretKey}"
+                class="text-security"
+                onchange="updateSecret('wildcard_aws_secret_access_key', this.value.trim())"
+                autocomplete="off"
+                placeholder="${wildcardEnabled ? 'Required for wildcard certificates' : ''}">
+            <button class="btn-toggle-password" onclick="togglePasswordVisibility('secret_wildcard_aws_secret_access_key', this)"><span class="material-icons">visibility</span> Show</button>
+          </div>
+          <div class="hint">${wildcardEnabled
+            ? 'Answers Let\'s Encrypt\'s DNS challenge for wildcard certificates (Certificates). Give this key only route53:ChangeResourceRecordSets (TXT records) on the domain\'s hosted zone, route53:GetChange and route53:ListHostedZones.'
+            : 'Wildcard certificates are off, so this key is not used. Clear both fields to forget it.'}</div>
+        </div>
+      </div>
+    `;
+  }
 
   html += `
     </div>

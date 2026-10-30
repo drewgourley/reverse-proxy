@@ -64,6 +64,7 @@ function updateConfig(baseDir, updatedConfig) {
     properties: {
       domain: { type: 'string', minLength: 1 },
       rootservice: { type: 'string' },
+      wildcardCerts: { type: 'boolean' },
       altDomains: {
         type: 'array',
         items: { type: 'string', minLength: 1 }
@@ -136,7 +137,9 @@ async function updateSecrets(baseDir, updatedSecrets) {
         type: 'string', 
         pattern: '^$|^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$' 
       },
-      api_password_hash: { type: 'string' }
+      api_password_hash: { type: 'string' },
+      wildcard_aws_access_key_id: { type: 'string', pattern: '^$|^[A-Za-z0-9/+=_-]+$' },
+      wildcard_aws_secret_access_key: { type: 'string', pattern: '^$|^[A-Za-z0-9/+=_-]+$' }
     },
     additionalProperties: true
   };

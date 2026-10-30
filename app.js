@@ -14,6 +14,8 @@ const { initHealthchecks } = require('./lib-public/health-checker');
 const { initApplication } = require('./lib-public/public');
 const { isIpBlocked } = require('./lib-public/bot-blocker');
 const { extractIpFromSocket } = require('./lib-public/helpers');
+const { serviceHost, wildcardServices, matchWildcard } = require('./lib-public/hosts');
+const { buildTlsOptions } = require('./lib-public/tls-contexts');
 
 const { OdalPapiMainService } = require('./lib-public/odalpapi.js');
 const odalpapiService = new OdalPapiMainService();
@@ -87,15 +89,11 @@ setTimeout(() => {
   });
 
   // Load SSL certificates if in production environment
-  let cert;
+  // (the primary domain's certificate, plus one per wildcard service, chosen by the name the browser asked for)
+  let cert = null;
   if (env === 'production') {
-    try {
-      cert = {
-        key: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'privkey.pem'), 'utf8'),
-        cert: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'cert.pem'), 'utf8'),
-        ca: fs.readFileSync(path.join('/etc', 'letsencrypt', 'live', config.domain, 'chain.pem'), 'utf8'),
-      };
-    } catch (error) {
+    cert = buildTlsOptions(config);
+    if (!cert) {
       const now = new Date().toISOString();
       console.error(`${now}: Error loading SSL certificates, try provisioning certificates using the configurator.`);
     }
@@ -132,11 +130,11 @@ setTimeout(() => {
       */
       const handleWebSocketUpgrade = (req, socket, head) => {
         const websockets = Object.keys(config.services).filter(name => config.services[name].subdomain?.proxy?.socket);
+        const wildcards = wildcardServices(config);
         let found = false;
         websockets.forEach(name => {
-          const sub = config.services[name].subdomain;
-          const expectedHost = sub.altDomain ? (sub.altDomainPrefix ? `${sub.altDomainPrefix}.${sub.altDomain}` : sub.altDomain) : `${name}.${config.domain}`;
-          if (req.headers.host === expectedHost) {
+          const expectedHost = serviceHost(config, name);
+          if (req.headers.host === expectedHost || matchWildcard(wildcards, req.headers.host) === name) {
             config.services[name].subdomain.proxy.websocket.upgrade(req, socket, head);
             found = true;
           }

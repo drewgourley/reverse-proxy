@@ -467,6 +467,14 @@ function renderSubdomainSection(serviceName, subdomain) {
           </div>
           <div class="hint">${subdomain.altDomain ? `Serves exclusively at ${activeDomain} - ${serviceName}.${state.config.domain} will no longer work for this service` : 'Serves at the default subdomain of the primary domain. Select an alternate domain above to serve this service exclusively at that domain\'s apex instead, optionally on a subdomain of it.'}</div>
         </div>
+        <div class="form-group">
+          <div class="checkbox-item">
+            <input type="checkbox" id="subdomain_wildcard_${serviceName}" ${subdomain.wildcard ? 'checked' : ''}
+                onchange="updateServiceProperty('${serviceName}', 'subdomain.wildcard', this.checked)">
+            <label for="subdomain_wildcard_${serviceName}" class="inline-label">Wildcard</label>
+          </div>
+          <div class="hint">Also serve every subdomain of ${activeDomain} (*.${activeDomain}) from this service, for a service that creates subdomains of its own. A secure wildcard service gets a certificate of its own that covers all of them once wildcard certificates are enabled under Certificates.</div>
+        </div>
         <div class="form-group proxy-field" data-service="${serviceName}">
           <label for="subdomain_path_${serviceName}">IP address and Port to Internal Service</label>
           <input type="text" id="subdomain_path_${serviceName}" value="${subdomain.path || ''}" 

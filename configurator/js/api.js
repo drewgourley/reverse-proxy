@@ -567,6 +567,32 @@ export async function provisionCertificates(email) {
 }
 
 /**
+ * Ask whether certbot's Route 53 plugin (needed for wildcard certificates) is installed on the server
+ * @returns {Promise<{installed: boolean, method: string, directions: string[], detail?: string}>}
+ */
+export async function loadWildcardStatus() {
+  const response = await fetch('/certs/wildcard');
+  const result = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error((result && result.error) || `HTTP ${response.status}: Failed to check the Route 53 plugin`);
+  }
+  return result;
+}
+
+/**
+ * Have the server install certbot's Route 53 plugin when it is missing; a failure comes back as the directions to do it by hand
+ * @returns {Promise<{installed: boolean, method: string, directions: string[], detail?: string}>}
+ */
+export async function installWildcardSupport() {
+  const response = await fetch('/certs/wildcard/install', { method: 'POST' });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error((result && result.error) || `HTTP ${response.status}: Failed to install the Route 53 plugin`);
+  }
+  return result;
+}
+
+/**
  * Fetch public IP from server API
  * @returns {Promise<object|undefined>} Response containing success/ip or undefined on error
  */

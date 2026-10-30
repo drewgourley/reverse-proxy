@@ -12,6 +12,7 @@ const logsManager = require('./logs-manager');
 const systemInfo = require('./system-info');
 const themeManager = require('./theme-manager');
 const certManager = require('./certificate-manager');
+const certbotPlugin = require('./certbot-plugin');
 const processManager = require('./process-manager');
 const { sendError } = require('./helpers');
 
@@ -130,6 +131,22 @@ configrouter.get('/certs', (request, response) => {
     });
     response.setHeader('Content-Type', 'application/json');
     response.send(certs);
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.get('/certs/wildcard', async (request, response) => {
+  try {
+    response.status(200).send(await certbotPlugin.getStatus());
+  } catch (error) {
+    sendError(response, 500, error);
+  }
+});
+
+configrouter.post('/certs/wildcard/install', async (request, response) => {
+  try {
+    response.status(200).send(await certbotPlugin.installPlugin());
   } catch (error) {
     sendError(response, 500, error);
   }

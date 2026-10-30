@@ -25,6 +25,7 @@ const authHelpers = require('./auth-helpers');
 const { sendError, extractIpFromSocket } = require('./helpers');
 const { checkSuspiciousRequest, addToBlocklist, isIpBlocked } = require('./bot-blocker');
 const { checkService } = require('./health-checker');
+const { wildcardServices, matchWildcard } = require('./hosts');
 
 /**
  * Initializes the Express application with all configured services, middleware, and routing
@@ -104,6 +105,9 @@ async function initApplication(options) {
     
     // Services still reachable at name.config.domain (i.e. not exclusively bound to an alt domain)
     const defaultDomainServices = services.filter(name => !config.services[name].subdomain.altDomain);
+
+    // Services that also answer for every subdomain of their own host (name.config.domain or their alt domain host)
+    const wildcards = wildcardServices(config);
     
     // ========== Phase 1: Initialize Routers and Proxy Middleware ==========
     // Create Express routers for each service and set up proxy configurations
@@ -223,7 +227,8 @@ async function initApplication(options) {
       const isValidHost = host === config.domain || 
                           host === `www.${config.domain}` ||
                           defaultDomainServices.some(name => host === `${name}.${config.domain}`) ||
-                          Object.prototype.hasOwnProperty.call(altDomainTargets, host);
+                          Object.prototype.hasOwnProperty.call(altDomainTargets, host) ||
+                          matchWildcard(wildcards, host) !== undefined;
       if (!isValidHost) {
         return response.redirect(`${protocols.secure}${config.domain}`);
       }
@@ -231,7 +236,7 @@ async function initApplication(options) {
       // Determine target service based on subdomain, falling back to a bound alternate domain
       let target = defaultDomainServices.find((name) => {
         return `${name}.${config.domain}` === host && config.services[name].subdomain;
-      }) || altDomainTargets[host];
+      }) || altDomainTargets[host] || matchWildcard(wildcards, host);
       
       // ========== HTTPS/HTTP Routing Logic ==========
       if (request.url.includes('.well-known')) {
@@ -782,6 +787,18 @@ async function initApplication(options) {
       application.use((request, response, next) => {
         if (request.headers.host === altDomain) {
           return config.services[targetName].subdomain.router(request, response, next);
+        }
+        next();
+      });
+    });
+    
+    // ========== Mount Service Routers to Wildcard Hosts ==========
+    // A wildcard service also answers for every subdomain of its host (customer.name.domain.com), so each of those
+    // reaches the same router without the proxy needing to know the names in advance.
+    wildcards.forEach(({ name }) => {
+      application.use((request, response, next) => {
+        if (matchWildcard(wildcards, request.headers.host) === name) {
+          return config.services[name].subdomain.router(request, response, next);
         }
         next();
       });

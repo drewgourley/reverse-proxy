@@ -100,6 +100,8 @@ window.revertEcosystem = applicationEditor.revertEcosystem;
 // Certificates Editor
 window.renderCertificatesEditor = certificatesEditor.renderCertificatesEditor;
 window.provisionCertificates = certificatesEditor.provisionCertificates;
+window.toggleWildcardCerts = certificatesEditor.toggleWildcardCerts;
+window.installWildcardSupport = certificatesEditor.installWildcardSupport;
 
 // Advanced Editor
 window.renderAdvancedEditor = advancedEditor.renderAdvancedEditor;

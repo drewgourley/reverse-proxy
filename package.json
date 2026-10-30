@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "test": "node --test \"test/**/*.test.js\""
   },
   "dependencies": {
     "@aws-sdk/client-route-53": "^3.515.0",

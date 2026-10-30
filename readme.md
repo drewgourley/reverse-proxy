@@ -110,6 +110,35 @@ To enable Dynamic DNS with Route53, you need to create an IAM user with the appr
 
 This policy follows the principle of least privilege, granting only the permissions necessary to update DNS records in your specific hosted zone.
 
+##### Wildcard Services
+
+A service with **Wildcard** checked (Services → the service → Subdomain Settings) also answers for every subdomain of its own host: a service at `maker.example.com` also receives `shop.maker.example.com`, `anything.maker.example.com`, and so on, without the proxy having to know the names. Use it in front of an app that creates subdomains by itself (a multi-tenant platform) so that adding a subdomain takes no change here.
+
+- **Routing** - Only the service's own host and subdomains of it are matched. An explicitly configured service still wins over a wildcard for its own host.
+- **Certificates** - Let's Encrypt only issues wildcard certificates through a DNS challenge, so a secure wildcard service gets a certificate of its own (covering its host and `*.` of it) instead of joining the shared one. This is optional and off by default: turn on **Enable wildcard certificates** in the **Certificates** section and save the configuration. Turning it on installs Certbot's Route53 plugin (`python3-certbot-dns-route53` with apt, `certbot-dns-route53` with snap) when it is missing, which needs passwordless `sudo` like the rest of certificate provisioning. If that fails, the page shows the commands to run by hand, and the **Install Plugin** button tries again. The AWS access key for the DNS challenge is entered in **Secrets** (two extra fields appear there while the option is on), separate from Dynamic DNS, and is copied to a root-only file for Certbot and its daily renewals. Then provision certificates as usual. The proxy picks the certificate by the name the browser asks for, so no restart is needed for new subdomains.
+- **IAM** - The access key for wildcard certificates only needs to answer the DNS challenge. Attach a policy like this (replace `YOUR_HOSTED_ZONE_ID`):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["route53:ListHostedZones", "route53:GetChange"],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["route53:ChangeResourceRecordSets"],
+      "Resource": "arn:aws:route53:::hostedzone/YOUR_HOSTED_ZONE_ID",
+      "Condition": { "ForAllValues:StringEquals": { "route53:ChangeResourceRecordSetsRecordTypes": ["TXT"] } }
+    }
+  ]
+}
+```
+
+- **DNS** - The wildcard host needs DNS records for itself and `*.` of itself (`maker.example.com` and `*.maker.example.com`). A wildcard record like `*.example.com` does not cover them once `maker.example.com` has any record of its own, or while Certbot's challenge record is briefly present, so create both explicitly.
+
 #### API Authentication
 
 You can protect the API web page (/web/public/api/) with authentication by setting the  **API Password** in the **Secrets** section of the web configurator. Passwords entered in the UI will be hashed on the server before they are saved.

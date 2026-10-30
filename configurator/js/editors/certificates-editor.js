@@ -4,6 +4,124 @@ import { parseErrorMessage } from '../utils.js';
 import { reloadPage, waitForServerRestart, showStatus, showLoadingOverlay, hideLoadingOverlay } from '../ui-components.js';
 import { hasUnsavedConfigChanges } from '../editors.js';
 
+// Certbot's Route 53 plugin as the server last reported it (null until asked), and whether a check or install is running
+let wildcardStatus = null;
+let wildcardBusy = false;
+
+/**
+ * Escape text for use inside HTML
+ * @param {string} text - Plain text
+ * @returns {string}
+ */
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
+}
+
+/**
+ * Whether a service gets a wildcard certificate of its own (the option is on, and so is the service's wildcard flag)
+ * @param {object} config - Configuration object
+ * @param {object} sub - Service subdomain configuration
+ * @returns {boolean}
+ */
+function hasWildcardCertificate(config, sub) {
+  return config.wildcardCerts === true && sub?.wildcard === true;
+}
+
+/**
+ * The status lines under the wildcard option: plugin state, install directions, and missing credentials
+ * @returns {string} HTML
+ */
+function wildcardStatusHtml() {
+  if (state.config.wildcardCerts !== true) return '';
+
+  let html = '';
+  if (wildcardBusy || wildcardStatus === null) {
+    html += '<div class="hint"><span class="material-icons info">hourglass_empty</span> Checking certbot\'s Route 53 plugin...</div>';
+  } else if (wildcardStatus.installed) {
+    html += '<div class="hint"><span class="material-icons success">check_circle</span> Certbot\'s Route 53 plugin is installed.</div>';
+  } else {
+    const detail = wildcardStatus.detail ? ` (${escapeHtml(wildcardStatus.detail)})` : '';
+    const directions = (wildcardStatus.directions || []).map(command => `<div class="hint"><code>${escapeHtml(command)}</code></div>`).join('');
+    html += `
+      <div class="hint"><span class="material-icons warning">warning</span> Certbot's Route 53 plugin is not installed${detail}. Install it automatically, or run these on the server:</div>
+      ${directions}
+      <div class="secret-actions">
+        <button class="btn-save" onclick="installWildcardSupport()"><span class="material-icons">download</span> Install Plugin</button>
+      </div>`;
+  }
+
+  const hasCredentials = state.secrets.wildcard_aws_access_key_id && state.secrets.wildcard_aws_secret_access_key;
+  if (!hasCredentials) {
+    html += '<div class="hint"><span class="material-icons warning">warning</span> Add an AWS access key for the DNS challenge in Secrets (and save it) before provisioning.</div>';
+  }
+  return html;
+}
+
+/**
+ * Redraw the wildcard status lines in place, if the Certificates page is showing
+ * @returns {void}
+ */
+function refreshWildcardStatus() {
+  const container = document.getElementById('wildcardStatus');
+  if (container) container.innerHTML = wildcardStatusHtml();
+}
+
+/**
+ * Ask the server whether the plugin is installed
+ * @returns {Promise<void>}
+ */
+async function checkWildcardSupport() {
+  wildcardBusy = true;
+  refreshWildcardStatus();
+  try {
+    wildcardStatus = await api.loadWildcardStatus();
+  } catch (error) {
+    wildcardStatus = { installed: false, directions: [], detail: parseErrorMessage(error) };
+  }
+  wildcardBusy = false;
+  refreshWildcardStatus();
+}
+
+/**
+ * Install the plugin on the server when it is missing; on failure the directions stay on the page
+ * @returns {Promise<void>}
+ */
+export async function installWildcardSupport() {
+  wildcardBusy = true;
+  refreshWildcardStatus();
+  showLoadingOverlay('Setting Up Wildcard Certificates', 'Checking certbot\'s Route 53 plugin and installing it if it is missing. This can take a minute...');
+  try {
+    wildcardStatus = await api.installWildcardSupport();
+    hideLoadingOverlay();
+    if (wildcardStatus.installed) {
+      showStatus('Certbot\'s Route 53 plugin is ready', 'success');
+    } else {
+      showStatus('The plugin could not be installed automatically, follow the directions on the page', 'error');
+    }
+  } catch (error) {
+    hideLoadingOverlay();
+    wildcardStatus = { installed: false, directions: [], detail: parseErrorMessage(error) };
+    showStatus('Error installing the plugin: ' + parseErrorMessage(error), 'error');
+  }
+  wildcardBusy = false;
+  refreshWildcardStatus();
+}
+
+/**
+ * Turn the wildcard certificate option on or off (saved with the rest of the configuration); turning it on installs the plugin
+ * @param {boolean} enabled - Whether wildcard certificates are wanted
+ * @returns {Promise<void>}
+ */
+export async function toggleWildcardCerts(enabled) {
+  if (enabled) {
+    state.config.wildcardCerts = true;
+  } else {
+    delete state.config.wildcardCerts;
+  }
+  renderCertificatesEditor();
+  if (enabled) await installWildcardSupport();
+}
+
 /**
  * Render the Certificates editor UI and show certificate status
  * @returns {void}
@@ -79,7 +197,22 @@ export function renderCertificatesEditor() {
       </div>
       ${warningMessage}
     </div>
+    <div class="section">
+      <div class="section-title"><span class="material-icons">star</span> Wildcard Certificates</div>
+      <div class="hint hint-section">A service marked Wildcard also answers for every subdomain of its address. With this on, it gets one certificate covering all of them, issued through a DNS challenge on Route 53 (Let's Encrypt only issues wildcard certificates that way).</div>
+      <div class="form-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="wildcardCerts" ${state.config.wildcardCerts === true ? 'checked' : ''}
+              onchange="toggleWildcardCerts(this.checked)">
+          <label for="wildcardCerts" class="inline-label">Enable wildcard certificates</label>
+        </div>
+        <div class="hint">Needs certbot's Route 53 plugin, which is installed for you, and an AWS access key in Secrets that can edit TXT records in the domain's hosted zone and list hosted zones.</div>
+        <div id="wildcardStatus">${wildcardStatusHtml()}</div>
+      </div>
+    </div>
   `;
+
+  if (state.config.wildcardCerts === true && wildcardStatus === null && !wildcardBusy) checkWildcardSupport();
 
   if (hasChanges) {
     actions.innerHTML = `
@@ -137,10 +270,10 @@ export async function provisionCertificates() {
  */
 function getServiceDomainLabels(serviceName) {
   const sub = state.originalConfig.services?.[serviceName]?.subdomain;
-  if (sub?.altDomain) {
-    return [sub.altDomainPrefix ? `${sub.altDomainPrefix}.${sub.altDomain}` : sub.altDomain];
-  }
-  return [`${serviceName}.${state.originalConfig.domain}`];
+  const host = sub?.altDomain
+    ? (sub.altDomainPrefix ? `${sub.altDomainPrefix}.${sub.altDomain}` : sub.altDomain)
+    : `${serviceName}.${state.originalConfig.domain}`;
+  return hasWildcardCertificate(state.originalConfig, sub) ? [host, `*.${host}`] : [host];
 }
 
 /**
@@ -165,9 +298,12 @@ export function getCertificateStatus() {
   }
   
   const provisionedServices = new Set(state.certs.services || []);
+  const provisionedWildcards = new Set(state.certs.wildcards || []);
   
   currentSecureServices.forEach(serviceName => {
-    if (provisionedServices.has(serviceName)) {
+    // Switching a service between a shared and a wildcard certificate needs provisioning too
+    const wildcardMatches = provisionedWildcards.has(serviceName) === hasWildcardCertificate(state.originalConfig, state.originalConfig.services[serviceName].subdomain);
+    if (provisionedServices.has(serviceName) && wildcardMatches) {
       status.provisioned.push(...getServiceDomainLabels(serviceName));
     } else {
       status.needProvisioning.push(...getServiceDomainLabels(serviceName));
