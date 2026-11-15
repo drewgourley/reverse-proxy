@@ -5,6 +5,19 @@
  * Anything in these functions can and will be publicly facing, so be careful what you expose.
  */
 
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Find the page that replaces an index service's own index.html at its root
+ * @param {string} publicFolderPath - The service's folder under web/public
+ * @returns {string|null} Path to homepage/index.html inside that folder, or null when there isn't one
+ */
+function findHomepage(publicFolderPath) {
+  const file = path.join(publicFolderPath, 'homepage', 'index.html');
+  return fs.existsSync(file) ? file : null;
+}
+
 /**
  * Send standardized error response
  * @param {object} response - Express response object
@@ -47,5 +60,6 @@ function extractIpFromSocket(socket) {
 
 module.exports = {
   sendError,
-  extractIpFromSocket
+  extractIpFromSocket,
+  findHomepage
 };

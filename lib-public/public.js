@@ -22,7 +22,7 @@ const { RedisStore } = require('connect-redis');
 
 const got = require('got');
 const authHelpers = require('./auth-helpers');
-const { sendError, extractIpFromSocket } = require('./helpers');
+const { sendError, extractIpFromSocket, findHomepage } = require('./helpers');
 const { checkSuspiciousRequest, addToBlocklist, isIpBlocked } = require('./bot-blocker');
 const { checkService } = require('./health-checker');
 const { wildcardServices, matchWildcard } = require('./hosts');
@@ -622,6 +622,12 @@ async function initApplication(options) {
         
         // ========== Static File Serving for 'index' Type Services ==========
         // Serve public files and index.html, with 404 fallback
+        // A homepage/index.html in the service's public folder is served at the root instead of its index.html.
+        config.services[name].subdomain.router.get('/', (request, response, next) => {
+          const homepage = findHomepage(publicFolderPath);
+          if (!homepage) return next();
+          response.sendFile(homepage);
+        });
         config.services[name].subdomain.router.use(express.static(path.join(__dirname, 'web', 'public', name)));
         config.services[name].subdomain.router.get('/', (request, response) => {
           response.sendFile(path.join(__dirname, 'web', 'public', name, 'index.html'));

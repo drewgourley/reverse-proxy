@@ -163,6 +163,7 @@ Proxies requests to another service running on a different port or server.
 Serves static files with an `index.html` file.
 - Use for: Traditional static websites
 - Serves files from `web/public/{servicename}/`
+- Serves `web/public/{servicename}/homepage/index.html` at the root when it exists, instead of the service's own `index.html`
 - Returns `404.html` for non-existent routes
 
 #### `spa` (Single-Page Webapp)
