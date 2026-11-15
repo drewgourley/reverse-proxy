@@ -44,8 +44,7 @@ web/global/favicon/*
 
 # Ignore everything in web/static by default
 web/static/*
-web/static/www/portfolio.css
-web/static/www/portfolio.js
+web/static/www/portfolio
 
 # Allow specific folders in web/static
 !web/static/api/
