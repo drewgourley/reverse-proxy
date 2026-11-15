@@ -8,7 +8,7 @@ const os = require('os');
  * @returns {Promise<string>} Public IP address
  */
 async function getPublicIP() {
-  const response = await got('https://checkip.amazonaws.com/', { timeout: { request: 5000 } });
+  const response = await got('https://checkip.amazonaws.com/', { timeout: { request: 5000 }, retry: { limit: 0 } });
   return response.body.trim();
 }
 

@@ -39,7 +39,7 @@ function checkService(name, config, protocols, parsers, extractors, odalpapiServ
     }
 
     if (check.type === 'http') {
-      got(`${protocols.insecure}${check.path}`, { timeout: { request: check.timeout || 1000 } })
+      got(`${protocols.insecure}${check.path}`, { timeout: { request: check.timeout || 1000 }, retry: { limit: 0 } })
         .then((response) => {
           if (parsers[check.parser] && parsers[check.parser](response.body)) {
             report.healthy = true;
@@ -113,7 +113,7 @@ async function pingHealthcheck(name, config, protocols) {
     const now = new Date().toISOString();
     const path = require('path');
     try {
-      const ping = await got(`${protocols.secure}${path.join('hc-ping.com', id)}`, { timeout: { request: 5000 } });
+      const ping = await got(`${protocols.secure}${path.join('hc-ping.com', id)}`, { timeout: { request: 5000 }, retry: { limit: 0 } });
       console.log(`${now}: ${name} healthcheck ping succeeded. ${ping.body}`);
     } catch (error) {
       console.log(`${now}: ${name} healthcheck ping failed. ${error}`);

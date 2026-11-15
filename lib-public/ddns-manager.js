@@ -34,7 +34,7 @@ function initDDNS(ddns, config, env, cron) {
 
   const updateDNSRecord = async () => {
     try {
-      const response = await got('https://checkip.amazonaws.com/', { timeout: { request: 5000 } });
+      const response = await got('https://checkip.amazonaws.com/', { timeout: { request: 5000 }, retry: { limit: 0 } });
       const publicIP = response.body.trim();
 
       if (publicIP === lastKnownIP) {

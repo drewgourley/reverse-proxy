@@ -154,7 +154,7 @@ async function initApplication(options) {
                 return res.json(npCache);
               }
               try {
-                const response = await got(`${icecastBase}/status-json.xsl`, { timeout: { request: 3000 } });
+                const response = await got(`${icecastBase}/status-json.xsl`, { timeout: { request: 3000 }, retry: { limit: 0 } });
                 const json = JSON.parse(response.body);
                 let nowPlaying = '';
                 if (json.mounts && Object.keys(json.mounts).length > 0) {
