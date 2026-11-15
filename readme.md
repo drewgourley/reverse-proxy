@@ -178,3 +178,7 @@ Optimized for modern JavaScript frameworks like React, Angular, Vue.js, etc.
 Serves a directory listing with optional basic authentication.
 - Use for: File browsers, download directories
 - Supports basic authentication for protected directories
+
+## License
+
+Released under the [MIT License](LICENSE).

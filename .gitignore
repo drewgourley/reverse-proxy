@@ -44,11 +44,14 @@ web/global/favicon/*
 
 # Ignore everything in web/static by default
 web/static/*
+web/static/www/portfolio.css
+web/static/www/portfolio.js
 
 # Allow specific folders in web/static
 !web/static/api/
 !web/static/radio/
 !web/static/www/
+
 
 _store
 _store/*
