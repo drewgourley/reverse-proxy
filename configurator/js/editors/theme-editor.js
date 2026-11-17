@@ -107,6 +107,11 @@ export function revertTheme() {
         if (color3) color3.value = state.originalColors.accent;
         if (color4) color4.value = state.originalColors.background;
         
+        for (const field of ['siteName', 'siteShortName']) {
+          const input = document.getElementById(field);
+          if (input) input.value = state.originalColors[field] || '';
+        }
+        
         state.setPendingFaviconFile(null);
         const faviconUpload = document.getElementById('faviconUpload');
         const faviconPreview = document.getElementById('faviconPreview');
@@ -210,7 +215,9 @@ export async function saveTheme() {
       secondary: state.colors.secondary,
       accent: state.colors.accent,
       background: state.colors.background,
-      inverse: getInverseColor(state.colors.accent)
+      inverse: getInverseColor(state.colors.accent),
+      siteName: (state.colors.siteName || '').trim(),
+      siteShortName: (state.colors.siteShortName || '').trim()
     };
     
     await api.saveColors(colorData);
@@ -272,6 +279,17 @@ export function renderThemeEditor() {
             <input type="color" id="color4" value="${state.colors.background}">
             <div class="hint">Base background color for panels (automatically generates grays)</div>
           </div>
+          <div class="subsection-heading"><strong><span class="material-icons">title</span> Site name</strong></div>
+          <div class="form-group">
+            <label for="siteName">Name</label>
+            <input type="text" id="siteName" maxlength="45">
+            <div class="hint">What the site is called when a phone saves it to the home screen</div>
+          </div>
+          <div class="form-group">
+            <label for="siteShortName">Short name</label>
+            <input type="text" id="siteShortName" maxlength="30">
+            <div class="hint">Shown under the icon; phones cut it off at about 12 characters</div>
+          </div>
         </div>
         <div>
           <div class="subsection-heading"><strong><span class="material-icons">image</span> Favicon</strong></div>
@@ -324,6 +342,15 @@ export function renderThemeEditor() {
     state.colors.background = e.target.value;
     updateTheme();
   });
+
+  // Set as properties, not interpolated into the markup, so a quote in a name can't break the page.
+  for (const field of ['siteName', 'siteShortName']) {
+    const input = document.getElementById(field);
+    input.value = state.colors[field] || '';
+    input.addEventListener('input', (e) => {
+      state.colors[field] = e.target.value;
+    });
+  }
   
   document.getElementById('faviconUpload').addEventListener('change', handleFaviconPreview);
 }

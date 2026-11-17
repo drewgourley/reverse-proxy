@@ -190,7 +190,9 @@ configrouter.get('/colors', (request, response) => {
       secondary: "#764ba2",
       accent: "#48bb78",
       background: "#ffffff",
-      inverse: "#b84878"
+      inverse: "#b84878",
+      siteName: "Drew Gourley",
+      siteShortName: "Drew Gourley"
     });
     response.setHeader('Content-Type', 'application/json');
     response.send(colors);

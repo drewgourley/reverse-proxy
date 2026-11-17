@@ -5,21 +5,26 @@ const path = require('path');
 const sharp = require('sharp');
 const toIco = require('to-ico');
 
+const DEFAULT_SITE_NAME = 'Drew Gourley';
+
 /**
- * Update colors and related files
+ * Update colors, the site's name and related files
  * @param {string} webDir - Web directory
  * @param {string} baseDir - Base directory
- * @param {Object} updatedColors - New colors configuration
+ * @param {Object} updatedColors - New colors configuration, with an optional siteName and siteShortName for the web manifest
  * @returns {void}
  */
 function updateColors(webDir, baseDir, updatedColors) {
   const hexColorRegex = /^#([0-9A-Fa-f]{3}){1,2}$/;
   const colorFields = ['primary', 'secondary', 'accent', 'background', 'inverse'];
+  // Phones show the short name under the icon and cut it off at about 12 characters.
+  const nameLimits = { siteName: 45, siteShortName: 30 };
+  const allowedFields = [...colorFields, ...Object.keys(nameLimits)];
   const receivedFields = Object.keys(updatedColors);
-  const extraFields = receivedFields.filter(f => !colorFields.includes(f));
+  const extraFields = receivedFields.filter(f => !allowedFields.includes(f));
   
   if (extraFields.length > 0) {
-    const error = new Error(`Unexpected fields: ${extraFields.join(', ')}. Only ${colorFields.join(', ')} are allowed.`);
+    const error = new Error(`Unexpected fields: ${extraFields.join(', ')}. Only ${allowedFields.join(', ')} are allowed.`);
     error.statusCode = 400;
     throw error;
   }
@@ -41,10 +46,31 @@ function updateColors(webDir, baseDir, updatedColors) {
       throw error;
     }
   }
+
+  const names = {};
+  for (const [field, limit] of Object.entries(nameLimits)) {
+    const value = updatedColors[field];
+    if (value !== undefined && typeof value !== 'string') {
+      const error = new Error(`Invalid type for ${field}. Must be a string.`);
+      error.statusCode = 400;
+      throw error;
+    }
+    names[field] = (value || '').trim();
+    if (names[field].length > limit) {
+      const error = new Error(`${field} can be at most ${limit} characters.`);
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+  names.siteName = names.siteName || DEFAULT_SITE_NAME;
+  names.siteShortName = names.siteShortName || names.siteName.slice(0, nameLimits.siteShortName);
   
   // Save colors.json
   const colorsPath = path.join(baseDir, 'colors.json');
-  fs.writeFileSync(colorsPath, JSON.stringify(updatedColors, null, 2));
+  const saved = {};
+  for (const field of colorFields) saved[field] = updatedColors[field];
+  Object.assign(saved, names);
+  fs.writeFileSync(colorsPath, JSON.stringify(saved, null, 2));
   
   // Update browserconfig.xml
   const browserconfigPath = path.join(webDir, 'web', 'global', 'favicon', 'browserconfig.xml');
@@ -63,8 +89,8 @@ function updateColors(webDir, baseDir, updatedColors) {
   // Update site.webmanifest
   const webmanifestPath = path.join(webDir, 'web', 'global', 'favicon', 'site.webmanifest');
   const webmanifest = {
-    name: "Reverse Proxy Server",
-    short_name: "ReverseProxy",
+    name: names.siteName,
+    short_name: names.siteShortName,
     icons: [
       {
         src: "./android-chrome-192x192.png",
@@ -74,7 +100,7 @@ function updateColors(webDir, baseDir, updatedColors) {
     ],
     theme_color: updatedColors.primary || '#ffffff',
     background_color: updatedColors.background || '#000000',
-    display: "standalone"
+    display: "browser" // "standalone" makes phones offer to install the site as an app
   };
   fs.writeFileSync(webmanifestPath, JSON.stringify(webmanifest, null, 4));
 }

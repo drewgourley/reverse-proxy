@@ -99,7 +99,9 @@ export function getDefaultColors() {
     secondary: "#764ba2",
     accent: "#48bb78",
     background: "#ffffff",
-    inverse: "#b84878"
+    inverse: "#b84878",
+    siteName: "My Site",
+    siteShortName: "My Site"
   }
 }
 
